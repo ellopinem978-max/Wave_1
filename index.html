@@ -1,1 +1,251 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<title>Wake Map</title>
+<style>
+body{font-family:Arial,sans-serif;background:#0f172a;color:#e5e7eb;padding:20px;max-width:520px;margin:auto}
+h1{text-align:center}
+.day{padding:16px;border-radius:14px;background:#020617;border:2px solid #38bdf8}
+.task{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin:8px 0;
+  transition:
+    opacity .35s ease,
+    transform .35s ease;
+}
+
+.task.done{
+  opacity:0;
+  transform:translateX(40px) scale(.95);
+  pointer-events:none;
+}
+.task:hover{
+  transform:translateX(4px);
+}
+
+.actions button{margin-left:6px;background:#1e293b;color:#e5e7eb;border:none;border-radius:6px;padding:4px 8px;cursor:pointer}
+.score{text-align:center;margin-top:16px;color:#38bdf8}
+#skipWrap,#historyWrap{text-align:center;margin-top:14px}
+button.main{background:#334155;color:#fff;border:none;border-radius:8px;padding:8px 14px;cursor:pointer}
+#history{margin-top:20px}
+.history-day{padding:10px;border-radius:10px;background:#020617;margin-bottom:8px;cursor:pointer}
+.history-detail{
+  margin-top:10px;
+  padding-top:8px;
+  border-top:1px solid #334155;
+  font-size:.9em;
+  opacity:.85;
+}
+
+.history-detail div{
+  margin:4px 0;
+}
+
+</style>
+</head>
+<body>
 <h1>Wake Map</h1>
+<div id="app"></div>
+<div id="skipWrap"><button id="skipDay" class="main">Skip hari ini</button></div>
+<div id="historyWrap"><button id="toggleHistory" class="main">Riwayat 30 hari</button></div>
+<div id="history"></div>
+
+<script>
+const days=["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
+const schedules={
+  Senin: [
+        "07.00–07.30 Bangun",
+        "07.30–08.00 Mandi + siap",
+        "12.00–15.00 Kuliah",
+        "15.00–17.00 Istirahat / makan",
+        "17.00–22.00 Belajar",
+        "22.00–06.00 Tidur"
+      ],
+      Selasa: [
+        "06.30–07.30 Bangun + siap",
+        "08.00–11.00 Kuliah",
+        "11.00–13.00 Istirahat",
+        "13.00–18.00 Belajar / bebas",
+        "18.00–22.00 Santai",
+        "22.00–06.00 Tidur"
+      ],
+      Rabu: [
+        "07.00–07.30 Bangun",
+        "07.30–08.00 Mandi",
+        "08.00–13.00 Kuliah",
+        "13.00–15.00 Main",
+        "15.00–18.00 Kelas",
+        "18.00–19.00 Olahraga",
+        "19.00–22.00 Belajar",
+        "22.00–07.00 Tidur"
+      ],
+      Kamis: [
+        "07.00–07.30 Bangun",
+        "07.30–08.00 Mandi",
+        "08.00–15.00 Kuliah",
+        "15.00–16.00 Makan",
+        "16.00–16.30 Pulang",
+        "16.30–19.00 Belajar",
+        "19.00–20.00 Olahraga",
+        "20.00–21.00 Mandi",
+        "21.00–23.00 Belajar",
+        "23.00–06.00 Tidur"
+      ],
+      Jumat: [
+        "06.00–06.30 Bangun",
+        "06.30–07.00 Mandi",
+        "07.00–16.00 Kuliah",
+        "16.00–17.00 Olahraga",
+        "17.00–18.00 Makan",
+        "18.00–19.00 Mandi",
+        "19.00–22.00 Belajar",
+        "22.00–05.00 Tidur"
+      ],
+      Sabtu: [
+        "06.00–06.30 Bangun",
+        "06.30–07.30 Makan + siap",
+        "07.30–09.00 Olahraga",
+        "09.00–11.00 Santai",
+        "11.00–12.00 Makan",
+        "12.00–14.00 Belajar ringan",
+        "14.00–18.00 Bebas",
+        "18.00–22.30 Santai",
+        "22.30–06.00 Tidur"
+      ],
+      Minggu: [
+        "06.00–06.30 Bangun",
+        "06.30–07.30 Santai",
+        "07.30–09.00 Review",
+        "09.00–12.00 Bebas",
+        "12.00–13.00 Makan",
+        "13.00–15.00 Belajar ringan",
+        "15.00–18.00 Keluarga",
+        "18.00–22.00 Santai",
+        "22.00–06.00 Tidur"
+      ]
+};
+
+const today=new Date();
+const todayName=days[today.getDay()];
+const todayKey=today.toDateString();
+const weekKey=getWeekKey(today);
+const app=document.getElementById('app');
+const historyDiv=document.getElementById('history');
+let doneCount=0;
+let total=schedules[todayName].length;
+
+const skipped=localStorage.getItem(todayKey+'-skipped');
+const dayDiv=document.createElement('div');
+dayDiv.className='day';
+dayDiv.innerHTML=`<h2>${todayName}</h2>`;
+
+if(!skipped){
+  schedules[todayName].forEach((t,i)=>{
+    const key=`${todayKey}-${i}`;
+    const status=localStorage.getItem(key);
+    if(status) return;
+    const task=document.createElement('div');task.className='task';
+    const label=document.createElement('span');label.textContent=t;
+    const act=document.createElement('div');act.className='actions';
+    const ok=document.createElement('button');ok.textContent='✔';
+    const fail=document.createElement('button');fail.textContent='✖';
+    ok.onclick=()=>finish(i,'done',task);
+    fail.onclick=()=>finish(i,'fail',task);
+    act.append(ok,fail);task.append(label,act);dayDiv.appendChild(task);
+  });
+}else{dayDiv.innerHTML+='<p>Hari ini di-skip</p>';document.getElementById('skipWrap').style.display='none';}
+
+app.appendChild(dayDiv);
+const scoreDiv=document.createElement('div');scoreDiv.className='score';app.appendChild(scoreDiv);
+
+document.getElementById('skipDay').onclick=()=>{localStorage.setItem(todayKey+'-skipped','1');location.reload();};
+
+function finish(i,res,el){
+  localStorage.setItem(`${todayKey}-${i}`,res);
+  if(res==='done')doneCount++;
+  el.classList.add('done');
+  checkEnd();
+}
+
+function checkEnd(){
+  if(document.querySelectorAll('.task:not(.done)').length===0){
+    document.getElementById('skipWrap').style.display='none';
+    const score=Math.round((doneCount/total)*10);
+    scoreDiv.textContent=`Skor hari ini: ${score}/10`;
+    saveHistory(score);
+  }
+}
+
+function saveHistory(score){
+  const data=JSON.parse(localStorage.getItem('history')||'{}');
+  if(!data[todayKey]){
+    const tasks={};
+    schedules[todayName].forEach((t,i)=>{
+      tasks[t]=localStorage.getItem(`${todayKey}-${i}`)||'skip';
+    });
+    data[todayKey]={day:todayName,score,tasks};
+    localStorage.setItem('history',JSON.stringify(data));
+  }
+}
+
+// HISTORY VIEW
+let open=false;
+document.getElementById('toggleHistory').onclick=()=>{
+  open=!open;historyDiv.innerHTML='';
+  if(!open)return;
+  const data=JSON.parse(localStorage.getItem('history')||'{}');
+  const keys=Object.keys(data).slice(-30).reverse();
+  keys.forEach(k=>{
+    const d=data[k];
+    const box=document.createElement('div');box.className='history-day';
+    const dt = new Date(k);
+const tgl = `${dt.getDate().toString().padStart(2,'0')} - ${(dt.getMonth()+1)
+  .toString().padStart(2,'0')} - ${dt.getFullYear()}`;
+
+box.innerHTML = `
+  <strong>${d.day}</strong>
+  <span style="opacity:.6;font-size:.85em">
+    [${tgl}]
+  </span>
+  <span style="float:right;color:#38bdf8">
+    ${d.score}/10
+  </span>
+`;
+
+
+    box.onclick=()=>showDetail(box,d);
+    historyDiv.appendChild(box);
+  });
+};
+
+function showDetail(box, d){
+  const exist = box.querySelector('.history-detail');
+  if(exist){
+    exist.remove(); // klik lagi = tutup
+    return;
+  }
+
+  // tutup detail lain (biar rapi)
+  document.querySelectorAll('.history-detail')
+    .forEach(e => e.remove());
+
+  const det = document.createElement('div');
+  det.className = 'history-detail';
+
+  Object.entries(d.tasks).forEach(([t,s])=>{
+    const row = document.createElement('div');
+    row.textContent = `${s==='done'?'✔':'✖'} ${t}`;
+    det.appendChild(row);
+  });
+
+  box.appendChild(det);
+}
+
+
+function getWeekKey(d){const f=new Date(d.getFullYear(),0,1);const w=Math.ceil((((d-f)/86400000)+f.getDay()+1)/7);return `${d.getFullYear()}-W${w}`;}
+</script>
+</body>
+</html>

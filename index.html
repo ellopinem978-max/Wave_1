@@ -1,252 +1,280 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="UTF-8" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Wake Map</title>
+
 <style>
-body{font-family:Arial,sans-serif;background:#0f172a;color:#e5e7eb;padding:20px;max-width:520px;margin:auto}
+body{
+  font-family:system-ui,-apple-system;
+  background:linear-gradient(180deg,#020617,#0f172a);
+  color:#e5e7eb;
+  max-width:560px;
+  margin:auto;
+  padding:16px
+}
 h1{text-align:center}
-.day{padding:16px;border-radius:14px;background:#020617;border:2px solid #38bdf8}
-.task{
+
+.center{text-align:center;margin:12px 0}
+
+button.main{
+  background:#38bdf8;
+  color:#020617;
+  border:none;
+  border-radius:18px;
+  padding:10px 18px;
+  font-weight:600;
+  cursor:pointer;
+  margin:4px
+}
+
+.card{
+  background:#020617;
+  border-radius:22px;
+  padding:22px;
+  margin-bottom:16px;
+  box-shadow:0 12px 36px rgba(0,0,0,.45)
+}
+
+.mission{
   display:flex;
   justify-content:space-between;
   align-items:center;
-  margin:8px 0;
-  transition:
-    opacity .35s ease,
-    transform .35s ease;
+  padding:18px 0;
+  border-bottom:1px solid #1e293b;
+  font-size:1.05em;
+  transition:opacity .6s ease, transform .6s ease;
+}
+.mission:last-child{border-bottom:none}
+
+.mission.done,
+.mission.fail{
+  opacity:.35;
+  transform:scale(.97);
 }
 
-.task.done{
-  opacity:0;
-  transform:translateX(40px) scale(.95);
-  pointer-events:none;
+.point{color:#38bdf8;font-size:.9em}
+
+.actions button{
+  border:none;
+  border-radius:14px;
+  padding:12px 16px;
+  font-size:1.3em;
+  margin-left:8px;
+  cursor:pointer
 }
-.task:hover{
-  transform:translateX(4px);
+.btn-done{background:#22c55e;color:#022c22}
+.btn-fail{background:#ef4444;color:#450a0a}
+
+.big-input{
+  width:100%;
+  padding:18px;
+  font-size:1.05em;
+  border-radius:18px;
+  border:none;
+  margin-bottom:12px
 }
 
-.actions button{margin-left:6px;background:#1e293b;color:#e5e7eb;border:none;border-radius:6px;padding:4px 8px;cursor:pointer}
-.score{text-align:center;margin-top:16px;color:#38bdf8}
-#skipWrap,#historyWrap{text-align:center;margin-top:14px}
-button.main{background:#334155;color:#fff;border:none;border-radius:8px;padding:8px 14px;cursor:pointer}
-#history{margin-top:20px}
-.history-day{padding:10px;border-radius:10px;background:#020617;margin-bottom:8px;cursor:pointer}
-.history-detail{
-  margin-top:10px;
-  padding-top:8px;
-  border-top:1px solid #334155;
-  font-size:.9em;
+.score-big{
+  font-size:3.6em;
+  font-weight:800;
+  text-align:center;
+  margin:18px 0 8px
+}
+.score-big.good{color:#22c55e}
+.score-big.bad{color:#ef4444}
+
+.month-info{
+  text-align:center;
+  font-size:.95em;
   opacity:.85;
+  margin-bottom:20px
 }
 
-.history-detail div{
-  margin:4px 0;
-}
-
+small{opacity:.6}
 </style>
 </head>
+
 <body>
 <h1>Wake Map</h1>
+
+<div class="center">
+  <button id="goToday" class="main">Hari ini</button>
+  <button id="goTomorrow" class="main">Misi Besok</button>
+  <button id="goHistory" class="main">History</button>
+</div>
+
+<div id="inputWrap" style="display:none">
+  <input id="missionInput" class="big-input" placeholder="Tulis misi besok">
+  <div class="center">
+    <button id="addMission" class="main">OKE</button>
+  </div>
+</div>
+
 <div id="app"></div>
-<div id="skipWrap"><button id="skipDay" class="main">Skip hari ini</button></div>
-<div id="historyWrap"><button id="toggleHistory" class="main">Riwayat 30 hari</button></div>
-<div id="history"></div>
+<div id="monthly"></div>
 
 <script>
 const days=["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
-const schedules={
-  Senin: [
-        "07.00–07.30 Bangun",
-        "07.30–08.00 Mandi + siap",
-        "12.00–15.00 Kuliah",
-        "15.00–17.00 Istirahat / makan",
-        "17.00–22.00 Belajar",
-        "22.00–07.00 Tidur"
-      ],
-      Selasa: [
-        "07.00–8.00 Bangun + mandi",
-        "08.00–11.00 Kuliah",
-        "11.00–13.00 Istirahat",
-        "13.00–18.00 Belajar / bebas",
-        "18.00–22.00 Santai",
-        "22.00–07.00 Tidur"
-      ],
-      Rabu: [
-        "07.00–07.30 Bangun",
-        "07.30–08.00 Mandi",
-        "08.00–13.00 Kuliah",
-        "13.00–15.00 Main",
-        "15.00–18.00 Kelas",
-        "18.00–19.00 Olahraga",
-        "19.00–22.00 Belajar",
-        "22.00–07.00 Tidur"
-      ],
-      Kamis: [
-        "07.00–07.30 Bangun",
-        "07.30–08.00 Mandi",
-        "08.00–15.00 Kuliah",
-        "15.00–16.00 Makan",
-        "16.00–16.30 Pulang",
-        "16.30–19.00 Belajar",
-        "19.00–20.00 Olahraga",
-        "20.00–21.00 Mandi",
-        "21.00–23.00 Belajar",
-        "23.00–06.00 Tidur"
-      ],
-      Jumat: [
-        "06.00–06.30 Bangun",
-        "06.30–07.00 Mandi",
-        "07.00–16.00 Kuliah",
-        "16.00–17.00 Olahraga",
-        "17.00–18.00 Makan",
-        "18.00–19.00 Mandi",
-        "19.00–22.00 Belajar",
-        "22.00–05.00 Tidur"
-      ],
-      Sabtu: [
-        "06.00–06.30 Bangun",
-        "06.30–07.30 Makan + siap",
-        "07.30–09.00 Olahraga",
-        "09.00–11.00 Santai",
-        "11.00–12.00 Makan",
-        "12.00–14.00 Belajar ringan",
-        "14.00–18.00 Bebas",
-        "18.00–22.30 Santai",
-        "22.30–06.00 Tidur"
-      ],
-      Minggu: [
-        "06.00–06.30 Bangun",
-        "06.30–07.30 Santai",
-        "07.30–09.00 Review",
-        "09.00–12.00 Bebas",
-        "12.00–13.00 Makan",
-        "13.00–15.00 Belajar ringan",
-        "15.00–18.00 Keluarga",
-        "18.00–22.00 Santai",
-        "22.00–06.00 Tidur"
-      ]
-};
+const app=document.getElementById('app');
+const monthly=document.getElementById('monthly');
+const inputWrap=document.getElementById('inputWrap');
 
 const today=new Date();
-const todayName=days[today.getDay()];
+const tomorrow=new Date(); tomorrow.setDate(today.getDate()+1);
+
 const todayKey=today.toDateString();
-const weekKey=getWeekKey(today);
-const app=document.getElementById('app');
-const historyDiv=document.getElementById('history');
-let doneCount=0;
-let total=schedules[todayName].length;
+const tomorrowKey=tomorrow.toDateString();
 
-const skipped=localStorage.getItem(todayKey+'-skipped');
-const dayDiv=document.createElement('div');
-dayDiv.className='day';
-dayDiv.innerHTML=`<h2>${todayName}</h2>`;
+let mode='today';
+let activeKey=todayKey;
+let missions=[];
 
-if(!skipped){
-  schedules[todayName].forEach((t,i)=>{
-    const key=`${todayKey}-${i}`;
-    const status=localStorage.getItem(key);
-    if(status) return;
-    const task=document.createElement('div');task.className='task';
-    const label=document.createElement('span');label.textContent=t;
-    const act=document.createElement('div');act.className='actions';
-    const ok=document.createElement('button');ok.textContent='✔';
-    const fail=document.createElement('button');fail.textContent='✖';
-    ok.onclick=()=>finish(i,'done',task);
-    fail.onclick=()=>finish(i,'fail',task);
-    act.append(ok,fail);task.append(label,act);dayDiv.appendChild(task);
-  });
-}else{dayDiv.innerHTML+='<p>Hari ini di-skip</p>';document.getElementById('skipWrap').style.display='none';}
+cleanupOldData();
+load();
 
-app.appendChild(dayDiv);
-const scoreDiv=document.createElement('div');scoreDiv.className='score';app.appendChild(scoreDiv);
-
-document.getElementById('skipDay').onclick=()=>{localStorage.setItem(todayKey+'-skipped','1');location.reload();};
-
-function finish(i,res,el){
-  localStorage.setItem(`${todayKey}-${i}`,res);
-  if(res==='done')doneCount++;
-  el.classList.add('done');
-  checkEnd();
+function load(){
+  missions=JSON.parse(localStorage.getItem(activeKey))||[];
+}
+function save(){
+  localStorage.setItem(activeKey,JSON.stringify(missions));
 }
 
-function checkEnd(){
-  if(document.querySelectorAll('.task:not(.done)').length===0){
-    document.getElementById('skipWrap').style.display='none';
-    const score=Math.round((doneCount/total)*10);
-    scoreDiv.textContent=`Skor hari ini: ${score}/10`;
-    saveHistory(score);
+function totalPoint(list){
+  return list.filter(m=>m.status==='done')
+             .reduce((a,b)=>a+b.point,0);
+}
+
+function monthTotal(offset){
+  const d=new Date(); d.setMonth(d.getMonth()+offset);
+  let sum=0;
+  Object.keys(localStorage).forEach(k=>{
+    if(!k.includes('GMT')) return;
+    const kd=new Date(k);
+    if(kd.getMonth()===d.getMonth() && kd.getFullYear()===d.getFullYear()){
+      sum+=totalPoint(JSON.parse(localStorage.getItem(k)));
+    }
+  });
+  return sum;
+}
+
+function cleanupOldData(){
+  const now=new Date();
+  Object.keys(localStorage).forEach(k=>{
+    if(!k.includes('GMT')) return;
+    const d=new Date(k);
+    const diff=
+      (now.getFullYear()-d.getFullYear())*12 +
+      (now.getMonth()-d.getMonth());
+    if(diff>=2) localStorage.removeItem(k);
+  });
+}
+
+function render(){
+  app.innerHTML='';
+  monthly.innerHTML='';
+  inputWrap.style.display = mode==='tomorrow'?'block':'none';
+
+  if(mode==='history'){
+    renderHistory(); return;
+  }
+
+  const card=document.createElement('div');
+  card.className='card';
+  card.innerHTML= mode==='today'
+    ? `<h2>Hari ini</h2>`
+    : `<h2>Misi Besok ${days[tomorrow.getDay()]}</h2>`;
+
+  if(missions.length===0){
+    card.innerHTML+=`<p><small>kosong</small></p>`;
+  }
+
+  missions.forEach(m=>{
+    const row=document.createElement('div');
+    row.className=`mission ${m.status||''}`;
+    row.innerHTML=`<span>${m.text} <span class="point">(+${m.point})</span></span>`;
+
+    if(mode==='today' && !m.status){
+      const act=document.createElement('div');
+      act.className='actions';
+
+      const ok=document.createElement('button');
+      ok.className='btn-done'; ok.textContent='✔';
+      ok.onclick=()=>{m.status='done'; save(); render();};
+
+      const no=document.createElement('button');
+      no.className='btn-fail'; no.textContent='✖';
+      no.onclick=()=>{m.status='fail'; save(); render();};
+
+      act.append(ok,no); row.appendChild(act);
+    }
+
+    card.appendChild(row);
+  });
+
+  if(mode==='today'){
+    const score=Math.min(totalPoint(missions),100);
+    const s=document.createElement('div');
+    s.className='score-big '+(score>=60?'good':'bad');
+    s.textContent=score;
+    card.appendChild(s);
+  }
+
+  app.appendChild(card);
+
+  if(mode==='today'){
+    monthly.innerHTML=`
+      <div class="month-info">
+        Total poin bulan ini: <b>${monthTotal(0)}</b><br>
+        Total poin bulan lalu: <b>${monthTotal(-1)}</b>
+      </div>`;
   }
 }
 
-function saveHistory(score){
-  const data=JSON.parse(localStorage.getItem('history')||'{}');
-  if(!data[todayKey]){
-    const tasks={};
-    schedules[todayName].forEach((t,i)=>{
-      tasks[t]=localStorage.getItem(`${todayKey}-${i}`)||'skip';
+function renderHistory(){
+  Object.keys(localStorage)
+    .filter(k=>k.includes('GMT'))
+    .sort((a,b)=>new Date(b)-new Date(a))
+    .forEach(k=>{
+      const d=new Date(k);
+      const list=JSON.parse(localStorage.getItem(k));
+      if(!Array.isArray(list)) return;
+
+      const total=Math.min(totalPoint(list),100);
+      const card=document.createElement('div');
+      card.className='card';
+      card.innerHTML=`
+        <h3>${days[d.getDay()]}</h3>
+        <small>${d.getDate()}-${d.getMonth()+1}-${d.getFullYear()}</small>
+        <div class="score-big ${total>=60?'good':'bad'}">${total}</div>
+      `;
+
+      list.forEach(m=>{
+        const r=document.createElement('div');
+        r.className='mission done';
+        r.innerHTML=`${m.text} <span class="point">(+${m.point})</span>`;
+        card.appendChild(r);
+      });
+
+      app.appendChild(card);
     });
-    data[todayKey]={day:todayName,score,tasks};
-    localStorage.setItem('history',JSON.stringify(data));
-  }
 }
 
-// HISTORY VIEW
-let open=false;
-document.getElementById('toggleHistory').onclick=()=>{
-  open=!open;historyDiv.innerHTML='';
-  if(!open)return;
-  const data=JSON.parse(localStorage.getItem('history')||'{}');
-  const keys=Object.keys(data).slice(-30).reverse();
-  keys.forEach(k=>{
-    const d=data[k];
-    const box=document.createElement('div');box.className='history-day';
-    const dt = new Date(k);
-const tgl = `${dt.getDate().toString().padStart(2,'0')} - ${(dt.getMonth()+1)
-  .toString().padStart(2,'0')} - ${dt.getFullYear()}`;
-
-box.innerHTML = `
-  <strong>${d.day}</strong>
-  <span style="opacity:.6;font-size:.85em">
-    [${tgl}]
-  </span>
-  <span style="float:right;color:#38bdf8">
-    ${d.score}/10
-  </span>
-`;
-
-
-    box.onclick=()=>showDetail(box,d);
-    historyDiv.appendChild(box);
-  });
+addMission.onclick=()=>{
+  const t=missionInput.value.trim();
+  if(!t) return;
+  const p=+prompt('Masukkan poin (1–100):');
+  if(!p||p<1) return;
+  missions.push({text:t,point:Math.min(p,100),status:null});
+  save(); missionInput.value=''; render();
 };
 
-function showDetail(box, d){
-  const exist = box.querySelector('.history-detail');
-  if(exist){
-    exist.remove(); // klik lagi = tutup
-    return;
-  }
+goToday.onclick=()=>{mode='today'; activeKey=todayKey; load(); render();};
+goTomorrow.onclick=()=>{mode='tomorrow'; activeKey=tomorrowKey; load(); render();};
+goHistory.onclick=()=>{mode='history'; render();};
 
-  // tutup detail lain (biar rapi)
-  document.querySelectorAll('.history-detail')
-    .forEach(e => e.remove());
-
-  const det = document.createElement('div');
-  det.className = 'history-detail';
-
-  Object.entries(d.tasks).forEach(([t,s])=>{
-    const row = document.createElement('div');
-    row.textContent = `${s==='done'?'✔':'✖'} ${t}`;
-    det.appendChild(row);
-  });
-
-  box.appendChild(det);
-}
-
-
-function getWeekKey(d){const f=new Date(d.getFullYear(),0,1);const w=Math.ceil((((d-f)/86400000)+f.getDay()+1)/7);return `${d.getFullYear()}-W${w}`;}
+render();
 </script>
 </body>
 </html>
-

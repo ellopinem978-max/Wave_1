@@ -66,6 +66,11 @@ button.main{
 }
 .btn-done{background:#22c55e;color:#022c22}
 .btn-fail{background:#ef4444;color:#450a0a}
+.btn-del{
+  background:#1e293b;
+  color:#94a3b8;
+  font-size:1.1em
+}
 
 .big-input{
   width:100%;
@@ -164,9 +169,7 @@ function cleanupOldData(){
   Object.keys(localStorage).forEach(k=>{
     if(!k.includes('GMT')) return;
     const d=new Date(k);
-    const diff=
-      (now.getFullYear()-d.getFullYear())*12 +
-      (now.getMonth()-d.getMonth());
+    const diff=(now.getFullYear()-d.getFullYear())*12+(now.getMonth()-d.getMonth());
     if(diff>=2) localStorage.removeItem(k);
   });
 }
@@ -176,13 +179,11 @@ function render(){
   monthly.innerHTML='';
   inputWrap.style.display = mode==='tomorrow'?'block':'none';
 
-  if(mode==='history'){
-    renderHistory(); return;
-  }
+  if(mode==='history'){ renderHistory(); return; }
 
   const card=document.createElement('div');
   card.className='card';
-  card.innerHTML= mode==='today'
+  card.innerHTML = mode==='today'
     ? `<h2>Hari ini</h2>`
     : `<h2>Misi Besok ${days[tomorrow.getDay()]}</h2>`;
 
@@ -190,15 +191,15 @@ function render(){
     card.innerHTML+=`<p><small>kosong</small></p>`;
   }
 
-  missions.forEach(m=>{
+  missions.forEach((m,i)=>{
     const row=document.createElement('div');
     row.className=`mission ${m.status||''}`;
     row.innerHTML=`<span>${m.text} <span class="point">(+${m.point})</span></span>`;
 
-    if(mode==='today' && !m.status){
-      const act=document.createElement('div');
-      act.className='actions';
+    const act=document.createElement('div');
+    act.className='actions';
 
+    if(mode==='today' && !m.status){
       const ok=document.createElement('button');
       ok.className='btn-done'; ok.textContent='✔';
       ok.onclick=()=>{m.status='done'; save(); render();};
@@ -207,9 +208,21 @@ function render(){
       no.className='btn-fail'; no.textContent='✖';
       no.onclick=()=>{m.status='fail'; save(); render();};
 
-      act.append(ok,no); row.appendChild(act);
+      act.append(ok,no);
     }
 
+    if(mode==='tomorrow'){
+      const del=document.createElement('button');
+      del.className='btn-del';
+      del.textContent='🗑';
+      del.onclick=()=>{
+        missions.splice(i,1);
+        save(); render();
+      };
+      act.append(del);
+    }
+
+    if(act.children.length>0) row.appendChild(act);
     card.appendChild(row);
   });
 

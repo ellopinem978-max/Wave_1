@@ -43,18 +43,12 @@ button.main{
   align-items:center;
   padding:18px 0;
   border-bottom:1px solid #1e293b;
-  font-size:1.05em;
-  transition:opacity .6s ease, transform .6s ease;
+  transition:opacity .6s,transform .6s
 }
+.mission.done,.mission.fail{opacity:.35;transform:scale(.97)}
 .mission:last-child{border-bottom:none}
 
-.mission.done,
-.mission.fail{
-  opacity:.35;
-  transform:scale(.97);
-}
-
-.point{color:#38bdf8;font-size:.9em}
+.point{color:#38bdf8;font-size:.85em}
 
 .actions button{
   border:none;
@@ -66,11 +60,7 @@ button.main{
 }
 .btn-done{background:#22c55e;color:#022c22}
 .btn-fail{background:#ef4444;color:#450a0a}
-.btn-del{
-  background:#1e293b;
-  color:#94a3b8;
-  font-size:1.1em
-}
+.btn-del{background:#1e293b;color:#94a3b8}
 
 .big-input{
   width:100%;
@@ -90,14 +80,19 @@ button.main{
 .score-big.good{color:#22c55e}
 .score-big.bad{color:#ef4444}
 
-.month-info{
-  text-align:center;
-  font-size:.95em;
-  opacity:.85;
-  margin-bottom:20px
-}
+.month-info{text-align:center;font-size:.9em;opacity:.85}
 
-small{opacity:.6}
+#modal{
+  position:fixed;inset:0;
+  background:rgba(0,0,0,.6);
+  display:none;align-items:center;justify-content:center
+}
+#modal .box{
+  background:#020617;
+  padding:26px;
+  border-radius:22px;
+  text-align:center
+}
 </style>
 </head>
 
@@ -108,6 +103,7 @@ small{opacity:.6}
   <button id="goToday" class="main">Hari ini</button>
   <button id="goTomorrow" class="main">Misi Besok</button>
   <button id="goHistory" class="main">History</button>
+  <button id="goReward" class="main">Hadiah</button>
 </div>
 
 <div id="inputWrap" style="display:none">
@@ -117,175 +113,202 @@ small{opacity:.6}
   </div>
 </div>
 
+<div id="rewardWrap" style="display:none">
+  <input id="rewardInput" class="big-input" placeholder="Nama hadiah">
+  <input id="rewardPoint" class="big-input" placeholder="Target poin bulan ini">
+  <div class="center">
+    <button id="addReward" class="main">Tambah Hadiah</button>
+  </div>
+</div>
+
 <div id="app"></div>
 <div id="monthly"></div>
+
+<div id="modal">
+  <div class="box">
+    <h2>🎉 Hadiah Tercapai!</h2>
+    <p id="modalText"></p>
+    <button id="claimReward" class="main">OK</button>
+  </div>
+</div>
 
 <script>
 const days=["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
 const app=document.getElementById('app');
 const monthly=document.getElementById('monthly');
 const inputWrap=document.getElementById('inputWrap');
+const rewardWrap=document.getElementById('rewardWrap');
+const modal=document.getElementById('modal');
+const modalText=document.getElementById('modalText');
+const claimReward=document.getElementById('claimReward');
 
 const today=new Date();
 const tomorrow=new Date(); tomorrow.setDate(today.getDate()+1);
-
 const todayKey=today.toDateString();
 const tomorrowKey=tomorrow.toDateString();
 
-let mode='today';
-let activeKey=todayKey;
-let missions=[];
+let mode='today', activeKey=todayKey, missions=[];
+let rewards=JSON.parse(localStorage.getItem('rewards_active')||'[]');
+let rewardHistory=JSON.parse(localStorage.getItem('rewards_history')||'[]');
 
-cleanupOldData();
-load();
+cleanupOld(); load();
 
-function load(){
-  missions=JSON.parse(localStorage.getItem(activeKey))||[];
-}
-function save(){
-  localStorage.setItem(activeKey,JSON.stringify(missions));
-}
+function load(){missions=JSON.parse(localStorage.getItem(activeKey))||[]}
+function save(){localStorage.setItem(activeKey,JSON.stringify(missions))}
 
-function totalPoint(list){
-  return list.filter(m=>m.status==='done')
-             .reduce((a,b)=>a+b.point,0);
-}
+function totalPoint(l){return l.filter(x=>x.status==='done').reduce((a,b)=>a+b.point,0)}
 
-function monthTotal(offset){
-  const d=new Date(); d.setMonth(d.getMonth()+offset);
-  let sum=0;
+function monthTotal(off){
+  const d=new Date(); d.setMonth(d.getMonth()+off);
+  let s=0;
   Object.keys(localStorage).forEach(k=>{
-    if(!k.includes('GMT')) return;
+    if(!k.includes('GMT'))return;
     const kd=new Date(k);
-    if(kd.getMonth()===d.getMonth() && kd.getFullYear()===d.getFullYear()){
-      sum+=totalPoint(JSON.parse(localStorage.getItem(k)));
+    if(kd.getMonth()===d.getMonth()&&kd.getFullYear()===d.getFullYear()){
+      s+=totalPoint(JSON.parse(localStorage.getItem(k)))
     }
   });
-  return sum;
+  return s;
 }
 
-function cleanupOldData(){
+function cleanupOld(){
   const now=new Date();
-  Object.keys(localStorage).forEach(k=>{
-    if(!k.includes('GMT')) return;
-    const d=new Date(k);
-    const diff=(now.getFullYear()-d.getFullYear())*12+(now.getMonth()-d.getMonth());
-    if(diff>=2) localStorage.removeItem(k);
+  rewardHistory=rewardHistory.filter(r=>{
+    const diff=(now.getFullYear()-r.year)*12+(now.getMonth()-(r.month-1));
+    return diff<2;
   });
+  localStorage.setItem('rewards_history',JSON.stringify(rewardHistory));
+}
+
+function checkReward(){
+  const t=monthTotal(0);
+  const r=rewards.find(x=>x.target<=t);
+  if(!r)return;
+  modalText.textContent=r.name;
+  modal.style.display='flex';
+  claimReward.onclick=()=>{
+    modal.style.display='none';
+    rewards=rewards.filter(x=>x!==r);
+    const n=new Date();
+    rewardHistory.push({
+      name:r.name,
+      day:days[n.getDay()],
+      date:n.getDate(),
+      month:n.getMonth()+1,
+      year:n.getFullYear()
+    });
+    localStorage.setItem('rewards_active',JSON.stringify(rewards));
+    localStorage.setItem('rewards_history',JSON.stringify(rewardHistory));
+    render();
+  };
+}
+
+function deleteReward(i){
+  if(!confirm('Hapus hadiah ini?'))return;
+  rewards.splice(i,1);
+  localStorage.setItem('rewards_active',JSON.stringify(rewards));
+  render();
 }
 
 function render(){
-  app.innerHTML='';
-  monthly.innerHTML='';
-  inputWrap.style.display = mode==='tomorrow'?'block':'none';
+  app.innerHTML=''; monthly.innerHTML='';
+  inputWrap.style.display=mode==='tomorrow'?'block':'none';
+  rewardWrap.style.display=mode==='reward'?'block':'none';
 
-  if(mode==='history'){ renderHistory(); return; }
+  if(mode==='history'){renderHistory();return}
+  if(mode==='reward'){renderReward();return}
 
-  const card=document.createElement('div');
-  card.className='card';
-  card.innerHTML = mode==='today'
-    ? `<h2>Hari ini</h2>`
-    : `<h2>Misi Besok ${days[tomorrow.getDay()]}</h2>`;
-
-  if(missions.length===0){
-    card.innerHTML+=`<p><small>kosong</small></p>`;
-  }
+  const c=document.createElement('div');
+  c.className='card';
+  c.innerHTML=`<h2>${mode==='today'?'Hari ini':'Misi Besok'}</h2>`;
 
   missions.forEach((m,i)=>{
-    const row=document.createElement('div');
-    row.className=`mission ${m.status||''}`;
-    row.innerHTML=`<span>${m.text} <span class="point">(+${m.point})</span></span>`;
+    const r=document.createElement('div');
+    r.className='mission '+(m.status||'');
+    r.innerHTML=`<span>${m.text} <span class="point">(+${m.point})</span></span>`;
+    const a=document.createElement('div');a.className='actions';
 
-    const act=document.createElement('div');
-    act.className='actions';
-
-    if(mode==='today' && !m.status){
-      const ok=document.createElement('button');
-      ok.className='btn-done'; ok.textContent='✔';
-      ok.onclick=()=>{m.status='done'; save(); render();};
-
-      const no=document.createElement('button');
-      no.className='btn-fail'; no.textContent='✖';
-      no.onclick=()=>{m.status='fail'; save(); render();};
-
-      act.append(ok,no);
+    if(mode==='today'&&!m.status){
+      a.innerHTML=`<button class="btn-done">✔</button><button class="btn-fail">✖</button>`;
+      a.children[0].onclick=()=>{m.status='done';save();render()};
+      a.children[1].onclick=()=>{m.status='fail';save();render()};
     }
-
     if(mode==='tomorrow'){
-      const del=document.createElement('button');
-      del.className='btn-del';
-      del.textContent='🗑';
-      del.onclick=()=>{
-        missions.splice(i,1);
-        save(); render();
-      };
-      act.append(del);
+      a.innerHTML=`<button class="btn-del">🗑</button>`;
+      a.children[0].onclick=()=>{missions.splice(i,1);save();render()};
     }
-
-    if(act.children.length>0) row.appendChild(act);
-    card.appendChild(row);
+    if(a.children.length)r.appendChild(a);
+    c.appendChild(r);
   });
 
   if(mode==='today'){
-    const score=Math.min(totalPoint(missions),100);
-    const s=document.createElement('div');
-    s.className='score-big '+(score>=60?'good':'bad');
-    s.textContent=score;
-    card.appendChild(s);
+    const s=Math.min(totalPoint(missions),100);
+    c.innerHTML+=`<div class="score-big ${s>=60?'good':'bad'}">${s}</div>`;
   }
 
-  app.appendChild(card);
+  app.appendChild(c);
 
   if(mode==='today'){
     monthly.innerHTML=`
-      <div class="month-info">
-        Total poin bulan ini: <b>${monthTotal(0)}</b><br>
-        Total poin bulan lalu: <b>${monthTotal(-1)}</b>
-      </div>`;
+    <div class="month-info">
+      Total poin bulan ini: <b>${monthTotal(0)}</b><br>
+      Total poin bulan lalu: <b>${monthTotal(-1)}</b>
+    </div>`;
+    checkReward();
   }
 }
 
 function renderHistory(){
-  Object.keys(localStorage)
-    .filter(k=>k.includes('GMT'))
-    .sort((a,b)=>new Date(b)-new Date(a))
-    .forEach(k=>{
-      const d=new Date(k);
-      const list=JSON.parse(localStorage.getItem(k));
-      if(!Array.isArray(list)) return;
+  Object.keys(localStorage).filter(k=>k.includes('GMT')).slice(0,60).forEach(k=>{
+    const d=new Date(k);
+    const l=JSON.parse(localStorage.getItem(k));
+    const t=Math.min(totalPoint(l),100);
+    app.innerHTML+=`
+      <div class="card">
+        <small>${days[d.getDay()]}, ${d.getDate()}-${d.getMonth()+1}-${d.getFullYear()}</small>
+        <div class="score-big ${t>=60?'good':'bad'}">${t}</div>
+      </div>`;
+  });
+}
 
-      const total=Math.min(totalPoint(list),100);
-      const card=document.createElement('div');
-      card.className='card';
-      card.innerHTML=`
-        <h3>${days[d.getDay()]}</h3>
-        <small>${d.getDate()}-${d.getMonth()+1}-${d.getFullYear()}</small>
-        <div class="score-big ${total>=60?'good':'bad'}">${total}</div>
-      `;
-
-      list.forEach(m=>{
-        const r=document.createElement('div');
-        r.className='mission done';
-        r.innerHTML=`${m.text} <span class="point">(+${m.point})</span>`;
-        card.appendChild(r);
-      });
-
-      app.appendChild(card);
-    });
+function renderReward(){
+  const c=document.createElement('div');
+  c.className='card';
+  c.innerHTML='<h2>Hadiah Aktif</h2>';
+  rewards.forEach((r,i)=>{
+    c.innerHTML+=`
+      <p>🎁 ${r.name} — ${r.target}
+      <button onclick="deleteReward(${i})" class="btn-del">🗑</button></p>`;
+  });
+  c.innerHTML+='<h3>History Hadiah</h3>';
+  rewardHistory.forEach(r=>{
+    c.innerHTML+=`<small>✅ ${r.name} — ${r.day}, ${r.date}-${r.month}-${r.year}</small><br>`;
+  });
+  app.appendChild(c);
 }
 
 addMission.onclick=()=>{
   const t=missionInput.value.trim();
-  if(!t) return;
-  const p=+prompt('Masukkan poin (1–100):');
-  if(!p||p<1) return;
+  const p=+prompt('Poin?');
+  if(!t||!p)return;
   missions.push({text:t,point:Math.min(p,100),status:null});
-  save(); missionInput.value=''; render();
+  save();missionInput.value='';render();
 };
 
-goToday.onclick=()=>{mode='today'; activeKey=todayKey; load(); render();};
-goTomorrow.onclick=()=>{mode='tomorrow'; activeKey=tomorrowKey; load(); render();};
-goHistory.onclick=()=>{mode='history'; render();};
+addReward.onclick=()=>{
+  const n=rewardInput.value.trim();
+  const p=+rewardPoint.value;
+  if(!n||!p)return;
+  rewards.push({name:n,target:p});
+  localStorage.setItem('rewards_active',JSON.stringify(rewards));
+  rewardInput.value='';rewardPoint.value='';
+  render();
+};
+
+goToday.onclick=()=>{mode='today';activeKey=todayKey;load();render()};
+goTomorrow.onclick=()=>{mode='tomorrow';activeKey=tomorrowKey;load();render()};
+goHistory.onclick=()=>{mode='history';render()};
+goReward.onclick=()=>{mode='reward';render()};
 
 render();
 </script>

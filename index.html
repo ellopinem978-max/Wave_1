@@ -81,6 +81,13 @@ button{
   opacity:.35;
   transform:scale(.96);
 }
+.mission{
+  transition:opacity .6s ease, transform .6s ease;
+}
+
+.actions button{
+  transition:opacity .4s ease, transform .4s ease;
+}
 
 .actions{
   display:flex;
@@ -271,19 +278,31 @@ function render(){
       const no=document.createElement('button');
       no.textContent='✖';
 
-      ok.onclick=()=>{
-        m.status='done';
-        row.classList.add('done');
-        a.classList.add('hide');
-        setTimeout(()=>{save();render();},600);
-      };
+      ok.onclick = () => {
+  m.status = 'done';
 
-      no.onclick=()=>{
-        m.status='fail';
-        row.classList.add('fail');
-        a.classList.add('hide');
-        setTimeout(()=>{save();render();},600);
-      };
+  row.classList.add('done');
+  a.classList.add('hide');
+
+  // tunggu animasi selesai, baru simpan & re-render
+  setTimeout(() => {
+    save();
+    render();
+  }, 700);
+};
+
+no.onclick = () => {
+  m.status = 'fail';
+
+  row.classList.add('fail');
+  a.classList.add('hide');
+
+  setTimeout(() => {
+    save();
+    render();
+  }, 700);
+};
+
 
       a.append(ok,no);
     }

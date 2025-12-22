@@ -78,11 +78,18 @@ button{
 .actions button{
   background:#020f3a;
   color:var(--neon);
-  font-size:1.1em;
-  padding:8px 12px;
-  border-radius:14px;
+  font-size:1em;
+  padding:6px 10px;
+  border-radius:12px;
   margin-left:6px;
+  opacity:.85;
+  transition:opacity .3s, transform .3s;
 }
+.actions button:active{
+  transform:scale(.92);
+  opacity:1;
+}
+
 
 .score{
   font-size:3.4em;
@@ -227,44 +234,66 @@ function render(){
   if(missions.length===0){
     c.innerHTML+='<p style="opacity:.5">Kosong</p>';
   }
+} 
 
   missions.forEach((m,i)=>{
-    const row=document.createElement('div');
-    row.className='mission '+(m.status||'');
-    row.innerHTML=`<span>${m.text} (+${m.point})</span>`;
-    const a=document.createElement('div');a.className='actions';
+  const row=document.createElement('div');
+  row.className='mission '+(m.status||'');
+  row.innerHTML=`<span>${m.text} (+${m.point})</span>`;
 
-    if(mode==='today'&&!m.status){
-      a.innerHTML='<button>✔</button><button>✖</button>';
-      a.children[0].onclick=()=>{m.status='done';save();render()};
-      a.children[1].onclick=()=>{m.status='fail';save();render()};
-    }
+  const a=document.createElement('div');
+  a.className='actions';
 
-    if(mode==='tomorrow'){
-      a.innerHTML='<button>🗑</button>';
-      a.children[0].onclick=()=>{missions.splice(i,1);save();render()};
-    }
+  if(mode==='today' && !m.status){
+    const ok=document.createElement('button');
+    ok.textContent='✔';
 
-    if(a.children.length) row.appendChild(a);
-    c.appendChild(row);
-  });
+    const no=document.createElement('button');
+    no.textContent='✖';
 
-  if(mode==='today'){
-    const s=totalPoint(missions);
-    c.innerHTML+=`<div class="score ${s===0?'zero':'ok'}">${s}</div>`;
+    ok.onclick=()=>{
+      m.status='done';
+      row.classList.add('done');
+      a.innerHTML='';                 // tombol hilang
+      setTimeout(()=>{
+        save();
+        render();
+      },600);
+    };
+
+    no.onclick=()=>{
+      m.status='fail';
+      row.classList.add('fail');
+      a.innerHTML='';                 // tombol hilang
+      setTimeout(()=>{
+        save();
+        render();
+      },600);
+    };
+
+    a.append(ok,no);
   }
 
-  app.appendChild(c);
-
-  if(mode==='today'){
-    monthly.innerHTML=`
-      <div class="month-info">
-        Bulan ini: <b>${monthTotal(0)}</b><br>
-        Bulan lalu: <b>${monthTotal(-1)}</b>
-      </div>`;
-    checkReward();
+  if(mode==='tomorrow'){
+    const del=document.createElement('button');
+    del.textContent='🗑';
+    del.onclick=()=>{
+      row.style.opacity='.3';
+      row.style.transform='scale(.95)';
+      setTimeout(()=>{
+        missions.splice(i,1);
+        save();
+        render();
+      },400);
+    };
+    a.append(del);
   }
-}
+
+  if(a.children.length) row.appendChild(a);
+  row.appendChild(a);
+  c.appendChild(row);
+});
+
 
 function renderHistory(){
   Object.keys(localStorage).filter(k=>k.includes('GMT')).slice(0,60).forEach(k=>{

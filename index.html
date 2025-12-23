@@ -6,6 +6,7 @@
 <title>Wake Map</title>
 
 <style>
+/* ================== THEME ================== */
 :root{
   --midnight:#020617;
   --navy:#020a2b;
@@ -14,6 +15,7 @@
   --blue:#0ea5e9;
   --neon:#38bdf8;
   --danger:#ef4444;
+  --glass:rgba(255,255,255,.06);
 }
 
 *{box-sizing:border-box}
@@ -23,118 +25,112 @@ body{
   font-family:system-ui,-apple-system;
   background:linear-gradient(180deg,var(--midnight),var(--navy));
   color:#e5e7eb;
-  max-width:560px;
+  max-width:520px;
   margin:auto;
-  padding:16px;
+  padding:18px 16px 120px;
 }
 
-h1{text-align:center;margin:12px 0}
-
-.center{
-  text-align:center;
-  margin-bottom:14px;
-}
-
+/* ================== GLOBAL ================== */
+h1,h2,h3{margin:0 0 14px}
 button{
   border:none;
   border-radius:18px;
   padding:14px 18px;
-  font-weight:600;
-  cursor:pointer;
-}
-
-.btn-main{
+  font-weight:700;
+  font-size:1em;
   background:var(--blue);
   color:#020617;
-  margin:4px;
+  cursor:pointer;
+  transition:.25s;
+}
+button:active{transform:scale(.94)}
+button.ghost{
+  background:var(--glass);
+  color:var(--neon);
 }
 
-.card{
-  background:var(--midnight);
-  border-radius:24px;
-  padding:22px;
+/* ================== NAV ================== */
+.nav{
+  display:flex;
+  gap:10px;
+  justify-content:center;
   margin-bottom:18px;
-  box-shadow:0 14px 40px rgba(0,0,0,.45);
 }
 
+/* ================== CARD ================== */
+.card{
+  background:linear-gradient(180deg,var(--midnight),var(--deep));
+  border-radius:28px;
+  padding:22px;
+  margin-bottom:22px;
+  box-shadow:0 20px 60px rgba(0,0,0,.45);
+  animation:fadeUp .45s ease;
+}
+
+@keyframes fadeUp{
+  from{opacity:0;transform:translateY(20px)}
+  to{opacity:1;transform:none}
+}
+
+/* ================== INPUT ================== */
 .big-input{
   width:100%;
   padding:18px;
-  font-size:1em;
-  border-radius:18px;
+  border-radius:20px;
   border:none;
+  font-size:1em;
   margin-bottom:12px;
 }
 
+/* ================== MISSION ================== */
 .mission{
   display:flex;
   justify-content:space-between;
   align-items:center;
   padding:16px 0;
   border-bottom:1px solid var(--deep);
-  transition:opacity .6s, transform .6s;
+  transition:.4s;
 }
-.mission:last-child{border-bottom:none}
-
+.mission:last-child{border:none}
 .mission.done,
 .mission.fail{
   opacity:.35;
   transform:scale(.96);
 }
-.mission{
-  transition:opacity .6s ease, transform .6s ease;
-}
-
-.actions button{
-  transition:opacity .4s ease, transform .4s ease;
-}
 
 .actions{
   display:flex;
-  gap:8px;
+  gap:10px;
+  transition:.35s;
 }
-
-.actions button{
-  background:var(--deep);
-  color:var(--neon);
-  padding:8px 12px;
-  border-radius:12px;
-  font-size:1.1em;
-  transition:opacity .4s, transform .4s;
-}
-
 .actions.hide{
   opacity:0;
-  transform:scale(.8);
+  transform:scale(.7);
   pointer-events:none;
 }
 
+/* ================== SCORE ================== */
 .score{
-  font-size:3.2em;
-  font-weight:800;
   text-align:center;
-  margin-top:16px;
+  font-size:3.4em;
+  font-weight:900;
+  margin-top:20px;
 }
 .score.zero{color:var(--danger)}
 .score.ok{color:var(--neon)}
 
-.month-info{
-  text-align:center;
-  font-size:.9em;
-  opacity:.85;
-  margin-top:12px;
-}
-
+/* ================== HISTORY ================== */
 .list-date{
   background:var(--deep);
-  padding:14px;
-  border-radius:16px;
-  margin:8px 0;
+  padding:18px;
+  border-radius:20px;
+  margin:10px 0;
   cursor:pointer;
+  transition:.25s;
 }
+.list-date:hover{background:var(--soft)}
 
-small{opacity:.75}
-
+/* ================== MODAL ================== */
 #modal{
   position:fixed;
   inset:0;
@@ -142,36 +138,45 @@ small{opacity:.75}
   display:none;
   align-items:center;
   justify-content:center;
+  z-index:10;
 }
 #modal .box{
   background:var(--midnight);
-  padding:26px;
-  border-radius:22px;
-  text-align:center;
+  padding:28px;
+  border-radius:26px;
   width:85%;
+  text-align:center;
+  animation:zoom .4s ease;
 }
+@keyframes zoom{
+  from{transform:scale(.7);opacity:0}
+  to{transform:scale(1);opacity:1}
+}
+
+small{opacity:.75}
 </style>
 </head>
 
 <body>
+
 <h1>Wake Map</h1>
 
-<div class="center">
-  <button class="btn-main" onclick="go('today')">Hari ini</button>
-  <button class="btn-main" onclick="go('tomorrow')">Misi Besok</button>
-  <button class="btn-main" onclick="go('history')">History</button>
-  <button class="btn-main" onclick="go('reward')">Hadiah</button>
+<div class="nav">
+  <button onclick="go('today')">Hari Ini</button>
+  <button onclick="go('tomorrow')">Besok</button>
+  <button onclick="go('history')">History</button>
+  <button onclick="go('reward')">Hadiah</button>
 </div>
 
 <div id="inputWrap" style="display:none">
   <input id="missionInput" class="big-input" placeholder="Tambah misi besok">
-  <button class="btn-main" onclick="addMission()">Tambah</button>
+  <button onclick="addMission()">Tambah Misi</button>
 </div>
 
 <div id="rewardWrap" style="display:none">
   <input id="rewardName" class="big-input" placeholder="Nama hadiah">
   <input id="rewardPoint" class="big-input" placeholder="Target poin bulan ini">
-  <button class="btn-main" onclick="addReward()">Tambah Hadiah</button>
+  <button onclick="addReward()">Tambah Hadiah</button>
 </div>
 
 <div id="app"></div>
@@ -181,188 +186,192 @@ small{opacity:.75}
   <div class="box">
     <h2>🎉 Hadiah Tercapai</h2>
     <p id="modalText"></p>
-    <button class="btn-main" onclick="claimReward()">OK</button>
+    <button onclick="claimReward()">OK</button>
   </div>
 </div>
 
 <script>
+/* ================== CORE ================== */
 const days=["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
 const app=document.getElementById('app');
 const monthly=document.getElementById('monthly');
-const inputWrap=document.getElementById('inputWrap');
-const rewardWrap=document.getElementById('rewardWrap');
 const modal=document.getElementById('modal');
 const modalText=document.getElementById('modalText');
+const inputWrap=document.getElementById('inputWrap');
+const rewardWrap=document.getElementById('rewardWrap');
 
 let mode='today';
 let activeKey='';
 let missions=[];
-let rewards=JSON.parse(localStorage.getItem('rewards_active')||'[]');
-let rewardHistory=JSON.parse(localStorage.getItem('rewards_history')||'[]');
+let rewards=JSON.parse(localStorage.getItem('rewards')||'[]');
+let rewardHistory=JSON.parse(localStorage.getItem('reward_history')||'[]');
+let isHistoryView=false;
 let reachedReward=null;
 
-function key(d){return d.toDateString();}
-function load(){missions=JSON.parse(localStorage.getItem(activeKey)||'[]');}
-function save(){localStorage.setItem(activeKey,JSON.stringify(missions));}
+/* ================== DATE ================== */
+const iso=d=>d.toISOString().slice(0,10);
+const todayKey=()=>iso(new Date());
+const yesterdayKey=()=>{let d=new Date();d.setDate(d.getDate()-1);return iso(d);}
+const tomorrowKey=()=>{let d=new Date();d.setDate(d.getDate()+1);return iso(d);}
 
+/* ================== STORAGE ================== */
+function load(){
+  missions=JSON.parse(localStorage.getItem(activeKey)||'[]');
+}
+function save(){
+  localStorage.setItem(activeKey,JSON.stringify(missions));
+}
+
+/* ================== LOGIC ================== */
 function totalPoint(list){
-  return list.filter(m=>m.status==='done').reduce((a,b)=>a+b.point,0);
+  return list.filter(m=>m.status==='done')
+             .reduce((a,b)=>a+b.point,0);
 }
 
 function monthTotal(offset){
-  const d=new Date();
-  d.setMonth(d.getMonth()+offset);
+  const d=new Date();d.setMonth(d.getMonth()+offset);
   let sum=0;
   Object.keys(localStorage).forEach(k=>{
-    if(!k.includes('GMT'))return;
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(k))return;
     const kd=new Date(k);
-    if(kd.getMonth()===d.getMonth() && kd.getFullYear()===d.getFullYear()){
+    if(kd.getMonth()===d.getMonth()&&kd.getFullYear()===d.getFullYear()){
       sum+=totalPoint(JSON.parse(localStorage.getItem(k)));
     }
   });
   return sum;
 }
 
+/* ================== NAV ================== */
 function go(m){
+  isHistoryView=false;
   mode=m;
-  const d=new Date();
-  if(m==='today') activeKey=key(d);
-  if(m==='tomorrow'){d.setDate(d.getDate()+1);activeKey=key(d);}
+  inputWrap.style.display='none';
+  rewardWrap.style.display='none';
+  if(m==='today')activeKey=todayKey();
+  if(m==='tomorrow')activeKey=tomorrowKey();
   load();
   render();
 }
 
+
+/* ================== ADD ================== */
 function addMission(){
+  if(mode!=='tomorrow')return alert('Hanya untuk besok');
   const t=missionInput.value.trim();
-  const p=+prompt('Poin misi?');
-  if(!t||!p)return;
+  const p=Number(prompt('Poin misi?'));
+  if(!t||p<=0)return;
   missions.push({text:t,point:p,status:null});
   save();
   missionInput.value='';
   render();
 }
 
+/* ================== RENDER ================== */
 function render(){
   app.innerHTML='';
   monthly.innerHTML='';
   inputWrap.style.display=mode==='tomorrow'?'block':'none';
   rewardWrap.style.display=mode==='reward'?'block':'none';
 
-  if(mode==='history') return renderHistory();
-  if(mode==='reward') return renderReward();
+  if(mode==='history')return renderHistory();
+  if(mode==='reward')return renderReward();
+  if(mode==='today' && !isHistoryView && missions.length===0){
+  app.innerHTML = `
+    <div class="card">
+      <h2>Misi Hari Ini</h2>
+      <small>Tidak ada misi hari ini</small>
+    </div>`;
+  return;
+}
+
 
   const d=new Date(activeKey);
-  const title=mode==='today'
-    ?'Misi Hari Ini'
-    :'Misi Besok '+days[d.getDay()];
-
-  const c=document.createElement('div');
-  c.className='card';
-  c.innerHTML=`<h2>${title}</h2>`;
-
-  if(missions.length===0){
-    c.innerHTML+='<p style="opacity:.5">Kosong</p>';
-  }
+  const card=document.createElement('div');
+  card.className='card';
+  card.innerHTML=`<h2>${mode==='today'?'Misi Hari Ini':'Misi Besok '+days[d.getDay()]}</h2>`;
 
   missions.forEach((m,i)=>{
     const row=document.createElement('div');
     row.className='mission '+(m.status||'');
     row.innerHTML=`<span>${m.text} (+${m.point})</span>`;
-
     const a=document.createElement('div');
     a.className='actions';
 
-    if(mode==='today' && !m.status){
-      const ok=document.createElement('button');
-      ok.textContent='✔';
-      const no=document.createElement('button');
-      no.textContent='✖';
+    if(mode==='today'&&!m.status){
+      ['✔','✖'].forEach((s,j)=>{
+        const b=document.createElement('button');
+        b.textContent=s;
+        b.onclick=()=>{
+          m.status=j===0?'done':'fail';
+          a.classList.add('hide');
+          save();
+          requestAnimationFrame(()=>save());
+          setTimeout(()=>render(),200);
 
-     ok.onclick = () => {
-  m.status = 'done';
-  row.classList.add('done');
-  a.classList.add('hide');
-  save(); // cukup simpan
-};
-
-no.onclick = () => {
-  m.status = 'fail';
-  row.classList.add('fail');
-  a.classList.add('hide');
-  save();
-};
-
-
-
-      a.append(ok,no);
+        };
+        a.appendChild(b);
+      });
     }
 
     if(mode==='tomorrow'){
-      const del=document.createElement('button');
-      del.textContent='🗑';
-      del.onclick=()=>{
-        row.style.opacity='.3';
-        row.style.transform='scale(.95)';
-        setTimeout(()=>{
-          missions.splice(i,1);
-          save();
-          render();
-        },400);
-      };
-      a.append(del);
+      const b=document.createElement('button');
+      b.textContent='🗑';
+      b.onclick=()=>{missions.splice(i,1);save();render()};
+      a.appendChild(b);
     }
 
-    if(a.children.length) row.appendChild(a);
-    c.appendChild(row);
+    if(a.children.length)row.appendChild(a);
+    card.appendChild(row);
   });
 
   if(mode==='today'){
     const sum=totalPoint(missions);
-    c.innerHTML+=`
-      <div class="score ${sum===0?'zero':'ok'}">${sum}</div>
-      <div class="month-info">Total poin hari ini</div>`;
+    card.innerHTML+=`<div class="score ${sum?'ok':'zero'}">${sum}</div>`;
   }
 
-  app.appendChild(c);
+  app.appendChild(card);
 
   monthly.innerHTML=`
-    <div class="month-info">
-      Bulan ini: ${monthTotal(0)} poin<br>
-      Bulan lalu: ${monthTotal(-1)} poin
-    </div>`;
+    <small>
+    Bulan ini: ${monthTotal(0)} poin<br>
+    Bulan lalu: ${monthTotal(-1)} poin
+    </small>`;
 
   checkReward();
 }
 
+/* ================== HISTORY ================== */
 function renderHistory(){
+  const limit=new Date();limit.setMonth(limit.getMonth()-2);
   Object.keys(localStorage)
-    .filter(k=>k.includes('GMT'))
-    .slice(0,60)
+    .filter(k=>/^\d{4}-\d{2}-\d{2}$/.test(k)&&new Date(k)>=limit)
+    .sort((a,b)=>b.localeCompare(a))
     .forEach(k=>{
       const d=new Date(k);
       app.innerHTML+=`
         <div class="list-date" onclick="openDay('${k}')">
-          ${days[d.getDay()]},
-          ${d.getDate()}-${d.getMonth()+1}-${d.getFullYear()}
+          ${days[d.getDay()]} ${d.getDate()}-${d.getMonth()+1}-${d.getFullYear()}
         </div>`;
     });
 }
 
 function openDay(k){
+  isHistoryView=true;
   activeKey=k;
   mode='today';
   load();
   render();
 }
 
+
+/* ================== REWARD ================== */
 function addReward(){
   const n=rewardName.value.trim();
-  const p=+rewardPoint.value;
-  if(!n||!p)return;
+  const p=Number(rewardPoint.value);
+  if(!n||p<=0)return;
   rewards.push({name:n,target:p});
-  localStorage.setItem('rewards_active',JSON.stringify(rewards));
-  rewardName.value='';
-  rewardPoint.value='';
+  localStorage.setItem('rewards',JSON.stringify(rewards));
+  rewardName.value=rewardPoint.value='';
   render();
 }
 
@@ -371,22 +380,20 @@ function renderReward(){
   c.className='card';
   c.innerHTML='<h2>Hadiah Aktif</h2>';
   rewards.forEach((r,i)=>{
-    c.innerHTML+=`
-      <p>🎁 ${r.name} (${r.target})
-      <button onclick="deleteReward(${i})">🗑</button></p>`;
+    c.innerHTML+=`${r.name} (${r.target})
+      <button onclick="deleteReward(${i})">🗑</button><br>`;
   });
   c.innerHTML+='<h3>History Hadiah</h3>';
   rewardHistory.forEach(r=>{
-    c.innerHTML+=`
-      <small>${r.day},
-      ${r.date}-${r.month}-${r.year} — ${r.name}</small><br>`;
+    const d=new Date(r.date);
+    c.innerHTML+=`<small>${days[d.getDay()]} ${d.getDate()}-${d.getMonth()+1}-${d.getFullYear()} — ${r.name}</small><br>`;
   });
   app.appendChild(c);
 }
 
 function deleteReward(i){
   rewards.splice(i,1);
-  localStorage.setItem('rewards_active',JSON.stringify(rewards));
+  localStorage.setItem('rewards',JSON.stringify(rewards));
   render();
 }
 
@@ -399,18 +406,11 @@ function checkReward(){
 }
 
 function claimReward(){
-  modal.style.display='none';
-  const n=new Date();
-  rewardHistory.push({
-    name:reachedReward.name,
-    day:days[n.getDay()],
-    date:n.getDate(),
-    month:n.getMonth()+1,
-    year:n.getFullYear()
-  });
+  rewardHistory.push({name:reachedReward.name,date:new Date().toISOString()});
   rewards=rewards.filter(r=>r!==reachedReward);
-  localStorage.setItem('rewards_active',JSON.stringify(rewards));
-  localStorage.setItem('rewards_history',JSON.stringify(rewardHistory));
+  localStorage.setItem('rewards',JSON.stringify(rewards));
+  localStorage.setItem('reward_history',JSON.stringify(rewardHistory));
+  modal.style.display='none';
   render();
 }
 

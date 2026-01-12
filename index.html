@@ -57,6 +57,14 @@
             animation: fadeIn 0.4s ease-out forwards;
         }
 
+        @keyframes popIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .animate-pop-in {
+            animation: popIn 0.2s ease-out forwards;
+        }
+
         /* Prevent text selection specifically for app-like feel */
         body {
             -webkit-tap-highlight-color: transparent;
@@ -96,9 +104,14 @@
         </header>
 
         <!-- Main Content Area -->
-        <main id="app-content" class="flex-1 overflow-y-auto px-6 hide-scrollbar pb-24">
+        <main id="app-content" class="flex-1 overflow-y-auto px-6 hide-scrollbar pb-24 relative">
             <!-- Content will be injected here by JavaScript -->
         </main>
+
+        <!-- Time Selection Modal Overlay (Hidden by default) -->
+        <div id="time-modal-overlay" class="hidden absolute inset-0 bg-midnight/90 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <!-- Modal Content Injected JS -->
+        </div>
 
         <!-- Bottom Navigation -->
         <nav class="absolute bottom-6 left-4 right-4 h-20 bg-navy/90 backdrop-blur-md border border-blue-800/50 rounded-2xl flex items-center justify-around shadow-2xl z-20">
@@ -124,15 +137,15 @@
     <script>
         // --- Configuration ---
         const TIME_SLOTS = [
-            { id: 'halt', label: 'HALT', range: '00-03', start: 0, end: 3 },
-            { id: 'boot', label: 'BOOT', range: '03-06', start: 3, end: 6 },
-            { id: 'prim', label: 'PRIM', range: '06-09', start: 6, end: 9 },
-            { id: 'core', label: 'CORE', range: '09-12', start: 9, end: 12 },
-            { id: 'idle', label: 'IDLE', range: '12-15', start: 12, end: 15 },
-            { id: 'exec', label: 'EXEC', range: '15-18', start: 15, end: 18 },
-            { id: 'wind', label: 'WIND', range: '18-21', start: 18, end: 21 },
-            { id: 'rest', label: 'REST', range: '21-24', start: 21, end: 24 },
-            { id: 'all',  label: 'ALL',  range: '00-24', start: 0, end: 24 }
+            { id: 'halt', label: 'HALT', range: '00:00 - 03:00', start: 0, end: 3, desc: 'Deep Focus / Sleep' },
+            { id: 'boot', label: 'BOOT', range: '03:00 - 06:00', start: 3, end: 6, desc: 'Early Start' },
+            { id: 'prim', label: 'PRIM', range: '06:00 - 09:00', start: 6, end: 9, desc: 'Morning Prime' },
+            { id: 'core', label: 'CORE', range: '09:00 - 12:00', start: 9, end: 12, desc: 'Main Work' },
+            { id: 'idle', label: 'IDLE', range: '12:00 - 15:00', start: 12, end: 15, desc: 'Mid-Day' },
+            { id: 'exec', label: 'EXEC', range: '15:00 - 18:00', start: 15, end: 18, desc: 'Afternoon Push' },
+            { id: 'wind', label: 'WIND', range: '18:00 - 21:00', start: 18, end: 21, desc: 'Evening Wind-down' },
+            { id: 'rest', label: 'REST', range: '21:00 - 24:00', start: 21, end: 24, desc: 'Pre-Sleep' },
+            { id: 'all',  label: 'ALL',  range: '00:00 - 24:00', start: 0, end: 24, desc: 'Sepanjang Hari' }
         ];
 
         // --- State Management ---
@@ -143,7 +156,9 @@
             activeTab: 'home', 
             historySelectedDate: null,
             selectedDifficulty: 'easy',
-            selectedTimeSlot: 'all' // Default
+            // Temp state for modal
+            pendingTask: null, 
+            modalOpen: false
         };
 
         // --- Utility Functions ---
@@ -226,17 +241,19 @@
                 if (t.date === todayStr && t.status === 'pending') {
                     const slot = TIME_SLOTS.find(s => s.id === (t.timeSlot || 'all'));
                     
-                    // Logic: If slot is NOT 'all' AND current hour >= end time of slot
-                    // Example: IDLE (12-15). If 15:00 hits, it's over.
                     if (slot && slot.id !== 'all' && currentHour >= slot.end) {
                         t.status = 'failed';
                         changed = true;
-                        // Optional: Notification could go here
                     }
                 }
             });
 
-            if (changed) saveData();
+            // Only Save & Render if something ACTUALLY changed to prevent flickering
+            if (changed) {
+                saveData();
+                return true;
+            }
+            return false;
         }
 
         function calculateStats() {
@@ -300,28 +317,51 @@
             render();
         }
 
-        function setTimeSlot(slotId) {
-            state.selectedTimeSlot = slotId;
-            render();
-        }
-
-        function addTask() {
+        // STEP 1: Init Task Creation (Show Modal)
+        function initiateAddTask() {
             const textEl = document.getElementById('new-task-text');
             if (!textEl.value.trim()) return;
 
-            const newTask = {
-                id: crypto.randomUUID(),
+            // Store temp data
+            state.pendingTask = {
                 text: textEl.value,
                 difficulty: state.selectedDifficulty,
-                timeSlot: state.selectedTimeSlot, // Add time slot
                 date: getTomorrowString(),
+            };
+            
+            // Show modal
+            state.modalOpen = true;
+            renderModal(); // Render only modal logic
+            
+            // Clear input but don't re-render entire app yet to keep keyboard context if possible, 
+            // though modal usually covers it.
+            textEl.value = '';
+        }
+
+        // STEP 2: Confirm Time Slot
+        function confirmTimeSlot(slotId) {
+            if (!state.pendingTask) return;
+
+            const newTask = {
+                id: crypto.randomUUID(),
+                ...state.pendingTask,
+                timeSlot: slotId,
                 status: 'pending'
             };
 
             state.tasks.push(newTask);
-            saveData();
-            // Reset form (optional, keeping difficulty/time sticky might be better UX, but clearing text)
-            textEl.value = '';
+            
+            // Reset
+            state.pendingTask = null;
+            state.modalOpen = false;
+            
+            saveData(); // This triggers render()
+        }
+
+        function cancelAddTask() {
+            state.pendingTask = null;
+            state.modalOpen = false;
+            renderModal();
         }
 
         function deleteTask(id) {
@@ -403,6 +443,44 @@
 
         // --- Rendering Logic ---
 
+        function renderModal() {
+            const overlay = document.getElementById('time-modal-overlay');
+            if (!state.modalOpen) {
+                overlay.classList.add('hidden');
+                overlay.innerHTML = '';
+                return;
+            }
+
+            overlay.classList.remove('hidden');
+            
+            // Generate Buttons
+            const buttonsHtml = TIME_SLOTS.map(s => {
+                return `
+                <button onclick="confirmTimeSlot('${s.id}')" class="bg-navy p-3 rounded-xl border border-blue-900/50 hover:border-neon hover:bg-blue-900/50 transition-all active:scale-95 flex flex-col items-start gap-1 group">
+                    <span class="text-neon font-mono font-bold text-lg group-hover:text-white">${s.label}</span>
+                    <span class="text-textMain text-xs">${s.range}</span>
+                    <span class="text-blue-500 text-[10px]">${s.desc}</span>
+                </button>
+                `;
+            }).join('');
+
+            overlay.innerHTML = `
+                <div class="bg-midnight border border-blue-800 rounded-2xl w-full max-w-sm p-5 shadow-2xl animate-pop-in relative">
+                    <button onclick="cancelAddTask()" class="absolute top-4 right-4 text-blue-500 hover:text-red-500">
+                        <i data-lucide="x" class="w-6 h-6"></i>
+                    </button>
+                    
+                    <h3 class="text-xl font-bold text-white mb-1">Pilih Waktu</h3>
+                    <p class="text-blue-400 text-xs mb-4">Kapan misi "${state.pendingTask ? state.pendingTask.text : ''}" akan dikerjakan?</p>
+                    
+                    <div class="grid grid-cols-2 gap-3 h-80 overflow-y-auto hide-scrollbar pb-2">
+                        ${buttonsHtml}
+                    </div>
+                </div>
+            `;
+            lucide.createIcons();
+        }
+
         function render() {
             const { todayPoints, monthPoints, lastMonthPoints, streak } = calculateStats();
             
@@ -430,6 +508,9 @@
             if (state.activeTab === 'home') renderHome(appContent, todayPoints, monthPoints, lastMonthPoints);
             else if (state.activeTab === 'rewards') renderRewards(appContent, monthPoints);
             else if (state.activeTab === 'history') renderHistory(appContent);
+
+            // Ensure Modal state is reflected if re-rendering whole app
+            renderModal();
 
             lucide.createIcons();
         }
@@ -475,16 +556,6 @@
                 if (d === 'medium') colorClass = isSelected ? "bg-blue-500 text-white border-blue-500" : "text-blue-500 border-blue-900/50 hover:border-blue-500";
                 if (d === 'hard') colorClass = isSelected ? "bg-purple-500 text-white border-purple-500" : "text-purple-500 border-purple-900/50 hover:border-purple-500";
                 return `<button onclick="setDifficulty('${d}')" class="flex-1 py-2 rounded-lg text-xs font-bold border transition-all active:scale-95 ${colorClass}">${label} (${points})</button>`;
-            }).join('');
-
-            // Time Slot Buttons (Horizontal Scroll)
-            const timeButtons = TIME_SLOTS.map(s => {
-                const isSelected = state.selectedTimeSlot === s.id;
-                const baseClass = "flex-shrink-0 px-3 py-2 rounded-lg border text-xs font-mono font-bold transition-all active:scale-95";
-                const activeClass = isSelected 
-                    ? "bg-neon text-midnight border-neon shadow-[0_0_10px_rgba(0,224,255,0.4)]" 
-                    : "bg-midnight text-blue-400 border-blue-900/50 hover:border-blue-500";
-                return `<button onclick="setTimeSlot('${s.id}')" class="${baseClass} ${activeClass}">${s.label}</button>`;
             }).join('');
 
             let html = `
@@ -542,18 +613,11 @@
                             <div class="flex gap-2">
                                 ${diffButtons}
                             </div>
-
-                            <!-- Time Slots -->
-                            <div>
-                                <p class="text-[10px] text-blue-400 uppercase font-bold mb-2 tracking-wider">Waktu Pengerjaan (Time Protocol)</p>
-                                <div class="flex gap-2 overflow-x-auto pb-2 hide-scrollbar">
-                                    ${timeButtons}
-                                </div>
-                            </div>
                             
-                            <button onclick="addTask()" 
+                            <!-- Main Button triggers Modal -->
+                            <button onclick="initiateAddTask()" 
                                 class="w-full bg-gradient-to-r from-blue-700 to-purple-600 hover:from-blue-600 hover:to-purple-500 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg shadow-purple-900/20">
-                                <i data-lucide="plus-circle" class="w-5 h-5"></i> Tambah Misi
+                                <i data-lucide="plus-circle" class="w-5 h-5"></i> Lanjut: Pilih Waktu
                             </button>
                         </div>
 
@@ -777,10 +841,11 @@
 
         // --- Loop for Time Check ---
         setInterval(() => {
-            // Check for task failures every 10 seconds to keep UI relatively fresh without overloading
-            checkTimeFailures(); 
-            // Also re-render if we are on the home tab to update the UI instantly if something fails
-            if(state.activeTab === 'home') render();
+            // Updated: Only call render if data ACTUALLY changed to fix flickering
+            const dataChanged = checkTimeFailures(); 
+            if(dataChanged && state.activeTab === 'home') {
+                render();
+            }
         }, 10000);
 
         // Initial Run

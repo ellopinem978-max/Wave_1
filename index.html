@@ -154,7 +154,7 @@
         <canvas id="particle-canvas"></canvas>
         <div class="ambient-layer"></div>
 
-        <!-- 1. HEADER (Fixed missing structure) -->
+        <!-- 1. HEADER -->
         <header id="app-header" class="flex-none pt-10 pb-4 px-6 z-20 border-b border-white/5 bg-gradient-to-b from-obsidian via-obsidian/95 to-transparent backdrop-blur-sm">
              <div class="flex items-center justify-between">
                 <div>
@@ -166,7 +166,7 @@
                           <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-neonGreen opacity-75"></span>
                           <span class="relative inline-flex rounded-full h-2 w-2 bg-neonGreen"></span>
                         </span>
-                        <p id="header-status" class="text-neonCyan/70 text-[10px] font-mono tracking-[0.2em]">ONLINE</p>
+                        <p id="header-status" class="text-neonCyan/70 text-[10px] font-mono tracking-[0.2em]">SYSTEM ONLINE</p>
                     </div>
                 </div>
                 <div class="glass-card px-4 py-2 rounded-lg group hover:border-neonCyan/30 transition-colors cursor-default">
@@ -195,38 +195,36 @@
 
     <!-- 
         ========================================================================
-        JAVASCRIPT ARCHITECTURE (ENTERPRISE GRADE)
-        Separated into distinct modules for maximum maintainability and scale.
+        JAVASCRIPT ARCHITECTURE
         ========================================================================
     -->
     <script>
         /**
          * MODULE 1: CONFIGURATION & CONSTANTS
-         * Centralized definition of all app parameters.
          */
         const Config = {
             APP_NAME: 'Wake Map',
-            VERSION: '5.0.0-ARCHITECT',
-            STORAGE_PREFIX: 'wakemap_architect_',
+            VERSION: '5.1.0-FIX',
+            STORAGE_PREFIX: 'wakemap_arch_',
             
-            // Time Protocol
+            // Time Protocol (Added 'start' for clearer logic)
             TIME_SLOTS: [
-                { id: 'halt', label: 'HALT', range: '00:00 - 02:00', end: 2, desc: 'Deep Rest & Recovery' },
-                { id: 'void', label: 'VOID', range: '02:00 - 04:00', end: 4, desc: 'Subconscious Processing' },
-                { id: 'boot', label: 'BOOT', range: '04:00 - 06:00', end: 6, desc: 'System Initialization' },
-                { id: 'prim', label: 'PRIM', range: '06:00 - 08:00', end: 8, desc: 'Prime Mental State' },
-                { id: 'core', label: 'CORE', range: '08:00 - 10:00', end: 10, desc: 'Deep Focus Work' },
-                { id: 'flow', label: 'FLOW', range: '10:00 - 12:00', end: 12, desc: 'High Performance Flow' },
-                { id: 'idle', label: 'IDLE', range: '12:00 - 14:00', end: 14, desc: 'System Recharge' },
-                { id: 'sync', label: 'SYNC', range: '14:00 - 16:00', end: 16, desc: 'Strategic Alignment' },
-                { id: 'exec', label: 'EXEC', range: '16:00 - 18:00', end: 18, desc: 'Tactical Execution' },
-                { id: 'wind', label: 'WIND', range: '18:00 - 20:00', end: 20, desc: 'Evening Decompression' },
-                { id: 'rest', label: 'REST', range: '20:00 - 22:00', end: 22, desc: 'Recovery Mode' },
-                { id: 'fade', label: 'FADE', range: '22:00 - 24:00', end: 24, desc: 'System Shutdown' },
-                { id: 'all',  label: 'ALL',  range: '00:00 - 24:00', end: 24, desc: 'Full Day Cycle' }
+                { id: 'halt', label: 'HALT', range: '00:00 - 02:00', start: 0, end: 2, desc: 'Deep Rest & Recovery' },
+                { id: 'void', label: 'VOID', range: '02:00 - 04:00', start: 2, end: 4, desc: 'Subconscious Processing' },
+                { id: 'boot', label: 'BOOT', range: '04:00 - 06:00', start: 4, end: 6, desc: 'System Initialization' },
+                { id: 'prim', label: 'PRIM', range: '06:00 - 08:00', start: 6, end: 8, desc: 'Prime Mental State' },
+                { id: 'core', label: 'CORE', range: '08:00 - 10:00', start: 8, end: 10, desc: 'Deep Focus Work' },
+                { id: 'flow', label: 'FLOW', range: '10:00 - 12:00', start: 10, end: 12, desc: 'High Performance Flow' },
+                { id: 'idle', label: 'IDLE', range: '12:00 - 14:00', start: 12, end: 14, desc: 'System Recharge' },
+                { id: 'sync', label: 'SYNC', range: '14:00 - 16:00', start: 14, end: 16, desc: 'Strategic Alignment' },
+                { id: 'exec', label: 'EXEC', range: '16:00 - 18:00', start: 16, end: 18, desc: 'Tactical Execution' },
+                { id: 'wind', label: 'WIND', range: '18:00 - 20:00', start: 18, end: 20, desc: 'Evening Decompression' },
+                { id: 'rest', label: 'REST', range: '20:00 - 22:00', start: 20, end: 22, desc: 'Recovery Mode' },
+                { id: 'fade', label: 'FADE', range: '22:00 - 24:00', start: 22, end: 24, desc: 'System Shutdown' },
+                { id: 'all',  label: 'ALL',  range: '00:00 - 24:00', start: 0, end: 24, desc: 'Full Day Cycle' }
             ],
 
-            // Rank Definitions (The 15 Tiers)
+            // Rank Definitions
             TIERS: [
                 { id:0, code:'F', name:'Failing', class:'tier-f', barColor:'#4B5563' },
                 { id:1, code:'E', name:'Elementary', class:'tier-e', barColor:'#6B7280' },
@@ -255,7 +253,6 @@
 
         /**
          * MODULE 2: UTILITIES
-         * Pure helper functions.
          */
         class Utils {
             static generateId() { 
@@ -287,11 +284,15 @@
             static formatCurrency(n) { 
                 return new Intl.NumberFormat('id-ID').format(n); 
             }
+            static getCurrentSlot() {
+                const h = new Date().getHours();
+                // Find strict slot (not 'all')
+                return Config.TIME_SLOTS.find(s => s.id !== 'all' && h >= s.start && h < s.end) || Config.TIME_SLOTS[0];
+            }
         }
 
         /**
          * MODULE 3: DATA SERVICES (MODEL)
-         * Handles persistence and data integrity.
          */
         class Store {
             static get(key) { 
@@ -307,7 +308,6 @@
 
         /**
          * MODULE 4: GAME ENGINE (LOGIC)
-         * Calculates ranks, points, and auto-failure states.
          */
         class Engine {
             static calcPoints(tasks) {
@@ -335,20 +335,20 @@
                 const today = Utils.getISO();
 
                 dates.forEach(d => {
-                    if (d === today) return; // Don't process today until tomorrow
+                    if (d === today) return;
 
                     const ts = mTasks.filter(t => t.date === d);
                     const done = ts.filter(t => t.status === 'completed').length;
                     const total = ts.length;
                     const failed = ts.some(t => t.status === 'failed');
 
-                    // EXECUTION Logic (All or Nothing)
+                    // EXECUTION Logic
                     let eWin = (done === total && total > 0);
                     let eLose = (failed || done < total);
                     if(eWin) { eBar++; if(eBar>2) { if(eTier<14){eTier++; eBar=1;} else eBar=2; } }
                     else if(eLose) { eBar--; if(eBar<0) { if(eTier>0){eTier--; eBar=1;} else eBar=0; } }
                     
-                    // CONSISTENCY Logic (Min 1)
+                    // CONSISTENCY Logic
                     let cWin = (done >= 1);
                     let cLose = (done === 0);
                     if(cWin) { cBar++; if(cBar>2) { if(cTier<14){cTier++; cBar=1;} else cBar=2; } }
@@ -360,22 +360,30 @@
                 };
             }
 
+            // CRITICAL: Logic Auto-Fail Diperketat
             static checkAutoFail(tasks) {
-                const h = new Date().getHours(), t = Utils.getISO();
-                let chg = false;
-                tasks.forEach(x => {
-                    if(x.date === t && x.status === 'pending') {
-                        const slot = Config.TIME_SLOTS.find(s => s.id === (x.timeSlot||'all'));
-                        if(slot && slot.id!=='all' && h >= slot.end) { x.status = 'failed'; chg = true; }
+                const h = new Date().getHours();
+                const today = Utils.getISO();
+                let hasChange = false;
+
+                tasks.forEach(task => {
+                    if(task.date === today && task.status === 'pending') {
+                        const slot = Config.TIME_SLOTS.find(s => s.id === (task.timeSlot||'all'));
+                        
+                        // Jika slot bukan 'all' dan jam sekarang >= jam akhir slot
+                        // Contoh: HALT (0-2). Jam 2 (02:00). 2 >= 2 => True. FAIL.
+                        if(slot && slot.id !== 'all' && h >= slot.end) {
+                            task.status = 'failed';
+                            hasChange = true;
+                        }
                     }
                 });
-                return chg;
+                return hasChange;
             }
         }
 
         /**
          * MODULE 5: VISUAL EFFECTS SYSTEM
-         * Pure JS Canvas Particle System for high-performance background.
          */
         class VFXEngine {
             constructor() {
@@ -431,12 +439,10 @@
 
         /**
          * MODULE 6: UI COMPONENT FACTORY
-         * Centralized HTML generation for consistency.
          */
         const ComponentFactory = {
             rankCard(title, data, icon) {
                 const t = data.tier;
-                // Generate 2 Bars
                 let bars = '';
                 for(let i=1; i<=2; i++) {
                     const active = i <= data.bars;
@@ -511,7 +517,6 @@
 
         /**
          * MODULE 7: MAIN CONTROLLER
-         * The brain of the application.
          */
         const Controller = {
             state: {
@@ -523,27 +528,24 @@
             },
 
             init() {
-                // Initialize Visuals
                 new VFXEngine();
                 
-                // Initialize Header
                 const monthDisplay = document.getElementById('header-month');
                 if (monthDisplay) {
                     monthDisplay.innerText = Utils.formatMonth(Utils.getMonthKey(Utils.getISO()));
                 }
 
-                // Initialize Render
                 this.render();
 
-                // Start Auto-Fail Loop
+                // Auto-Fail Loop Check Every 10s
                 setInterval(() => {
                     const tasks = Store.get('tasks');
                     if (Engine.checkAutoFail(tasks)) {
                         Store.set('tasks', tasks);
-                        this.toast('Misi gagal karena waktu habis', 'error');
+                        this.toast('Waktu misi telah habis!', 'error');
                         if(this.state.view === 'home') this.render();
                     }
-                }, 15000);
+                }, 10000);
             },
 
             // --- NAVIGATION ---
@@ -575,7 +577,7 @@
                     text: this.state.tempTask.text,
                     difficulty: this.state.tempTask.difficulty,
                     timeSlot: slotId,
-                    date: Utils.getTomorrow(),
+                    date: Utils.getTomorrow(), // Always schedule for tomorrow
                     status: 'pending',
                     createdAt: new Date().toISOString()
                 });
@@ -686,7 +688,7 @@
                 m.innerHTML = `
                 <div class="bg-charcoal border-t sm:border border-slate-700 rounded-t-3xl sm:rounded-2xl w-full max-w-sm p-6 shadow-2xl pointer-events-auto animate-[slideIn_0.3s_ease-out]">
                     <button onclick="App.controller.closeModal()" class="absolute top-6 right-6 text-slate-500 hover:text-white bg-slate-800/50 p-2 rounded-full"><i data-lucide="x" class="w-5 h-5"></i></button>
-                    <div class="mb-6"><h3 class="text-xl font-bold text-white mb-1">Time Protocol</h3><p class="text-slate-400 text-xs font-mono">Pilih slot waktu:</p></div>
+                    <div class="mb-6"><h3 class="text-xl font-bold text-white mb-1">Time Protocol</h3><p class="text-slate-400 text-xs font-mono">Pilih slot waktu eksekusi:</p></div>
                     <div class="grid grid-cols-2 gap-2 h-64 overflow-y-auto custom-scroll pr-1">
                         ${Config.TIME_SLOTS.map(s => `<button onclick="App.controller.confirmTask('${s.id}')" class="glass-card p-3 rounded-xl hover:border-neonCyan hover:bg-slate-800 text-left group active:scale-95 transition-all"><span class="text-neonCyan font-mono font-bold text-sm block group-hover:text-white transition-colors">${s.label}</span><span class="text-slate-300 text-[10px] block opacity-70">${s.range}</span></button>`).join('')}
                     </div>
@@ -703,12 +705,17 @@
 
             // --- RENDER ENGINE ---
             render() {
+                // 1. Pre-Check Auto Fails before rendering
+                const tasksRaw = Store.get('tasks');
+                if(Engine.checkAutoFail(tasksRaw)) { Store.set('tasks', tasksRaw); }
+
                 const tasks = Store.get('tasks');
                 const rewards = Store.get('rewards');
                 const reflections = Store.get('reflections');
                 
                 const today = Utils.getISO();
                 const monthKey = Utils.getISO().slice(0, 7);
+                const currentSlot = Utils.getCurrentSlot();
                 
                 // Update Common Elements
                 document.getElementById('header-month').innerText = Utils.formatMonth(monthKey);
@@ -721,14 +728,22 @@
                     return `<button onclick="App.controller.navigate('${t.id}')" class="nav-item ${act?'active':''} flex flex-col items-center gap-1.5 p-2 w-16 group"><i data-lucide="${t.i}" class="nav-icon w-5 h-5"></i><span class="text-[8px] font-bold tracking-widest group-hover:text-white">${t.l}</span><div class="nav-indicator"></div></button>`;
                 }).join('');
 
-                // Render View
                 const main = document.getElementById('app-viewport');
                 
                 if (this.state.view === 'home') {
                     const pts = Engine.calcPoints(tasks);
                     const rnk = Engine.calcRank(monthKey, tasks);
                     const ref = reflections.find(r => r.date === today);
-                    const tToday = tasks.filter(t => t.date === today);
+                    
+                    // Filter Logic: Show Active Tasks
+                    // Aturan: Tampilkan jika tanggal hari ini DAN (Statusnya bukan pending [artinya selesai/gagal] ATAU Masuk slot waktu sekarang)
+                    const tActive = tasks.filter(t => {
+                        if (t.date !== today) return false;
+                        if (t.status !== 'pending') return true; // Tampilkan riwayat hari ini
+                        return t.timeSlot === currentSlot.id || t.timeSlot === 'all';
+                    });
+
+                    // Untuk melihat besok
                     const tTom = tasks.filter(t => t.date === Utils.getTomorrow());
 
                     const diffBtn = (d) => {
@@ -756,8 +771,14 @@
                         `<div class="p-5 rounded-xl border border-dashed border-slate-700 bg-slate/20"><label class="block text-slate-400 text-[10px] font-bold mb-3 uppercase tracking-widest flex items-center gap-2"><i data-lucide="edit-3" class="w-3 h-3"></i> Refleksi Wajib</label><div class="flex gap-2"><input id="ref-in" type="text" placeholder="Apa yang dipelajari?" class="flex-1 bg-charcoal text-white rounded-lg px-4 py-3 text-sm border border-slate-700 focus:border-neonPurple outline-none"><button onclick="App.controller.saveRef()" class="bg-neonPurple text-white px-4 rounded-lg shadow-lg"><i data-lucide="save" class="w-4 h-4"></i></button></div></div>`}
 
                         <div>
-                            <div class="flex justify-between mb-4 items-end border-b border-white/5 pb-2"><h2 class="text-sm font-bold text-white flex items-center gap-2"><i data-lucide="crosshair" class="w-4 h-4 text-neonCyan"></i> MISI HARI INI</h2><span class="text-[9px] font-bold text-slate-500 bg-slate px-2 py-1 rounded border border-white/5">${tToday.length} TUGAS</span></div>
-                            <div class="space-y-0">${tToday.length===0 ? '<div class="text-center py-8 text-xs text-slate-600 font-mono border border-dashed border-slate-800 rounded-xl">TIDAK ADA DATA</div>' : tToday.map(t => ComponentFactory.taskItem(t, true)).join('')}</div>
+                            <div class="flex justify-between mb-4 items-end border-b border-white/5 pb-2">
+                                <h2 class="text-sm font-bold text-white flex items-center gap-2"><i data-lucide="crosshair" class="w-4 h-4 text-neonCyan"></i> MISI AKTIF</h2>
+                                <div class="flex flex-col items-end">
+                                    <span class="text-[9px] text-neonCyan font-mono font-bold uppercase tracking-widest">${currentSlot.label} PHASE</span>
+                                    <span class="text-[8px] text-slate-500 font-mono">${currentSlot.range}</span>
+                                </div>
+                            </div>
+                            <div class="space-y-0">${tActive.length===0 ? '<div class="text-center py-8 text-xs text-slate-600 font-mono border border-dashed border-slate-800 rounded-xl">TIDAK ADA MISI FASE INI</div>' : tActive.map(t => ComponentFactory.taskItem(t, true)).join('')}</div>
                         </div>
 
                         <div class="flex items-center justify-center opacity-20 py-2"><div class="h-px bg-white w-full"></div><div class="mx-4 text-[9px] font-mono text-white whitespace-nowrap">NEXT CYCLE</div><div class="h-px bg-white w-full"></div></div>
@@ -767,7 +788,7 @@
                             <div class="glass-card p-5 rounded-xl space-y-4 mb-4">
                                 <input id="task-in" type="text" placeholder="Input nama misi..." class="w-full bg-charcoal text-white rounded-lg px-4 py-3 text-sm border border-slate-700 focus:border-neonCyan outline-none">
                                 <div class="flex gap-2">${['easy','medium','hard'].map(diffBtn).join('')}</div>
-                                <button onclick="App.controller.initTask()" class="w-full btn-action bg-neonCyan hover:bg-white hover:text-obsidian text-obsidian font-bold py-3 rounded-lg text-xs uppercase tracking-widest shadow-[0_0_15px_rgba(6,182,212,0.3)] flex justify-center gap-2"><i data-lucide="plus-circle" class="w-4 h-4"></i> Lanjut ke Waktu</button>
+                                <button onclick="App.controller.initTask()" class="w-full btn-action bg-neonCyan hover:bg-white hover:text-obsidian text-obsidian font-bold py-3 rounded-lg text-xs uppercase tracking-widest shadow-[0_0_15px_rgba(6,182,212,0.3)] flex justify-center gap-2"><i data-lucide="plus-circle" class="w-4 h-4"></i> Jadwalkan</button>
                             </div>
                             <div class="space-y-0">${tTom.map(t => ComponentFactory.taskItem(t, false)).join('')}</div>
                         </div>
@@ -843,7 +864,6 @@
             }
         };
 
-        // --- 5. INITIALIZATION ---
         const App = { controller: Controller };
         window.addEventListener('DOMContentLoaded', () => App.controller.init());
 

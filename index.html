@@ -256,7 +256,7 @@
                 hard: { id: 'hard', label: 'Sulit', pts: 6, color: 'text-neonPurple', border: 'border-neonPurple', hex: '#8b5cf6' }
             },
 
-            // Productivity Modes (NEW)
+            // Productivity Modes
             PRODUCTIVITY_MODES: [
                 { id: 'hibernasi', label: 'Hibernasi', pts: 8, desc: 'Recovery Mode', icon: 'battery-charging', color: 'text-slate-400' },
                 { id: 'inisiasi', label: 'Inisiasi', pts: 16, desc: 'Starter', icon: 'sprout', color: 'text-neonGreen' },
@@ -640,6 +640,7 @@
                 tempMode: null,
                 // PERSISTENT INPUT STATES
                 tempIncome: '',
+                tempAlloc: '',
                 tempTaskInput: ''
             },
 
@@ -776,8 +777,11 @@
             // --- FINANCE & REWARD ACTIONS ---
             selectMode(id) {
                 // Capture input before re-render
-                const el = document.getElementById('income-in');
-                if(el) this.state.tempIncome = el.value;
+                const incEl = document.getElementById('income-in');
+                const allocEl = document.getElementById('alloc-in');
+                
+                if(incEl) this.state.tempIncome = incEl.value;
+                if(allocEl) this.state.tempAlloc = allocEl.value;
 
                 this.state.tempMode = id;
                 this.sound.play('click');
@@ -786,19 +790,30 @@
 
             saveMonthlyConfig() {
                 const incomeIn = document.getElementById('income-in').value;
+                const allocIn = document.getElementById('alloc-in').value;
                 const modeId = this.state.tempMode;
                 
                 if(!incomeIn || incomeIn <= 0) { this.toast('Nominal gaji tidak valid', 'error'); return; }
                 if(!modeId) { this.toast('Pilih mode operasi', 'error'); return; }
                 
+                // Set default allocation to 20% if not selected
+                const allocation = allocIn ? parseFloat(allocIn) : 0.2;
+
                 const mode = Config.PRODUCTIVITY_MODES.find(m => m.id === modeId);
                 const finance = Store.get('finance'); 
                 const monthKey = Utils.getMonthKey(Utils.getISO());
                 const newFinance = finance.filter(f => f.month !== monthKey);
-                newFinance.push({ month: monthKey, amount: parseInt(incomeIn), targetPts: mode.pts, modeId: modeId });
+                newFinance.push({ 
+                    month: monthKey, 
+                    amount: parseInt(incomeIn), 
+                    targetPts: mode.pts, 
+                    modeId: modeId,
+                    allocation: allocation 
+                });
                 
                 Store.set('finance', newFinance);
-                this.state.tempIncome = ''; // Clear stored state
+                this.state.tempIncome = ''; 
+                this.state.tempAlloc = '';
                 this.state.tempMode = null;
                 
                 this.sound.play('success'); // AUDIO
@@ -838,10 +853,16 @@
 
                 if (myFinance) {
                     const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
-                    const dailyIncome = myFinance.amount / daysInMonth;
+                    
+                    // NEW LOGIC: Calculate based on ALLOCATION percentage
+                    const allocation = myFinance.allocation || 0.2; // Default 20%
+                    const monthlyBudget = myFinance.amount * allocation;
+                    const dailyBudget = monthlyBudget / daysInMonth;
+                    
                     const dailyTarget = myFinance.targetPts || 10;
                     
-                    const valPerPoint = Math.max(1, Math.round(dailyIncome / dailyTarget)); 
+                    // Value per point based on daily reward budget
+                    const valPerPoint = Math.max(1, Math.round(dailyBudget / dailyTarget)); 
                     const price = parseInt(priceIn);
                     
                     const normalPts = Math.ceil(price / valPerPoint);
@@ -1148,6 +1169,15 @@
                                     <input id="income-in" type="number" placeholder="Contoh: 1800000" value="${this.state.tempIncome || ''}" class="w-full bg-obsidian text-white rounded-lg px-3 py-2.5 text-sm border border-slate-700 focus:border-neonGold outline-none transition-colors">
                                 </div>
                                 <div>
+                                    <label class="text-[9px] text-slate-500 uppercase font-bold mb-1 block">Alokasi Self Reward (%)</label>
+                                    <select id="alloc-in" class="w-full bg-obsidian text-white rounded-lg px-3 py-2.5 text-sm border border-slate-700 focus:border-neonGold outline-none transition-colors">
+                                        <option value="0.1" ${this.state.tempAlloc === '0.1' ? 'selected' : ''}>10% (Mode Hemat)</option>
+                                        <option value="0.2" ${this.state.tempAlloc === '0.2' || !this.state.tempAlloc ? 'selected' : ''}>20% (Mode Stabil)</option>
+                                        <option value="0.3" ${this.state.tempAlloc === '0.3' ? 'selected' : ''}>30% (Mode Apresiasi)</option>
+                                        <option value="0.4" ${this.state.tempAlloc === '0.4' ? 'selected' : ''}>40% (Mode Selebrasi)</option>
+                                    </select>
+                                </div>
+                                <div>
                                     <label class="text-[9px] text-slate-500 uppercase font-bold mb-2 block">Pilih Mode Operasi</label>
                                     <div class="grid grid-cols-2 gap-2">
                                         ${Config.PRODUCTIVITY_MODES.map(m => {
@@ -1322,7 +1352,15 @@
                             <div class="space-y-4">
                                 <div>
                                     <label class="text-[9px] text-slate-500 uppercase font-bold mb-1 block">Anggaran/Gaji (Rp)</label>
-                                    <input id="income-in" type="number" placeholder="Contoh: 1800000" class="w-full bg-obsidian text-white rounded-lg px-3 py-2.5 text-sm border border-slate-700 focus:border-neonGold outline-none transition-colors">
+                                    <input id="income-in" type="number" placeholder="Contoh: 1800000" value="${this.state.tempIncome || ''}" class="w-full bg-obsidian text-white rounded-lg px-3 py-2.5 text-sm border border-slate-700 focus:border-neonGold outline-none transition-colors">
+                                </div>
+                                <div>
+                                    <label class="text-[9px] text-slate-500 uppercase font-bold mb-1 block">Alokasi Self Reward (%)</label>
+                                    <select id="alloc-in" class="w-full bg-obsidian text-white rounded-lg px-3 py-2.5 text-sm border border-slate-700 focus:border-neonGold outline-none transition-colors">
+                                        <option value="0.1" ${this.state.tempAlloc === '0.1' ? 'selected' : ''}>10% (Mode Hemat)</option>
+                                        <option value="0.2" ${this.state.tempAlloc === '0.2' || !this.state.tempAlloc ? 'selected' : ''}>20% (Mode Wajar)</option>
+                                        <option value="0.3" ${this.state.tempAlloc === '0.3' ? 'selected' : ''}>30% (Mode Sultan)</option>
+                                    </select>
                                 </div>
                                 <div>
                                     <label class="text-[9px] text-slate-500 uppercase font-bold mb-2 block">Pilih Mode Operasi</label>
@@ -1352,14 +1390,18 @@
                     } else {
                         // Info Valuasi Kecil
                         const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
-                        const dailyIncome = myFinance.amount / daysInMonth;
-                        const valPerPoint = Math.max(1, Math.round(dailyIncome / (myFinance.targetPts || 10)));
+                        const allocation = myFinance.allocation || 0.2;
+                        const dailyBudget = (myFinance.amount * allocation) / daysInMonth;
+                        
+                        const dailyTarget = myFinance.targetPts || 10;
+                        const valPerPoint = Math.max(1, Math.round(dailyBudget / dailyTarget));
+                        
                         const mode = Config.PRODUCTIVITY_MODES.find(m => m.id === myFinance.modeId) || { label: 'Custom', color: 'text-white' };
                         
                         financeSection = `
                         <div class="mb-4 flex justify-between items-center text-[10px] text-slate-500 font-mono border-b border-white/5 pb-2">
                             <span>MODE: <span class="${mode.color} font-bold">${mode.label.toUpperCase()}</span></span>
-                            <span>1 PTS ≈ Rp ${Utils.formatCurrency(valPerPoint)}</span>
+                            <span title="Berdasarkan Alokasi ${allocation*100}%">1 PTS ≈ Rp ${Utils.formatCurrency(valPerPoint)}</span>
                         </div>`;
                     }
 

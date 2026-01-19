@@ -16,22 +16,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&family=Audiowide&display=swap" rel="stylesheet">
     
-    <!-- THEME ENGINE -->
-    <style id="theme-style">
-        :root {
-            /* Default: Cyberpunk */
-            --col-bg: #020617;
-            --col-card: #0f172a;
-            --col-cyan: #06b6d4;   /* Primary */
-            --col-purple: #8b5cf6; /* Secondary */
-            --col-gold: #f59e0b;   /* Accent */
-            --col-red: #ef4444;
-            --col-green: #10b981;
-            --col-text: #e2e8f0;
-        }
-    </style>
-
-    <!-- Tailwind Configuration using CSS Vars -->
+    <!-- Tailwind Configuration -->
     <script>
         tailwind.config = {
             theme: {
@@ -42,15 +27,15 @@
                         display: ['Audiowide', 'cursive'],
                     },
                     colors: {
-                        obsidian: "var(--col-bg)",
-                        charcoal: "var(--col-card)",
-                        slate: "#1e293b", // Keep neutral
+                        obsidian: "#020617",
+                        charcoal: "#0f172a",
+                        slate: "#1e293b",
                         iron: "#334155",
-                        neonCyan: "var(--col-cyan)",
-                        neonPurple: "var(--col-purple)",
-                        neonGold: "var(--col-gold)",
-                        neonRed: "var(--col-red)",
-                        neonGreen: "var(--col-green)",
+                        neonCyan: "#06b6d4",
+                        neonPurple: "#8b5cf6",
+                        neonGold: "#f59e0b",
+                        neonRed: "#ef4444",
+                        neonGreen: "#10b981",
                         glass: "rgba(15, 23, 42, 0.65)",
                     },
                     animation: {
@@ -77,10 +62,10 @@
         }
     </script>
 
-    <!-- CORE STYLESHEET -->
+    <!-- CORE STYLESHEET (High-Performance CSS) -->
     <style>
         :root { --ease-expo: cubic-bezier(0.19, 1, 0.22, 1); }
-        body { background-color: var(--col-bg); color: var(--col-text); overflow: hidden; -webkit-tap-highlight-color: transparent; user-select: none; transition: background-color 0.5s; }
+        body { background-color: #020617; color: #e2e8f0; overflow: hidden; -webkit-tap-highlight-color: transparent; user-select: none; }
         
         /* Custom Scrollbar */
         .custom-scroll::-webkit-scrollbar { width: 4px; height: 4px; }
@@ -110,7 +95,7 @@
         .btn-action:hover::after { left: 100%; }
         .btn-action:active { transform: scale(0.96); }
 
-        /* TIER VISUAL SYSTEM */
+        /* TIER VISUAL SYSTEM (Strict Implementation) */
         .tier-f { color: #4B5563; filter: grayscale(1); }
         .tier-e { color: #6B7280; filter: none; }
         .tier-d { color: #7C5C3B; }
@@ -138,9 +123,9 @@
             box-shadow: 0 -4px 20px rgba(0,0,0,0.4);
         }
         .nav-item { position: relative; color: #64748b; transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
-        .nav-item.active { color: var(--col-cyan); transform: translateY(-4px); }
+        .nav-item.active { color: #06b6d4; transform: translateY(-4px); }
         .nav-item.active .nav-icon { filter: drop-shadow(0 4px 8px rgba(6,182,212,0.4)); stroke-width: 2.5px; }
-        .nav-indicator { width: 4px; height: 4px; background: var(--col-cyan); border-radius: 50%; position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%) scale(0); transition: transform 0.3s; box-shadow: 0 0 8px var(--col-cyan); }
+        .nav-indicator { width: 4px; height: 4px; background: #06b6d4; border-radius: 50%; position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%) scale(0); transition: transform 0.3s; box-shadow: 0 0 8px #06b6d4; }
         .nav-item.active .nav-indicator { transform: translateX(-50%) scale(1); }
 
         /* Toast & Overlays */
@@ -152,32 +137,29 @@
         /* Calendar Grid */
         .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
         .cal-cell { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 10px; font-weight: bold; border: 1px solid transparent; transition: all 0.2s; position: relative; }
-        .cal-cell.active { background: rgba(6,182,212,0.15); border-color: var(--col-cyan); color: #fff; }
+        .cal-cell.active { background: rgba(6,182,212,0.15); border-color: rgba(6,182,212,0.5); color: #fff; }
         .cal-cell:hover { background: rgba(255,255,255,0.05); }
 
         /* Particle Canvas */
         #particle-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; opacity: 0.3; }
         .ambient-layer { position: fixed; inset: 0; pointer-events: none; z-index: 0; background: radial-gradient(circle at 0% 0%, rgba(6,182,212,0.05) 0%, transparent 50%), radial-gradient(circle at 100% 100%, rgba(139,92,246,0.05) 0%, transparent 50%); }
-
-        /* Insight Bars */
-        .chart-bar { transition: height 1s cubic-bezier(0.34, 1.56, 0.64, 1); }
     </style>
 </head>
 <body class="font-sans text-sm antialiased text-textMain">
 
     <!-- APP SHELL -->
-    <div id="app-root" class="relative w-full max-w-md mx-auto h-screen flex flex-col bg-obsidian shadow-2xl border-x border-white/5 overflow-hidden transition-colors duration-500">
+    <div id="app-root" class="relative w-full max-w-md mx-auto h-screen flex flex-col bg-obsidian shadow-2xl border-x border-white/5 overflow-hidden">
         
         <!-- Background Systems -->
         <canvas id="particle-canvas"></canvas>
         <div class="ambient-layer"></div>
 
         <!-- 1. HEADER -->
-        <header id="app-header" class="flex-none pt-10 pb-4 px-6 z-20 border-b border-white/5 bg-gradient-to-b from-obsidian via-obsidian/95 to-transparent backdrop-blur-sm transition-colors duration-500">
+        <header id="app-header" class="flex-none pt-10 pb-4 px-6 z-20 border-b border-white/5 bg-gradient-to-b from-obsidian via-obsidian/95 to-transparent backdrop-blur-sm">
              <div class="flex items-center justify-between">
                 <div>
                     <h1 class="text-2xl font-black text-white tracking-tight flex items-center gap-2 font-display">
-                        <span class="text-neonCyan drop-shadow-[0_0_10px_rgba(6,182,212,0.5)] transition-colors duration-500">WAKE</span>MAP
+                        <span class="text-neonCyan drop-shadow-[0_0_10px_rgba(6,182,212,0.5)]">WAKE</span>MAP
                     </h1>
                     <!-- UPDATED: CLICK TO REFRESH -->
                     <div onclick="window.location.reload()" class="flex items-center gap-2 mt-1 cursor-pointer group select-none">
@@ -205,7 +187,7 @@
         </main>
 
         <!-- 3. NAVIGATION -->
-        <nav id="app-nav" class="flex-none h-24 px-6 pb-6 pt-2 z-30 bg-gradient-to-t from-obsidian via-obsidian/95 to-transparent pointer-events-none transition-colors duration-500">
+        <nav id="app-nav" class="flex-none h-24 px-6 pb-6 pt-2 z-30 bg-gradient-to-t from-obsidian via-obsidian/95 to-transparent pointer-events-none">
             <div id="nav-inner" class="glass-card w-full h-full rounded-2xl flex items-center justify-around px-2 shadow-2xl backdrop-blur-xl pointer-events-auto">
                 <!-- Injected by NavComponent -->
             </div>
@@ -228,24 +210,24 @@
          */
         const Config = {
             APP_NAME: 'Wake Map',
-            VERSION: '5.3.0-ULTIMATE',
+            VERSION: '5.2.0-UX',
             STORAGE_PREFIX: 'wakemap_arch_',
             
             // Time Protocol (Added 'start' for clearer logic)
             TIME_SLOTS: [
-                { id: 'halt', label: 'HALT', range: '00:00 - 02:00', start: 0, end: 2 },
-                { id: 'void', label: 'VOID', range: '02:00 - 04:00', start: 2, end: 4 },
-                { id: 'boot', label: 'BOOT', range: '04:00 - 06:00', start: 4, end: 6 },
-                { id: 'prim', label: 'PRIM', range: '06:00 - 08:00', start: 6, end: 8 },
-                { id: 'core', label: 'CORE', range: '08:00 - 10:00', start: 8, end: 10 },
-                { id: 'flow', label: 'FLOW', range: '10:00 - 12:00', start: 10, end: 12 },
-                { id: 'idle', label: 'IDLE', range: '12:00 - 14:00', start: 12, end: 14 },
-                { id: 'sync', label: 'SYNC', range: '14:00 - 16:00', start: 14, end: 16 },
-                { id: 'exec', label: 'EXEC', range: '16:00 - 18:00', start: 16, end: 18 },
-                { id: 'wind', label: 'WIND', range: '18:00 - 20:00', start: 18, end: 20 },
-                { id: 'rest', label: 'REST', range: '20:00 - 22:00', start: 20, end: 22 },
-                { id: 'fade', label: 'FADE', range: '22:00 - 24:00', start: 22, end: 24 },
-                { id: 'all',  label: 'ALL',  range: '00:00 - 24:00', start: 0, end: 24 }
+                { id: 'halt', label: 'HALT', range: '00:00 - 02:00', start: 0, end: 2, desc: 'Deep Rest & Recovery' },
+                { id: 'void', label: 'VOID', range: '02:00 - 04:00', start: 2, end: 4, desc: 'Subconscious Processing' },
+                { id: 'boot', label: 'BOOT', range: '04:00 - 06:00', start: 4, end: 6, desc: 'System Initialization' },
+                { id: 'prim', label: 'PRIM', range: '06:00 - 08:00', start: 6, end: 8, desc: 'Prime Mental State' },
+                { id: 'core', label: 'CORE', range: '08:00 - 10:00', start: 8, end: 10, desc: 'Deep Focus Work' },
+                { id: 'flow', label: 'FLOW', range: '10:00 - 12:00', start: 10, end: 12, desc: 'High Performance Flow' },
+                { id: 'idle', label: 'IDLE', range: '12:00 - 14:00', start: 12, end: 14, desc: 'System Recharge' },
+                { id: 'sync', label: 'SYNC', range: '14:00 - 16:00', start: 14, end: 16, desc: 'Strategic Alignment' },
+                { id: 'exec', label: 'EXEC', range: '16:00 - 18:00', start: 16, end: 18, desc: 'Tactical Execution' },
+                { id: 'wind', label: 'WIND', range: '18:00 - 20:00', start: 18, end: 20, desc: 'Evening Decompression' },
+                { id: 'rest', label: 'REST', range: '20:00 - 22:00', start: 20, end: 22, desc: 'Recovery Mode' },
+                { id: 'fade', label: 'FADE', range: '22:00 - 24:00', start: 22, end: 24, desc: 'System Shutdown' },
+                { id: 'all',  label: 'ALL',  range: '00:00 - 24:00', start: 0, end: 24, desc: 'Full Day Cycle' }
             ],
 
             // Rank Definitions
@@ -282,15 +264,7 @@
                 { id: 'akselerasi', label: 'Akselerasi', pts: 36, desc: 'High Perf', icon: 'zap', color: 'text-neonPurple' },
                 { id: 'dominasi', label: 'Dominasi', pts: 50, desc: 'Elite', icon: 'flame', color: 'text-neonRed' },
                 { id: 'god', label: 'God Tier', pts: 70, desc: 'Limitless', icon: 'crown', color: 'text-neonGold' }
-            ],
-
-            // Themes
-            THEMES: {
-                cyberpunk: { bg: '#020617', card: '#0f172a', cyan: '#06b6d4', purple: '#8b5cf6', gold: '#f59e0b', red: '#ef4444', green: '#10b981', text: '#e2e8f0' },
-                hacker: { bg: '#001a00', card: '#002b00', cyan: '#00ff00', purple: '#00cc00', gold: '#ccff00', red: '#ff3333', green: '#33ff33', text: '#ccffcc' },
-                royale: { bg: '#1a0b2e', card: '#2e1065', cyan: '#c084fc', purple: '#d8b4fe', gold: '#fcd34d', red: '#fb7185', green: '#4ade80', text: '#f3e8ff' },
-                zen: { bg: '#1e293b', card: '#334155', cyan: '#38bdf8', purple: '#818cf8', gold: '#fbbf24', red: '#f87171', green: '#34d399', text: '#f1f5f9' }
-            }
+            ]
         };
 
         /**
@@ -328,19 +302,8 @@
             }
             static getCurrentSlot() {
                 const h = new Date().getHours();
+                // Find strict slot (not 'all')
                 return Config.TIME_SLOTS.find(s => s.id !== 'all' && h >= s.start && h < s.end) || Config.TIME_SLOTS[0];
-            }
-            static applyTheme(themeName) {
-                const t = Config.THEMES[themeName] || Config.THEMES.cyberpunk;
-                const r = document.querySelector(':root');
-                r.style.setProperty('--col-bg', t.bg);
-                r.style.setProperty('--col-card', t.card);
-                r.style.setProperty('--col-cyan', t.cyan);
-                r.style.setProperty('--col-purple', t.purple);
-                r.style.setProperty('--col-gold', t.gold);
-                r.style.setProperty('--col-red', t.red);
-                r.style.setProperty('--col-green', t.green);
-                r.style.setProperty('--col-text', t.text);
             }
         }
 
@@ -351,25 +314,43 @@
             static get(key) { 
                 try { 
                     const data = localStorage.getItem(Config.STORAGE_PREFIX + key);
-                    if (key === 'settings') return data ? JSON.parse(data) : { muted: false, theme: 'cyberpunk' };
-                    // New Keys defaults
-                    if (key === 'templates') return data ? JSON.parse(data) : [];
-                    if (key === 'inventory') return data ? JSON.parse(data) : { shields: 0 };
-                    if (key === 'shieldedDays') return data ? JSON.parse(data) : [];
-                    
+                    // For settings, default is an object, for others array
+                    if (key === 'settings') return data ? JSON.parse(data) : { muted: false };
                     return data ? JSON.parse(data) : []; 
-                } catch { 
-                    if (key === 'settings') return { muted: false, theme: 'cyberpunk' };
-                    return []; 
-                } 
+                } catch { return key === 'settings' ? { muted: false } : []; } 
             }
             static set(key, data) { 
                 localStorage.setItem(Config.STORAGE_PREFIX + key, JSON.stringify(data)); 
             }
+            // NEW: Auto-Maintenance to prevent localStorage overflow
+            static prune(years) {
+                const now = new Date();
+                now.setFullYear(now.getFullYear() - years);
+                const limitDate = Utils.getISO(now);
+                const limitMonth = limitDate.slice(0, 7);
+
+                // Filter Tasks
+                let tasks = this.get('tasks');
+                const tCount = tasks.length;
+                tasks = tasks.filter(t => t.date >= limitDate);
+                if(tasks.length < tCount) this.set('tasks', tasks);
+
+                // Filter Reflections
+                let refs = this.get('reflections');
+                const rCount = refs.length;
+                refs = refs.filter(r => r.date >= limitDate);
+                if(refs.length < rCount) this.set('reflections', refs);
+
+                // Filter Finance
+                let fins = this.get('finance');
+                const fCount = fins.length;
+                fins = fins.filter(f => f.month >= limitMonth);
+                if(fins.length < fCount) this.set('finance', fins);
+            }
         }
 
         /**
-         * MODULE 4: AUDIO SYSTEM
+         * MODULE 4: AUDIO SYSTEM (NEW)
          */
         class SoundEngine {
             constructor() {
@@ -380,13 +361,13 @@
 
             setMuted(val) {
                 this.muted = val;
-                const s = Store.get('settings');
-                s.muted = val;
-                Store.set('settings', s);
+                Store.set('settings', { muted: val });
             }
 
             play(type) {
                 if (this.muted) return;
+                
+                // Resume context if suspended (browser policy)
                 if (this.ctx.state === 'suspended') this.ctx.resume();
 
                 const osc = this.ctx.createOscillator();
@@ -397,13 +378,41 @@
                 const now = this.ctx.currentTime;
 
                 if (type === 'click') {
-                    osc.type = 'sine'; osc.frequency.setValueAtTime(800, now); osc.frequency.exponentialRampToValueAtTime(300, now + 0.1); gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1); osc.start(now); osc.stop(now + 0.1);
+                    // Short high pip
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(800, now);
+                    osc.frequency.exponentialRampToValueAtTime(300, now + 0.1);
+                    gain.gain.setValueAtTime(0.1, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                    osc.start(now);
+                    osc.stop(now + 0.1);
                 } else if (type === 'success') {
-                    osc.type = 'triangle'; osc.frequency.setValueAtTime(440, now); osc.frequency.setValueAtTime(554, now + 0.1); osc.frequency.setValueAtTime(659, now + 0.2); gain.gain.setValueAtTime(0.1, now); gain.gain.linearRampToValueAtTime(0, now + 0.4); osc.start(now); osc.stop(now + 0.4);
+                    // Ascending major arpeggio
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(440, now); // A4
+                    osc.frequency.setValueAtTime(554, now + 0.1); // C#5
+                    osc.frequency.setValueAtTime(659, now + 0.2); // E5
+                    gain.gain.setValueAtTime(0.1, now);
+                    gain.gain.linearRampToValueAtTime(0, now + 0.4);
+                    osc.start(now);
+                    osc.stop(now + 0.4);
                 } else if (type === 'error') {
-                    osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, now); osc.frequency.linearRampToValueAtTime(50, now + 0.3); gain.gain.setValueAtTime(0.1, now); gain.gain.linearRampToValueAtTime(0, now + 0.3); osc.start(now); osc.stop(now + 0.3);
+                    // Low buzz
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(150, now);
+                    osc.frequency.linearRampToValueAtTime(50, now + 0.3);
+                    gain.gain.setValueAtTime(0.1, now);
+                    gain.gain.linearRampToValueAtTime(0, now + 0.3);
+                    osc.start(now);
+                    osc.stop(now + 0.3);
                 } else if (type === 'nav') {
-                     osc.type = 'sine'; osc.frequency.setValueAtTime(600, now); gain.gain.setValueAtTime(0.05, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05); osc.start(now); osc.stop(now + 0.05);
+                    // Very short soft tick
+                      osc.type = 'sine';
+                      osc.frequency.setValueAtTime(600, now);
+                      gain.gain.setValueAtTime(0.05, now);
+                      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+                      osc.start(now);
+                      osc.stop(now + 0.05);
                 }
             }
         }
@@ -429,6 +438,7 @@
                     }
                 });
 
+                // Calculate Average Daily Points for Current Month
                 const dayNum = dObj.getDate();
                 const avg = dayNum > 0 ? (mon / dayNum).toFixed(1) : '0.0';
 
@@ -438,22 +448,17 @@
             static calcRank(monthKey, tasks, financeData) {
                 let eTier=0, eBar=0, cTier=0, cBar=0;
                 const mTasks = tasks.filter(t => t.date.startsWith(monthKey));
-                const config = financeData.find(f => f.month === monthKey);
-                const dailyTarget = config ? config.targetPts : 10;
                 
-                // Get Shield Data
-                const shieldedDays = Store.get('shieldedDays');
+                // Get monthly config
+                const config = financeData.find(f => f.month === monthKey);
+                const dailyTarget = config ? config.targetPts : 10; // Default fallback
 
                 const dates = [...new Set(mTasks.map(t => t.date))].sort();
-                const today = Utils.getISO();
                 
                 let eWins = 0;
                 let cWins = 0;
 
                 dates.forEach(d => {
-                    const isToday = (d === today);
-                    const isShielded = shieldedDays.includes(d); // Check Shield
-
                     const ts = mTasks.filter(t => t.date === d);
                     const done = ts.filter(t => t.status === 'completed').length;
                     const total = ts.length;
@@ -461,14 +466,13 @@
                     const dayPoints = ts.reduce((acc, t) => acc + (t.status === 'completed' ? Config.DIFFICULTY[t.difficulty].pts : 0), 0);
 
                     // EXECUTION Logic
-                    if ((done === total && total > 0)) eWins++;
+                    if (done === total && total > 0) eWins++;
                     
-                    // CONSISTENCY Logic (Points Target OR Shield)
-                    if (dayPoints >= dailyTarget || isShielded) {
-                        cWins++;
-                    }
+                    // CONSISTENCY Logic
+                    if (dayPoints >= dailyTarget) cWins++;
                 });
 
+                // Ranking Logic
                 const maxTier = Config.TIERS.length - 1;
 
                 let eTierIndex = Math.floor(eWins / 4);
@@ -487,24 +491,12 @@
                     dailyTarget: dailyTarget
                 };
             }
-            
-            static getDailyPointsHistory(tasks) {
-                const history = [];
-                for(let i=6; i>=0; i--) {
-                    const d = new Date(); d.setDate(d.getDate() - i);
-                    const iso = Utils.getISO(d);
-                    const dayPts = tasks
-                        .filter(t => t.date === iso && t.status === 'completed')
-                        .reduce((acc, t) => acc + Config.DIFFICULTY[t.difficulty].pts, 0);
-                    history.push({ date: iso, pts: dayPts, label: d.toLocaleDateString('id-ID', {weekday:'short'}).toUpperCase() });
-                }
-                return history;
-            }
 
             static checkAutoFail(tasks) {
                 const h = new Date().getHours();
                 const today = Utils.getISO();
                 let hasChange = false;
+
                 tasks.forEach(task => {
                     if(task.date === today && task.status === 'pending') {
                         const slot = Config.TIME_SLOTS.find(s => s.id === (task.timeSlot||'all'));
@@ -564,16 +556,10 @@
                     if(p.y < 0) p.y = this.height;
                     if(p.y > this.height) p.y = 0;
                     
-                    // Dynamic color based on theme var would be complex in canvas, sticking to cyan for now or reading styles
-                    const style = getComputedStyle(document.body);
-                    const col = style.getPropertyValue('--col-cyan').trim() || '#06b6d4';
-                    
-                    this.ctx.fillStyle = col; 
-                    this.ctx.globalAlpha = p.alpha;
+                    this.ctx.fillStyle = `rgba(6, 182, 212, ${p.alpha})`;
                     this.ctx.beginPath();
                     this.ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
                     this.ctx.fill();
-                    this.ctx.globalAlpha = 1;
                 });
                 requestAnimationFrame(() => this.animate());
             }
@@ -593,19 +579,26 @@
                     const activeStyle = `background-color:${col}; box-shadow: 0 0 10px ${col}, 0 0 20px ${col}; border: 1px solid rgba(255,255,255,0.5);`;
                     const inactiveStyle = `background-color:#1e293b; border: 1px solid rgba(255,255,255,0.05); box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);`;
                     const style = active ? activeStyle : inactiveStyle;
+                    
                     bars += `<div class="w-1/2 h-2 rounded-full transition-all duration-500" style="${style}"></div>`;
                 }
 
                 return `
-                <div class="glass-card p-5 rounded-2xl flex-1 flex flex-col items-center justify-between relative overflow-hidden group min-h-[140px] hover:bg-white/5 transition-colors cursor-default">
+                <div class="glass-card p-4 rounded-xl flex-1 flex flex-col items-center justify-between relative overflow-hidden group min-h-[120px] hover:bg-white/5 transition-colors cursor-default">
                     <div class="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                    <div class="flex items-center justify-between w-full mb-2 z-10">
+                    
+                    <div class="flex items-center justify-between w-full mb-1 z-10">
                         <span class="text-[8px] font-mono text-slate-400 font-bold tracking-widest">${title}</span>
                         <i data-lucide="${icon}" class="w-3 h-3 text-slate-500"></i>
                     </div>
-                    <div class="font-display text-5xl mb-2 z-10 transition-all duration-500" style="color:${col}; text-shadow: 0 0 15px ${col};">${t.code}</div>
-                    <div class="text-[9px] text-white font-bold tracking-[0.2em] z-10 mb-4 uppercase opacity-80">${t.name}</div>
-                    <div class="flex gap-2 w-full max-w-[80px] z-10">${bars}</div>
+
+                    <div class="font-display text-4xl mb-1 z-10 transition-all duration-500" style="color:${col}; text-shadow: 0 0 15px ${col};">
+                        ${t.code}
+                    </div>
+
+                    <div class="text-[8px] text-white font-bold tracking-[0.2em] z-10 mb-3 uppercase opacity-80">${t.name}</div>
+                    
+                    <div class="flex gap-2 w-full max-w-[60px] z-10">${bars}</div>
                 </div>`;
             },
 
@@ -617,8 +610,8 @@
                 if (isToday && t.status === 'pending') {
                     action = `
                     <div class="flex gap-2">
-                        <button onclick="App.controller.updateTask('${t.id}','failed')" class="w-9 h-9 rounded-xl bg-charcoal border border-neonRed/30 text-neonRed flex items-center justify-center hover:bg-neonRed/20 active:scale-95 transition-all"><i data-lucide="x" class="w-4 h-4"></i></button>
-                        <button onclick="App.controller.updateTask('${t.id}','completed')" class="w-9 h-9 rounded-xl bg-charcoal border border-neonGreen/30 text-neonGreen flex items-center justify-center hover:bg-neonGreen/20 active:scale-95 transition-all shadow-[0_0_10px_rgba(16,185,129,0.2)]"><i data-lucide="check" class="w-4 h-4"></i></button>
+                        <button onclick="App.controller.updateTask('${t.id}','failed')" class="w-9 h-9 rounded-xl bg-slate/50 border border-neonRed/30 text-neonRed flex items-center justify-center hover:bg-neonRed/20 active:scale-95 transition-all"><i data-lucide="x" class="w-4 h-4"></i></button>
+                        <button onclick="App.controller.updateTask('${t.id}','completed')" class="w-9 h-9 rounded-xl bg-slate/50 border border-neonGreen/30 text-neonGreen flex items-center justify-center hover:bg-neonGreen/20 active:scale-95 transition-all shadow-[0_0_10px_rgba(16,185,129,0.2)]"><i data-lucide="check" class="w-4 h-4"></i></button>
                     </div>`;
                 } else if (!isToday && t.status === 'pending') {
                     action = `<button onclick="App.controller.deleteTask('${t.id}')" class="text-slate-500 hover:text-neonRed p-2 transition-colors"><i data-lucide="trash-2" class="w-4 h-4"></i></button>`;
@@ -629,8 +622,12 @@
                 }
 
                 const opacity = t.status === 'pending' ? 'opacity-100' : 'opacity-60 grayscale hover:grayscale-0 transition-all duration-300';
+                
+                // UPDATED: Failed styling
                 const failBg = t.status === 'failed' ? 'bg-neonRed/10 border-neonRed/40 relative overflow-hidden' : '';
                 const styleUpcoming = (isToday && t.status === 'pending' && !action.includes('check')) ? 'border-dashed border-slate-700 bg-transparent' : '';
+                
+                // UPDATED: Text style logic for failed tasks
                 const textStyle = t.status === 'failed' ? 'text-neonRed font-bold' : 'text-white font-medium';
 
                 return `
@@ -650,26 +647,10 @@
                 return Config.TIERS.slice().reverse().map(t => `
                 <div class="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-colors border-b border-white/5 last:border-0">
                     <div class="font-display w-8 text-center text-lg ${t.class}">${t.code}</div>
-                    <div class="flex-1"><div class="text-[10px] font-bold text-white uppercase tracking-wider">${t.name}</div></div>
+                    <div class="flex-1">
+                        <div class="text-[10px] font-bold text-white uppercase tracking-wider">${t.name}</div>
+                    </div>
                 </div>`).join('');
-            },
-
-            insightChart(data) {
-                const max = Math.max(...data.map(d=>d.pts), 20); // Scale based on max or at least 20
-                return `
-                <div class="flex items-end justify-between h-32 gap-2 mt-4 px-2">
-                    ${data.map(d => {
-                        const h = (d.pts / max) * 100;
-                        const col = d.pts > 0 ? 'bg-neonCyan shadow-[0_0_10px_var(--col-cyan)]' : 'bg-slate-700';
-                        return `
-                        <div class="flex flex-col items-center gap-2 flex-1 group">
-                            <div class="w-full rounded-t-lg ${col} opacity-80 group-hover:opacity-100 transition-all chart-bar relative" style="height:${h}%">
-                                <div class="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] text-white font-mono bg-black/80 px-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-20">${d.pts}</div>
-                            </div>
-                            <span class="text-[9px] font-bold text-slate-500 font-mono">${d.label}</span>
-                        </div>`
-                    }).join('')}
-                </div>`;
             }
         };
 
@@ -687,22 +668,24 @@
                 tempReward: { name: '', hasPrice: false, price: 0, cost: 0, recs: null },
                 showIncomeInput: false,
                 tempMode: null,
+                // PERSISTENT INPUT STATES
                 tempIncome: '',
                 tempAlloc: '',
-                tempTaskInput: '',
-                tempTemplateName: ''
+                tempTaskInput: ''
             },
 
             init() {
                 new VFXEngine();
+                // Initialize Sound Engine
                 this.sound = new SoundEngine();
                 
-                // Initialize Theme
-                const settings = Store.get('settings');
-                if (settings.theme) Utils.applyTheme(settings.theme);
-
+                // DATA SAFETY: Keep only 2 years of history
+                Store.prune(2);
+                
                 const monthDisplay = document.getElementById('header-month');
-                if (monthDisplay) monthDisplay.innerText = Utils.formatMonth(Utils.getMonthKey(Utils.getISO()));
+                if (monthDisplay) {
+                    monthDisplay.innerText = Utils.formatMonth(Utils.getMonthKey(Utils.getISO()));
+                }
 
                 this.render();
 
@@ -710,36 +693,43 @@
                     const tasks = Store.get('tasks');
                     if (Engine.checkAutoFail(tasks)) {
                         Store.set('tasks', tasks);
-                        this.sound.play('error');
+                        this.sound.play('error'); // AUDIO
                         this.toast('Waktu misi telah habis!', 'error');
                         if(this.state.view === 'home') this.render();
                     }
                 }, 10000);
             },
 
+            // --- NAVIGATION ---
             navigate(view) { 
                 this.state.view = view; 
-                this.sound.play('nav'); 
+                this.sound.play('nav'); // AUDIO
                 this.render(); 
             },
             
             setDifficulty(d) { 
+                // Capture input before re-render
                 const el = document.getElementById('task-in');
                 if(el) this.state.tempTaskInput = el.value;
+
                 this.state.difficulty = d; 
-                this.sound.play('click'); 
+                this.sound.play('click'); // AUDIO
                 this.render(); 
             },
 
+            // --- ACTIONS ---
             initTask() {
                 const input = document.getElementById('task-in');
                 const text = input.value.trim();
-                if (!text) { this.toast('Nama misi wajib diisi', 'error'); return; }
+                if (!text) { 
+                    this.toast('Nama misi wajib diisi', 'error'); 
+                    return; 
+                }
                 this.state.tempTask = { text, difficulty: this.state.difficulty };
-                this.state.tempTaskInput = ''; 
-                this.openModal('time');
+                this.state.tempTaskInput = ''; // Clear stored input
+                this.openModal();
                 input.value = '';
-                this.sound.play('click');
+                this.sound.play('click'); // AUDIO
             },
 
             confirmTask(slotId) {
@@ -756,81 +746,20 @@
                 });
                 Store.set('tasks', tasks);
                 this.closeModal();
-                this.sound.play('success');
+                this.sound.play('success'); // AUDIO
                 this.toast('Misi dijadwalkan besok', 'success');
                 this.render();
             },
 
-            // --- TEMPLATE LOGIC ---
-            openSaveTemplate() {
-                const input = document.getElementById('task-in');
-                const text = input.value.trim();
-                if (!text) { this.toast('Isi nama template di kolom misi', 'error'); return; }
-                this.state.tempTemplateName = text;
-                // Save current tomorrow's tasks as template
-                const tasks = Store.get('tasks');
-                const tomTasks = tasks.filter(t => t.date === Utils.getTomorrow());
-                if(tomTasks.length === 0) { this.toast('Jadwalkan minimal 1 misi untuk besok', 'error'); return; }
-
-                const tpls = Store.get('templates');
-                tpls.push({
-                    id: Utils.generateId(),
-                    name: text,
-                    tasks: tomTasks.map(t => ({ text: t.text, difficulty: t.difficulty, timeSlot: t.timeSlot }))
-                });
-                Store.set('templates', tpls);
-                this.state.tempTaskInput = '';
-                this.sound.play('success');
-                this.toast(`Template "${text}" tersimpan!`, 'success');
-                this.render();
-            },
-
-            openLoadTemplate() {
-                this.sound.play('click');
-                this.openModal('template');
-            },
-
-            loadTemplate(id) {
-                const tpls = Store.get('templates');
-                const tpl = tpls.find(t => t.id === id);
-                if (tpl) {
-                    const tasks = Store.get('tasks');
-                    tpl.tasks.forEach(t => {
-                        tasks.push({
-                            id: Utils.generateId(),
-                            text: t.text,
-                            difficulty: t.difficulty,
-                            timeSlot: t.timeSlot,
-                            date: Utils.getTomorrow(),
-                            status: 'pending',
-                            createdAt: new Date().toISOString()
-                        });
-                    });
-                    Store.set('tasks', tasks);
-                    this.closeModal();
-                    this.sound.play('success');
-                    this.toast('Template dimuat!', 'success');
-                    this.render();
-                }
-            },
-
-            deleteTemplate(id) {
-                if(confirm('Hapus template ini?')) {
-                    const tpls = Store.get('templates').filter(t => t.id !== id);
-                    Store.set('templates', tpls);
-                    this.openModal('template'); // Refresh modal
-                }
-            },
-
-            // --- CORE ACTIONS ---
             updateTask(id, status) {
                 const tasks = Store.get('tasks');
                 const t = tasks.find(x => x.id === id);
                 if (t) {
                     t.status = status;
                     Store.set('tasks', tasks);
+                    
                     if (status === 'completed') {
-                        this.sound.play('success'); 
+                        this.sound.play('success'); // AUDIO
                         const { mon } = Engine.calcPoints(tasks);
                         const rewards = Store.get('rewards');
                         rewards.forEach(r => {
@@ -840,7 +769,7 @@
                                         r.status = 'redeemed';
                                         r.redeemedDate = Utils.getISO();
                                         Store.set('rewards', rewards);
-                                        this.sound.play('success'); 
+                                        this.sound.play('success'); // AUDIO
                                         this.toast(`Hadiah "${r.name}" diklaim!`, 'success');
                                         this.render();
                                     }
@@ -848,7 +777,7 @@
                             }
                         });
                     } else {
-                        this.sound.play('error');
+                        this.sound.play('error'); // AUDIO
                     }
                     this.render();
                 }
@@ -858,7 +787,7 @@
                 if(confirm('Hapus misi ini?')) {
                     const tasks = Store.get('tasks').filter(t => t.id !== id);
                     Store.set('tasks', tasks);
-                    this.sound.play('click');
+                    this.sound.play('click'); // AUDIO
                     this.toast('Misi dihapus', 'info');
                     this.render();
                 }
@@ -872,79 +801,21 @@
                     const ex = refs.find(r => r.date === today);
                     if(ex) ex.text = val; else refs.push({ date: today, text: val });
                     Store.set('reflections', refs);
-                    this.sound.play('success');
+                    this.sound.play('success'); // AUDIO
                     this.toast('Refleksi tersimpan', 'success');
                     this.render();
                 }
             },
 
-            // --- SHIELD SYSTEM ---
-            buyShield() {
-                const tasks = Store.get('tasks');
-                const { mon } = Engine.calcPoints(tasks);
-                // Shield Cost: 100 Pts (Example)
-                const COST = 100;
-
-                if (mon >= COST) {
-                    if (confirm(`Beli Shield seharga ${COST} Poin?`)) {
-                        // Deduct points is implicit? No, points are calculated from history.
-                        // We need to store 'spent points' or just add a special 'redemption' record that reduces visible balance?
-                        // For simplicity in this version: We add a dummy 'redeemed' item named 'Shield Purchase'.
-                        // BUT better: We add to Inventory.
-                        const inv = Store.get('inventory');
-                        inv.shields = (inv.shields || 0) + 1;
-                        Store.set('inventory', inv);
-
-                        // We need to deduct points. The current system calculates points from ALL completed tasks.
-                        // To 'spend' points, we need to mark some tasks as 'spent'? Or just subtract?
-                        // Let's add a 'spent' field to rewards logic. 
-                        // Actually, easiest way: Add a negative adjustment reward.
-                        const r = Store.get('rewards');
-                        r.push({
-                            id: Utils.generateId(),
-                            name: 'Shield Purchase',
-                            cost: COST,
-                            status: 'redeemed', // Counts as spent
-                            redeemedDate: Utils.getISO(),
-                            isSystem: true // Flag to hide from list
-                        });
-                        Store.set('rewards', r);
-                        
-                        this.sound.play('success');
-                        this.toast('Shield dibeli! Cek inventory.', 'success');
-                        this.render();
-                    }
-                } else {
-                    this.toast('Poin tidak cukup!', 'error');
-                }
-            },
-
-            useShield(date) {
-                const inv = Store.get('inventory');
-                if (inv.shields > 0) {
-                    if(confirm('Gunakan 1 Shield untuk melindungi hari ini?')) {
-                        inv.shields--;
-                        Store.set('inventory', inv);
-                        
-                        const sDays = Store.get('shieldedDays');
-                        sDays.push(date);
-                        Store.set('shieldedDays', sDays);
-                        
-                        this.sound.play('success');
-                        this.toast('Shield diaktifkan!', 'success');
-                        this.render();
-                    }
-                } else {
-                    this.toast('Kamu tidak punya Shield!', 'error');
-                }
-            },
-
-            // --- FINANCE ACTIONS ---
+            // --- FINANCE & REWARD ACTIONS ---
             selectMode(id) {
+                // Capture input before re-render
                 const incEl = document.getElementById('income-in');
                 const allocEl = document.getElementById('alloc-in');
+                
                 if(incEl) this.state.tempIncome = incEl.value;
                 if(allocEl) this.state.tempAlloc = allocEl.value;
+
                 this.state.tempMode = id;
                 this.sound.play('click');
                 this.render();
@@ -958,7 +829,9 @@
                 if(!incomeIn || incomeIn <= 0) { this.toast('Nominal gaji tidak valid', 'error'); return; }
                 if(!modeId) { this.toast('Pilih mode operasi', 'error'); return; }
                 
+                // Set default allocation to 20% if not selected
                 const allocation = allocIn ? parseFloat(allocIn) : 0.2;
+
                 const mode = Config.PRODUCTIVITY_MODES.find(m => m.id === modeId);
                 const finance = Store.get('finance'); 
                 const monthKey = Utils.getMonthKey(Utils.getISO());
@@ -970,10 +843,13 @@
                     modeId: modeId,
                     allocation: allocation 
                 });
-                Store.set('finance', newFinance);
-                this.state.tempIncome = ''; this.state.tempAlloc = ''; this.state.tempMode = null;
                 
-                this.sound.play('success');
+                Store.set('finance', newFinance);
+                this.state.tempIncome = ''; 
+                this.state.tempAlloc = '';
+                this.state.tempMode = null;
+                
+                this.sound.play('success'); // AUDIO
                 this.toast(`Protokol: ${mode.label.toUpperCase()} diaktifkan!`, 'success');
                 this.render();
             },
@@ -981,16 +857,17 @@
             initReward() {
                 const nameIn = document.getElementById('rew-name').value.trim();
                 if(!nameIn) { this.toast('Nama hadiah wajib diisi', 'error'); return; }
+                
                 this.state.tempReward = { name: nameIn, hasPrice: false, price: 0, cost: 0, recs: null };
                 this.state.rewardStep = 1;
-                this.sound.play('click');
+                this.sound.play('click'); // AUDIO
                 this.render();
             },
 
             setRewardHasPrice(hasPrice) {
                 this.state.tempReward.hasPrice = hasPrice;
                 this.state.rewardStep = 2;
-                this.sound.play('click');
+                this.sound.play('click'); // AUDIO
                 this.render();
             },
 
@@ -998,26 +875,32 @@
                 const priceIn = document.getElementById('rew-price').value;
                 if (!priceIn || priceIn <= 0) {
                     this.state.tempReward.recs = null;
-                    const c = document.getElementById('rec-container'); if(c) c.innerHTML = '';
+                    const c = document.getElementById('rec-container');
+                    if(c) c.innerHTML = '';
                     return;
                 }
+
                 const financeData = Store.get('finance');
                 const curMonthKey = Utils.getMonthKey(Utils.getISO());
                 const myFinance = financeData.find(f => f.month === curMonthKey);
 
                 if (myFinance) {
                     const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
-                    const allocation = myFinance.allocation || 0.2;
+                    
+                    // NEW LOGIC: Calculate based on ALLOCATION percentage
+                    const allocation = myFinance.allocation || 0.2; // Default 20%
                     const monthlyBudget = myFinance.amount * allocation;
                     const dailyBudget = monthlyBudget / daysInMonth;
+                    
                     const dailyTarget = myFinance.targetPts || 10;
+                    
+                    // Value per point based on daily reward budget
                     const valPerPoint = Math.max(1, Math.round(dailyBudget / dailyTarget)); 
                     const price = parseInt(priceIn);
                     
                     const normalPts = Math.ceil(price / valPerPoint);
                     const hardPts = Math.ceil(normalPts * 1.5);
-                    this.state.tempReward.recs = { normal: normalPts, hard: hardPts };
-                    
+
                     const recContainer = document.getElementById('rec-container');
                     if (recContainer) {
                         recContainer.innerHTML = `
@@ -1032,31 +915,36 @@
                             </button>
                         </div>`;
                     }
+                } else {
+                     const recContainer = document.getElementById('rec-container');
+                     if(recContainer) recContainer.innerHTML = `<p class="text-[10px] text-neonRed text-center mt-2">Belum ada data keuangan bulan ini. Cek Menu PETA.</p>`;
                 }
             },
 
             applyRec(pts) {
                 const costInput = document.getElementById('rew-cost');
                 if (costInput) costInput.value = pts;
-                this.sound.play('click');
+                this.sound.play('click'); // AUDIO
             },
 
             resetRewardForm() {
                 this.state.rewardStep = 0;
                 this.state.tempReward = { name: '', hasPrice: false, price: 0, cost: 0, recs: null };
-                this.sound.play('click');
+                this.sound.play('click'); // AUDIO
                 this.render();
             },
 
             saveReward() {
                 const costIn = document.getElementById('rew-cost').value;
                 if(!costIn || costIn <= 0) { this.toast('Target poin wajib diisi', 'error'); return; }
+                
                 let priceVal = 0;
                 if(this.state.tempReward.hasPrice) {
                     const priceIn = document.getElementById('rew-price').value;
                     if(!priceIn || priceIn <= 0) { this.toast('Harga nominal wajib diisi', 'error'); return; }
                     priceVal = parseInt(priceIn);
                 }
+
                 const r = Store.get('rewards');
                 r.push({
                     id: Utils.generateId(),
@@ -1067,7 +955,7 @@
                     redeemedDate: null
                 });
                 Store.set('rewards', r);
-                this.sound.play('success');
+                this.sound.play('success'); // AUDIO
                 this.toast('Target ditambahkan', 'success');
                 this.resetRewardForm();
             },
@@ -1076,34 +964,45 @@
                 if(confirm('Hapus target?')) {
                     const r = Store.get('rewards').filter(x => x.id !== id);
                     Store.set('rewards', r);
-                    this.sound.play('click');
+                    this.sound.play('click'); // AUDIO
                     this.render();
                 }
             },
 
             navMonth(offset) {
                 const [y, m] = this.state.histMonth.split('-');
-                const d = new Date(y, parseInt(m)-1+offset);
-                this.state.histMonth = Utils.getISO(d).slice(0, 7);
+                const targetDate = new Date(y, parseInt(m) - 1 + offset);
+                
+                // 2 Years Limit Check Logic
+                const now = new Date();
+                // Set limit to 2 years ago (first day of that month)
+                const limitDate = new Date(now.getFullYear() - 2, now.getMonth(), 1);
+                
+                // Only prevent going BACK too far. Going forward into future is usually fine or limited by current date if desired.
+                // Assuming we allow navigating forward to plan, but restricting history.
+                if (targetDate < limitDate) {
+                    this.toast('Batas riwayat 2 tahun tercapai', 'info');
+                    this.sound.play('error');
+                    return;
+                }
+
+                this.state.histMonth = Utils.getISO(targetDate).slice(0, 7);
                 this.state.histDate = null;
-                this.sound.play('click');
+                this.sound.play('click'); // AUDIO
                 this.render();
             },
 
             setDate(d) {
                 this.state.histDate = d;
-                this.sound.play('click');
+                this.sound.play('click'); // AUDIO
                 this.render();
             },
 
-            // --- SETTINGS & THEMES ---
+            // --- SETTINGS & SOUND ---
             openSettings() {
-                this.sound.play('click');
+                this.sound.play('click'); // AUDIO
                 const m = document.getElementById('modal-layer');
-                const settings = Store.get('settings');
-                const isMuted = settings.muted;
-                const curTheme = settings.theme || 'cyberpunk';
-                
+                const isMuted = this.sound.muted;
                 m.innerHTML = `
                 <div class="bg-charcoal border-t sm:border border-slate-700 rounded-t-3xl sm:rounded-2xl w-full max-w-sm p-6 shadow-2xl pointer-events-auto animate-[slideIn_0.3s_ease-out]">
                     <button onclick="App.controller.closeModal()" class="absolute top-6 right-6 text-slate-500 hover:text-white bg-slate-800/50 p-2 rounded-full"><i data-lucide="x" class="w-5 h-5"></i></button>
@@ -1112,57 +1011,47 @@
                         <div class="flex items-center justify-between p-4 rounded-xl bg-slate-800 border border-slate-700">
                             <div class="flex items-center gap-3">
                                 <div class="p-2 bg-neonPurple/10 rounded-lg text-neonPurple"><i data-lucide="${isMuted ? 'volume-x' : 'volume-2'}" class="w-5 h-5"></i></div>
-                                <div><span class="block text-sm font-bold text-white">Suara Efek (SFX)</span><span class="block text-[10px] text-slate-400">${isMuted ? 'Nonaktif' : 'Aktif'}</span></div>
+                                <div>
+                                    <span class="block text-sm font-bold text-white">Suara Efek (SFX)</span>
+                                    <span class="block text-[10px] text-slate-400">${isMuted ? 'Nonaktif' : 'Aktif'}</span>
+                                </div>
                             </div>
                             <button onclick="App.controller.toggleSound()" class="w-12 h-6 rounded-full transition-colors relative ${isMuted ? 'bg-slate-600' : 'bg-neonGreen'}">
                                 <div class="absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${isMuted ? 'left-1' : 'left-7'}"></div>
                             </button>
                         </div>
-                        
-                        <div>
-                            <label class="text-[9px] text-slate-500 uppercase font-bold mb-2 block">Tema Visual</label>
-                            <div class="grid grid-cols-4 gap-2">
-                                ${Object.keys(Config.THEMES).map(t => {
-                                    const active = t === curTheme;
-                                    const themeColor = Config.THEMES[t].cyan;
-                                    return `
-                                    <button onclick="App.controller.changeTheme('${t}')" class="h-10 rounded-lg border ${active ? 'border-white ring-1 ring-white' : 'border-transparent'} transition-all" style="background:${Config.THEMES[t].bg}; border-color:${themeColor}">
-                                        <div class="w-2 h-2 rounded-full mx-auto" style="background:${themeColor}"></div>
-                                    </button>`;
-                                }).join('')}
-                            </div>
-                        </div>
 
-                        <div class="grid grid-cols-2 gap-2 mt-4">
-                            <button onclick="App.controller.exportData()" class="p-3 rounded-xl bg-slate-800 border border-slate-700 hover:border-neonCyan flex flex-col items-center gap-1 group">
-                                <i data-lucide="download" class="w-4 h-4 text-neonCyan"></i>
-                                <span class="text-[10px] text-slate-300">Backup</span>
-                            </button>
-                            <button onclick="App.controller.importData()" class="p-3 rounded-xl bg-slate-800 border border-slate-700 hover:border-neonGreen flex flex-col items-center gap-1 group">
-                                <i data-lucide="upload" class="w-4 h-4 text-neonGreen"></i>
-                                <span class="text-[10px] text-slate-300">Restore</span>
-                            </button>
-                        </div>
-                        <button onclick="if(confirm('Reset Total?')) { localStorage.clear(); location.reload(); }" class="w-full p-3 rounded-xl bg-slate-800 border border-slate-700 hover:border-neonRed text-neonRed text-xs font-bold mt-2">Reset Data</button>
+                        <button onclick="App.controller.exportData()" class="w-full flex items-center gap-3 p-4 rounded-xl bg-slate-800 border border-slate-700 hover:border-neonCyan transition-all group">
+                            <div class="p-2 bg-neonCyan/10 rounded-lg text-neonCyan"><i data-lucide="download" class="w-5 h-5"></i></div>
+                            <div class="text-left">
+                                <span class="block text-sm font-bold text-white group-hover:text-neonCyan transition-colors">Backup Data</span>
+                                <span class="block text-[10px] text-slate-400">Unduh data ke file JSON</span>
+                            </div>
+                        </button>
+                        <button onclick="App.controller.importData()" class="w-full flex items-center gap-3 p-4 rounded-xl bg-slate-800 border border-slate-700 hover:border-neonGreen transition-all group">
+                            <div class="p-2 bg-neonGreen/10 rounded-lg text-neonGreen"><i data-lucide="upload" class="w-5 h-5"></i></div>
+                            <div class="text-left">
+                                <span class="block text-sm font-bold text-white group-hover:text-neonGreen transition-colors">Restore Data</span>
+                                <span class="block text-[10px] text-slate-400">Pulihkan dari file JSON</span>
+                            </div>
+                        </button>
+                        <button onclick="if(confirm('Yakin ingin menghapus SEMUA data? Aksi ini tidak bisa dibatalkan.')) { localStorage.clear(); location.reload(); }" class="w-full flex items-center gap-3 p-4 rounded-xl bg-slate-800 border border-slate-700 hover:border-neonRed transition-all group mt-6">
+                            <div class="p-2 bg-neonRed/10 rounded-lg text-neonRed"><i data-lucide="trash-2" class="w-5 h-5"></i></div>
+                            <div class="text-left">
+                                <span class="block text-sm font-bold text-white group-hover:text-neonRed transition-colors">Reset Total</span>
+                                <span class="block text-[10px] text-slate-400">Hapus semua progress</span>
+                            </div>
+                        </button>
                     </div>
                 </div>`;
                 m.classList.remove('opacity-0', 'invisible', 'pointer-events-none');
                 lucide.createIcons();
             },
 
-            changeTheme(name) {
-                const s = Store.get('settings');
-                s.theme = name;
-                Store.set('settings', s);
-                Utils.applyTheme(name);
-                this.sound.play('click');
-                this.openSettings(); 
-            },
-
             toggleSound() {
                 const newState = !this.sound.muted;
                 this.sound.setMuted(newState);
-                this.openSettings(); 
+                this.openSettings(); // Refresh modal UI
                 if (!newState) this.sound.play('click');
             },
 
@@ -1173,10 +1062,7 @@
                     rewards: Store.get('rewards'),
                     reflections: Store.get('reflections'),
                     finance: Store.get('finance'),
-                    settings: Store.get('settings'),
-                    templates: Store.get('templates'),
-                    inventory: Store.get('inventory'),
-                    shieldedDays: Store.get('shieldedDays')
+                    settings: Store.get('settings')
                 };
                 const blob = new Blob([JSON.stringify(data)], {type: 'application/json'});
                 const url = URL.createObjectURL(blob);
@@ -1204,16 +1090,12 @@
                             if (data.reflections) Store.set('reflections', data.reflections);
                             if (data.finance) Store.set('finance', data.finance);
                             if (data.settings) Store.set('settings', data.settings);
-                            if (data.templates) Store.set('templates', data.templates);
-                            if (data.inventory) Store.set('inventory', data.inventory);
-                            if (data.shieldedDays) Store.set('shieldedDays', data.shieldedDays);
-                            
                             this.sound.play('success');
-                            this.toast('Data dipulihkan!', 'success');
+                            this.toast('Data berhasil dipulihkan!', 'success');
                             setTimeout(() => window.location.reload(), 1000);
                         } catch (err) {
                             this.sound.play('error');
-                            this.toast('File corrupt!', 'error');
+                            this.toast('File backup tidak valid', 'error');
                         }
                     };
                     reader.readAsText(file);
@@ -1224,6 +1106,8 @@
             // --- UI HELPERS ---
             toast(msg, type='info') {
                 if (type === 'error') this.sound.play('error');
+                // Success sound is usually played before calling toast for specific actions
+                
                 const el = document.getElementById('toast-layer');
                 const div = document.createElement('div');
                 const cls = { success:'border-neonGreen text-neonGreen', error:'border-neonRed text-neonRed', info:'border-neonCyan text-neonCyan' };
@@ -1235,46 +1119,17 @@
                 setTimeout(() => { div.style.animation = 'toastExit 0.4s forwards'; setTimeout(()=>div.remove(), 400); }, 3000);
             },
 
-            openModal(type) {
+            openModal() {
                 this.sound.play('click');
                 const m = document.getElementById('modal-layer');
-                
-                if (type === 'time') {
-                     m.innerHTML = `
-                    <div class="bg-charcoal border-t sm:border border-slate-700 rounded-t-3xl sm:rounded-2xl w-full max-w-sm p-6 shadow-2xl pointer-events-auto animate-[slideIn_0.3s_ease-out]">
-                        <button onclick="App.controller.closeModal()" class="absolute top-6 right-6 text-slate-500 hover:text-white bg-slate-800/50 p-2 rounded-full"><i data-lucide="x" class="w-5 h-5"></i></button>
-                        <div class="mb-4">
-                            <h3 class="text-xl font-bold text-white mb-1">Time Protocol</h3>
-                            <p class="text-slate-400 text-xs font-mono">Pilih slot waktu eksekusi:</p>
-                        </div>
-                        <div class="grid grid-cols-2 gap-2 h-48 overflow-y-auto custom-scroll pr-1 mb-4">
-                            ${Config.TIME_SLOTS.map(s => `<button onclick="App.controller.confirmTask('${s.id}')" class="glass-card p-3 rounded-xl hover:border-neonCyan hover:bg-slate-800 text-left group active:scale-95 transition-all"><span class="text-neonCyan font-mono font-bold text-sm block group-hover:text-white transition-colors">${s.label}</span><span class="text-slate-300 text-[10px] block opacity-70">${s.range}</span></button>`).join('')}
-                        </div>
-                        <div class="border-t border-slate-700 pt-4 flex gap-2">
-                             <button onclick="App.controller.openSaveTemplate()" class="flex-1 bg-slate-800 text-slate-300 py-2 rounded-lg text-xs font-bold hover:text-white transition-colors">Simpan Template</button>
-                             <button onclick="App.controller.openLoadTemplate()" class="flex-1 bg-neonPurple text-white py-2 rounded-lg text-xs font-bold hover:bg-neonPurple/80 transition-colors">Load Template</button>
-                        </div>
-                    </div>`;
-                } else if (type === 'template') {
-                     const tpls = Store.get('templates');
-                     m.innerHTML = `
-                    <div class="bg-charcoal border-t sm:border border-slate-700 rounded-t-3xl sm:rounded-2xl w-full max-w-sm p-6 shadow-2xl pointer-events-auto animate-[slideIn_0.3s_ease-out]">
-                        <button onclick="App.controller.closeModal()" class="absolute top-6 right-6 text-slate-500 hover:text-white bg-slate-800/50 p-2 rounded-full"><i data-lucide="x" class="w-5 h-5"></i></button>
-                        <div class="mb-4"><h3 class="text-xl font-bold text-white mb-1">Load Protocol</h3><p class="text-slate-400 text-xs font-mono">Pilih template misi:</p></div>
-                        <div class="space-y-2 h-64 overflow-y-auto custom-scroll pr-1">
-                            ${tpls.length === 0 ? '<p class="text-slate-600 text-xs text-center py-4">Belum ada template tersimpan.</p>' : tpls.map(t => `
-                                <div class="glass-card p-3 rounded-xl flex items-center justify-between group">
-                                    <div onclick="App.controller.loadTemplate('${t.id}')" class="flex-1 cursor-pointer">
-                                        <p class="text-white font-bold text-sm group-hover:text-neonCyan transition-colors">${t.name}</p>
-                                        <p class="text-[10px] text-slate-400">${t.tasks.length} Misi</p>
-                                    </div>
-                                    <button onclick="App.controller.deleteTemplate('${t.id}')" class="p-2 text-slate-500 hover:text-neonRed"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>`;
-                }
-                
+                m.innerHTML = `
+                <div class="bg-charcoal border-t sm:border border-slate-700 rounded-t-3xl sm:rounded-2xl w-full max-w-sm p-6 shadow-2xl pointer-events-auto animate-[slideIn_0.3s_ease-out]">
+                    <button onclick="App.controller.closeModal()" class="absolute top-6 right-6 text-slate-500 hover:text-white bg-slate-800/50 p-2 rounded-full"><i data-lucide="x" class="w-5 h-5"></i></button>
+                    <div class="mb-6"><h3 class="text-xl font-bold text-white mb-1">Time Protocol</h3><p class="text-slate-400 text-xs font-mono">Pilih slot waktu eksekusi:</p></div>
+                    <div class="grid grid-cols-2 gap-2 h-64 overflow-y-auto custom-scroll pr-1">
+                        ${Config.TIME_SLOTS.map(s => `<button onclick="App.controller.confirmTask('${s.id}')" class="glass-card p-3 rounded-xl hover:border-neonCyan hover:bg-slate-800 text-left group active:scale-95 transition-all"><span class="text-neonCyan font-mono font-bold text-sm block group-hover:text-white transition-colors">${s.label}</span><span class="text-slate-300 text-[10px] block opacity-70">${s.range}</span></button>`).join('')}
+                    </div>
+                </div>`;
                 m.classList.remove('opacity-0', 'invisible', 'pointer-events-none');
                 lucide.createIcons();
             },
@@ -1288,23 +1143,27 @@
 
             // --- RENDER ENGINE ---
             render() {
+                // 1. Pre-Check Auto Fails before rendering
                 const tasksRaw = Store.get('tasks');
                 if(Engine.checkAutoFail(tasksRaw)) { Store.set('tasks', tasksRaw); }
 
                 const tasks = Store.get('tasks');
                 const rewards = Store.get('rewards');
                 const reflections = Store.get('reflections');
-                const financeData = Store.get('finance');
-                const inventory = Store.get('inventory');
+                const financeData = Store.get('finance'); // Array of monthly finance
                 
                 const today = Utils.getISO();
                 const monthKey = Utils.getISO().slice(0, 7);
                 const currentSlot = Utils.getCurrentSlot();
                 const currentHour = new Date().getHours();
+                
+                // Get Current Month Config
                 const myFinance = financeData.find(f => f.month === monthKey);
                 
+                // Update Common Elements
                 document.getElementById('header-month').innerText = Utils.formatMonth(monthKey);
                 
+                // Update Nav
                 const navInner = document.getElementById('nav-inner');
                 const tabs = [{id:'home',l:'PETA',i:'map'},{id:'rank',l:'RANK',i:'swords'},{id:'rewards',l:'GIFT',i:'gift'},{id:'history',l:'LOGS',i:'history'}];
                 navInner.innerHTML = tabs.map(t => {
@@ -1313,12 +1172,15 @@
                 }).join('');
 
                 const main = document.getElementById('app-viewport');
+                
+                // CALCULATE STATS GLOBAL (Used in Home & Logs)
                 const pts = Engine.calcPoints(tasks);
 
                 if (this.state.view === 'home') {
                     const rnk = Engine.calcRank(monthKey, tasks, financeData);
                     const ref = reflections.find(r => r.date === today);
                     
+                    // --- LOGIC FILTER BARU ---
                     const tFailed = tasks.filter(t => t.date === today && t.status === 'failed');
                     const tCompleted = tasks.filter(t => t.date === today && t.status === 'completed');
                     const tActive = tasks.filter(t => {
@@ -1330,24 +1192,62 @@
                         return slot && slot.id !== 'all' && slot.start > currentHour; 
                     });
                     const tTom = tasks.filter(t => t.date === Utils.getTomorrow());
+
+                    // UPDATED: Calculate potential points for tomorrow
                     const tTomPoints = tTom.reduce((acc, t) => acc + (Config.DIFFICULTY[t.difficulty]?.pts || 0), 0);
+
                     const diffBtn = (d) => {
                         const act = this.state.difficulty === d;
                         const c = Config.DIFFICULTY[d];
                         return `<button onclick="App.controller.setDifficulty('${d}')" class="flex-1 py-2 rounded-lg text-[10px] font-bold border uppercase transition-all ${act ? `bg-white/10 text-white shadow-[0_0_10px_currentColor] ${c.border}` : 'border-slate-700 text-slate-500'}" style="${act?`color:${c.hex}`:''}">${c.label}</button>`;
                     };
 
+                    // --- FINANCE SETUP CARD (HOME) ---
                     let financeCard = '';
                     if (!myFinance) {
-                         const selectedModeId = this.state.tempMode;
+                        const selectedModeId = this.state.tempMode;
                         financeCard = `
                         <div class="glass-card p-5 rounded-xl border border-neonGold/30 bg-neonGold/5 mb-4 animate-[pulse-slow]">
-                            <div class="flex items-center gap-2 mb-3"><i data-lucide="settings-2" class="w-5 h-5 text-neonGold"></i><h3 class="text-sm font-bold text-white">Kalibrasi Protokol Bulan Ini</h3></div>
+                            <div class="flex items-center gap-2 mb-3">
+                                <i data-lucide="settings-2" class="w-5 h-5 text-neonGold"></i>
+                                <h3 class="text-sm font-bold text-white">Kalibrasi Protokol Bulan Ini</h3>
+                            </div>
                             <p class="text-xs text-slate-400 mb-3 leading-relaxed">Agar kalkulasi nilai poin & rank akurat, masukkan parameter finansial & pilih mode operasi Anda.</p>
                             <div class="space-y-4">
-                                <div><label class="text-[9px] text-slate-500 uppercase font-bold mb-1 block">Anggaran/Gaji (Rp)</label><input id="income-in" type="number" placeholder="Contoh: 1800000" value="${this.state.tempIncome || ''}" class="w-full bg-obsidian text-white rounded-lg px-3 py-2.5 text-sm border border-slate-700 focus:border-neonGold outline-none transition-colors"></div>
-                                <div><label class="text-[9px] text-slate-500 uppercase font-bold mb-1 block">Alokasi Self Reward (%)</label><select id="alloc-in" class="w-full bg-obsidian text-white rounded-lg px-3 py-2.5 text-sm border border-slate-700 focus:border-neonGold outline-none transition-colors"><option value="0.1" ${this.state.tempAlloc === '0.1' ? 'selected' : ''}>10% (Mode Hemat)</option><option value="0.2" ${this.state.tempAlloc === '0.2' || !this.state.tempAlloc ? 'selected' : ''}>20% (Mode Stabil)</option><option value="0.3" ${this.state.tempAlloc === '0.3' ? 'selected' : ''}>30% (Mode Apresiasi)</option><option value="0.4" ${this.state.tempAlloc === '0.4' ? 'selected' : ''}>40% (Mode Selebrasi)</option></select></div>
-                                <div><label class="text-[9px] text-slate-500 uppercase font-bold mb-2 block">Pilih Mode Operasi</label><div class="grid grid-cols-2 gap-2">${Config.PRODUCTIVITY_MODES.map(m => {const isSel = selectedModeId === m.id;const border = isSel ? `border-${m.color.split('-')[1]}` : 'border-slate-700';const bg = isSel ? 'bg-slate-700' : 'bg-slate-800';return `<button onclick="App.controller.selectMode('${m.id}')" class="${bg} border ${border} hover:bg-slate-700 p-2 rounded-lg text-left transition-all active:scale-95 group relative overflow-hidden">${isSel ? `<div class="absolute inset-0 bg-white/5"></div>` : ''}<div class="flex items-center gap-2 mb-1"><i data-lucide="${m.icon}" class="w-3 h-3 ${m.color}"></i><span class="text-xs font-bold text-white">${m.label}</span></div><div class="flex justify-between items-center"><span class="text-[9px] text-slate-400">${m.desc}</span><span class="text-[10px] font-mono font-bold ${m.color}">${m.pts} Pts</span></div></button>`;}).join('')}</div></div>
+                                <div>
+                                    <label class="text-[9px] text-slate-500 uppercase font-bold mb-1 block">Anggaran/Gaji (Rp)</label>
+                                    <input id="income-in" type="number" placeholder="Contoh: 1800000" value="${this.state.tempIncome || ''}" class="w-full bg-obsidian text-white rounded-lg px-3 py-2.5 text-sm border border-slate-700 focus:border-neonGold outline-none transition-colors">
+                                </div>
+                                <div>
+                                    <label class="text-[9px] text-slate-500 uppercase font-bold mb-1 block">Alokasi Self Reward (%)</label>
+                                    <select id="alloc-in" class="w-full bg-obsidian text-white rounded-lg px-3 py-2.5 text-sm border border-slate-700 focus:border-neonGold outline-none transition-colors">
+                                        <option value="0.1" ${this.state.tempAlloc === '0.1' ? 'selected' : ''}>10% (Mode Hemat)</option>
+                                        <option value="0.2" ${this.state.tempAlloc === '0.2' || !this.state.tempAlloc ? 'selected' : ''}>20% (Mode Wajar)</option>
+                                        <option value="0.3" ${this.state.tempAlloc === '0.3' ? 'selected' : ''}>30% (Mode Sultan)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="text-[9px] text-slate-500 uppercase font-bold mb-2 block">Pilih Mode Operasi</label>
+                                    <div class="grid grid-cols-2 gap-2">
+                                        ${Config.PRODUCTIVITY_MODES.map(m => {
+                                            const isSel = selectedModeId === m.id;
+                                            const border = isSel ? `border-${m.color.split('-')[1]}` : 'border-slate-700';
+                                            const bg = isSel ? 'bg-slate-700' : 'bg-slate-800';
+                                            return `
+                                            <button onclick="App.controller.selectMode('${m.id}')" class="${bg} border ${border} hover:bg-slate-700 p-2 rounded-lg text-left transition-all active:scale-95 group relative overflow-hidden">
+                                                ${isSel ? `<div class="absolute inset-0 bg-white/5"></div>` : ''}
+                                                <div class="flex items-center gap-2 mb-1">
+                                                    <i data-lucide="${m.icon}" class="w-3 h-3 ${m.color}"></i>
+                                                    <span class="text-xs font-bold text-white">${m.label}</span>
+                                                </div>
+                                                <div class="flex justify-between items-center">
+                                                    <span class="text-[9px] text-slate-400">${m.desc}</span>
+                                                    <span class="text-[10px] font-mono font-bold ${m.color}">${m.pts} Pts</span>
+                                                </div>
+                                            </button>`;
+                                        }).join('')}
+                                    </div>
+                                </div>
                                 <button onclick="App.controller.saveMonthlyConfig()" class="w-full bg-neonGold text-obsidian px-4 py-3 rounded-lg font-bold hover:bg-white transition-colors shadow-lg mt-2 flex justify-center items-center gap-2"><i data-lucide="check-circle" class="w-4 h-4"></i> Simpan Parameter</button>
                             </div>
                         </div>`;
@@ -1355,65 +1255,199 @@
 
                     main.innerHTML = `
                     <div class="space-y-8 pb-10 animate-[fadeIn_0.4s_ease-out]">
+                        
                         ${financeCard}
+
                         <div class="flex gap-4">${ComponentFactory.rankCard('EXECUTION', rnk.exec, 'swords')}${ComponentFactory.rankCard('CONSISTENCY', rnk.cons, 'zap')}</div>
-                        <div class="glass-card p-5 rounded-xl flex items-center justify-between relative overflow-hidden"><div class="absolute right-0 top-0 h-full w-1/2 bg-gradient-to-l from-neonCyan/10 to-transparent"></div><div class="relative z-10"><div class="text-[9px] text-neonCyan font-bold uppercase tracking-widest mb-1">Poin Hari Ini</div><div class="text-4xl font-mono font-bold text-white drop-shadow-md">${pts.cur} <span class="text-xs text-slate-500 font-sans font-normal">/ ${myFinance ? myFinance.targetPts : '-'} PTS</span></div></div><div class="relative z-10 w-12 h-12 rounded-full bg-slate border border-white/10 flex items-center justify-center"><i data-lucide="activity" class="text-neonCyan w-6 h-6"></i></div></div>
-                        <div class="glass-card p-3 rounded-xl flex items-center justify-between border-l-2 border-neonPurple bg-white/5"><div class="flex items-center gap-3"><div class="p-2 rounded-lg bg-neonPurple/10"><i data-lucide="trending-up" class="w-4 h-4 text-neonPurple"></i></div><div><p class="text-[9px] text-neonPurple font-bold uppercase tracking-widest">Rata-rata Harian</p><p class="text-[8px] text-slate-400 font-mono">Performa Bulan Ini</p></div></div><div class="text-xl font-mono font-bold text-white tracking-wide">${pts.avg} <span class="text-[9px] text-slate-500 font-sans font-normal">PTS</span></div></div>
-                        <div class="grid grid-cols-2 gap-3"><div class="glass-card p-4 flex flex-col items-center border-t-2 border-slate-600"><span class="text-[8px] text-slate-400 uppercase tracking-widest mb-1">Bulan Lalu</span><span class="text-xl font-mono font-bold text-slate-300">${pts.last}</span></div><div class="glass-card p-4 flex flex-col items-center border-t-2 border-neonCyan"><span class="text-[8px] text-neonCyan uppercase tracking-widest mb-1">Bulan Ini</span><span class="text-xl font-mono font-bold text-white">${pts.mon}</span></div></div>
-                        ${ref ? `<div class="glass-card p-5 rounded-xl border-l-4 border-l-neonPurple"><div class="flex items-center gap-2 mb-2 text-neonPurple"><i data-lucide="brain-circuit" class="w-4 h-4"></i><span class="text-[10px] font-bold uppercase tracking-widest">LOG REFLEKSI</span></div><p class="text-sm text-slate-200 italic">"${ref.text}"</p></div>` : `<div class="p-5 rounded-xl border border-dashed border-slate-700 bg-slate/20"><label class="block text-slate-400 text-[10px] font-bold mb-3 uppercase tracking-widest flex items-center gap-2"><i data-lucide="edit-3" class="w-3 h-3"></i> Refleksi Wajib</label><div class="flex gap-2"><input id="ref-in" type="text" placeholder="Apa yang dipelajari?" class="flex-1 bg-charcoal text-white rounded-lg px-4 py-3 text-sm border border-slate-700 focus:border-neonPurple outline-none"><button onclick="App.controller.saveRef()" class="bg-neonPurple text-white px-4 rounded-lg shadow-lg"><i data-lucide="save" class="w-4 h-4"></i></button></div></div>`}
-                        ${tFailed.length > 0 ? `<div><div class="flex justify-between mb-2 items-center border-b border-neonRed/20 pb-2"><h2 class="text-sm font-bold text-neonRed flex items-center gap-2"><i data-lucide="alert-octagon" class="w-4 h-4"></i> TERLEWAT / GAGAL</h2></div><div class="space-y-0">${tFailed.map(t => ComponentFactory.taskItem(t, true)).join('')}</div></div>` : ''}
-                        ${tCompleted.length > 0 ? `<div><div class="flex justify-between mb-2 items-center border-b border-neonGreen/20 pb-2"><h2 class="text-sm font-bold text-neonGreen flex items-center gap-2"><i data-lucide="check-circle-2" class="w-4 h-4"></i> SELESAI / SUKSES</h2></div><div class="space-y-0 opacity-90">${tCompleted.map(t => ComponentFactory.taskItem(t, true)).join('')}</div></div>` : ''}
-                        <div><div class="flex justify-between mb-4 items-end border-b border-white/5 pb-2"><h2 class="text-sm font-bold text-white flex items-center gap-2"><i data-lucide="crosshair" class="w-4 h-4 text-neonCyan"></i> MISI AKTIF</h2><div class="flex flex-col items-end"><span class="text-[9px] text-neonCyan font-mono font-bold uppercase tracking-widest">${currentSlot.label} PHASE</span><span class="text-[8px] text-slate-500 font-mono">${currentSlot.range}</span></div></div><div class="space-y-0">${tActive.length===0 ? '<div class="text-center py-8 text-xs text-slate-600 font-mono border border-dashed border-slate-800 rounded-xl">ISTIRAHAT / FASE KOSONG</div>' : tActive.map(t => ComponentFactory.taskItem(t, true)).join('')}</div></div>
-                        ${tUpcoming.length > 0 ? `<div><div class="flex justify-between mb-2 items-center border-b border-neonPurple/20 pb-2"><h2 class="text-sm font-bold text-neonPurple flex items-center gap-2"><i data-lucide="clock" class="w-4 h-4"></i> AKAN DATANG HARI INI</h2></div><div class="space-y-0 opacity-80">${tUpcoming.map(t => ComponentFactory.taskItem(t, true)).join('')}</div></div>` : ''}
+                        
+                        <!-- Poin Hari Ini -->
+                        <div class="glass-card p-5 rounded-xl flex items-center justify-between relative overflow-hidden">
+                            <div class="absolute right-0 top-0 h-full w-1/2 bg-gradient-to-l from-neonCyan/10 to-transparent"></div>
+                            <div class="relative z-10"><div class="text-[9px] text-neonCyan font-bold uppercase tracking-widest mb-1">Poin Hari Ini</div><div class="text-4xl font-mono font-bold text-white drop-shadow-md">${pts.cur} <span class="text-xs text-slate-500 font-sans font-normal">/ ${myFinance ? myFinance.targetPts : '-'} PTS</span></div></div>
+                            <div class="relative z-10 w-12 h-12 rounded-full bg-slate border border-white/10 flex items-center justify-center"><i data-lucide="activity" class="text-neonCyan w-6 h-6"></i></div>
+                        </div>
+
+                        <!-- Rata-rata Harian (New) -->
+                        <div class="glass-card p-3 rounded-xl flex items-center justify-between border-l-2 border-neonPurple bg-white/5">
+                            <div class="flex items-center gap-3">
+                                <div class="p-2 rounded-lg bg-neonPurple/10"><i data-lucide="trending-up" class="w-4 h-4 text-neonPurple"></i></div>
+                                <div>
+                                    <p class="text-[9px] text-neonPurple font-bold uppercase tracking-widest">Rata-rata Harian</p>
+                                    <p class="text-[8px] text-slate-400 font-mono">Performa Bulan Ini</p>
+                                </div>
+                            </div>
+                            <div class="text-xl font-mono font-bold text-white tracking-wide">${pts.avg} <span class="text-[9px] text-slate-500 font-sans font-normal">PTS</span></div>
+                        </div>
+
+                        <!-- Stats Bulanan Grid (2 Columns) -->
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="glass-card p-4 flex flex-col items-center border-t-2 border-slate-600">
+                                <span class="text-[8px] text-slate-400 uppercase tracking-widest mb-1">Bulan Lalu</span>
+                                <span class="text-xl font-mono font-bold text-slate-300">${pts.last}</span>
+                            </div>
+                            <div class="glass-card p-4 flex flex-col items-center border-t-2 border-neonCyan">
+                                <span class="text-[8px] text-neonCyan uppercase tracking-widest mb-1">Bulan Ini</span>
+                                <span class="text-xl font-mono font-bold text-white">${pts.mon}</span>
+                            </div>
+                        </div>
+
+                        ${ref ? `<div class="glass-card p-5 rounded-xl border-l-4 border-l-neonPurple"><div class="flex items-center gap-2 mb-2 text-neonPurple"><i data-lucide="brain-circuit" class="w-4 h-4"></i><span class="text-[10px] font-bold uppercase tracking-widest">LOG REFLEKSI</span></div><p class="text-sm text-slate-200 italic">"${ref.text}"</p></div>` : 
+                        `<div class="p-5 rounded-xl border border-dashed border-slate-700 bg-slate/20"><label class="block text-slate-400 text-[10px] font-bold mb-3 uppercase tracking-widest flex items-center gap-2"><i data-lucide="edit-3" class="w-3 h-3"></i> Refleksi Wajib</label><div class="flex gap-2"><input id="ref-in" type="text" placeholder="Apa yang dipelajari?" class="flex-1 bg-charcoal text-white rounded-lg px-4 py-3 text-sm border border-slate-700 focus:border-neonPurple outline-none"><button onclick="App.controller.saveRef()" class="bg-neonPurple text-white px-4 rounded-lg shadow-lg"><i data-lucide="save" class="w-4 h-4"></i></button></div></div>`}
+
+                        <!-- SECTION: MISI GAGAL (Hanya muncul jika ada) -->
+                        ${tFailed.length > 0 ? `
+                        <div>
+                             <div class="flex justify-between mb-2 items-center border-b border-neonRed/20 pb-2">
+                                <h2 class="text-sm font-bold text-neonRed flex items-center gap-2"><i data-lucide="alert-octagon" class="w-4 h-4"></i> TERLEWAT / GAGAL</h2>
+                            </div>
+                            <div class="space-y-0">${tFailed.map(t => ComponentFactory.taskItem(t, true)).join('')}</div>
+                        </div>` : ''}
+
+                         <!-- SECTION: MISI SELESAI (NEW) -->
+                        ${tCompleted.length > 0 ? `
+                        <div>
+                             <div class="flex justify-between mb-2 items-center border-b border-neonGreen/20 pb-2">
+                                <h2 class="text-sm font-bold text-neonGreen flex items-center gap-2"><i data-lucide="check-circle-2" class="w-4 h-4"></i> SELESAI / SUKSES</h2>
+                            </div>
+                            <div class="space-y-0 opacity-90">${tCompleted.map(t => ComponentFactory.taskItem(t, true)).join('')}</div>
+                        </div>` : ''}
+
+                        <!-- SECTION: MISI AKTIF -->
+                        <div>
+                            <div class="flex justify-between mb-4 items-end border-b border-white/5 pb-2">
+                                <h2 class="text-sm font-bold text-white flex items-center gap-2"><i data-lucide="crosshair" class="w-4 h-4 text-neonCyan"></i> MISI AKTIF</h2>
+                                <div class="flex flex-col items-end">
+                                    <span class="text-[9px] text-neonCyan font-mono font-bold uppercase tracking-widest">${currentSlot.label} PHASE</span>
+                                    <span class="text-[8px] text-slate-500 font-mono">${currentSlot.range}</span>
+                                </div>
+                            </div>
+                            <div class="space-y-0">${tActive.length===0 ? '<div class="text-center py-8 text-xs text-slate-600 font-mono border border-dashed border-slate-800 rounded-xl">ISTIRAHAT / FASE KOSONG</div>' : tActive.map(t => ComponentFactory.taskItem(t, true)).join('')}</div>
+                        </div>
+
+                        <!-- SECTION: MISI AKAN DATANG (Hanya muncul jika ada) -->
+                        ${tUpcoming.length > 0 ? `
+                        <div>
+                             <div class="flex justify-between mb-2 items-center border-b border-neonPurple/20 pb-2">
+                                <h2 class="text-sm font-bold text-neonPurple flex items-center gap-2"><i data-lucide="clock" class="w-4 h-4"></i> AKAN DATANG HARI INI</h2>
+                            </div>
+                            <div class="space-y-0 opacity-80">${tUpcoming.map(t => ComponentFactory.taskItem(t, true)).join('')}</div>
+                        </div>` : ''}
+
                         <div class="flex items-center justify-center opacity-20 py-2"><div class="h-px bg-white w-full"></div><div class="mx-4 text-[9px] font-mono text-white whitespace-nowrap">NEXT CYCLE</div><div class="h-px bg-white w-full"></div></div>
-                        <div><div class="flex justify-between items-center mb-4"><h2 class="text-sm font-bold text-white flex items-center gap-2"><i data-lucide="sunrise" class="w-4 h-4 text-neonGold"></i> PERENCANAAN BESOK</h2><span class="text-[10px] font-mono text-neonGold border border-neonGold/30 px-2 py-1 rounded bg-neonGold/10">POTENSI: +${tTomPoints} PTS</span></div><div class="glass-card p-5 rounded-xl space-y-4 mb-4"><input id="task-in" type="text" placeholder="Input nama misi..." value="${this.state.tempTaskInput || ''}" class="w-full bg-charcoal text-white rounded-lg px-4 py-3 text-sm border border-slate-700 focus:border-neonCyan outline-none"><div class="flex gap-2">${['easy','medium','hard'].map(diffBtn).join('')}</div><button onclick="App.controller.initTask()" class="w-full btn-action bg-neonCyan hover:bg-white hover:text-obsidian text-obsidian font-bold py-3 rounded-lg text-xs uppercase tracking-widest shadow-[0_0_15px_rgba(6,182,212,0.3)] flex justify-center gap-2"><i data-lucide="plus-circle" class="w-4 h-4"></i> Jadwalkan</button></div><div class="space-y-0">${tTom.map(t => ComponentFactory.taskItem(t, false)).join('')}</div></div>
+
+                        <!-- SECTION: PERENCANAAN BESOK -->
+                        <div>
+                            <div class="flex justify-between items-center mb-4">
+                                <h2 class="text-sm font-bold text-white flex items-center gap-2"><i data-lucide="sunrise" class="w-4 h-4 text-neonGold"></i> PERENCANAAN BESOK</h2>
+                                <span class="text-[10px] font-mono text-neonGold border border-neonGold/30 px-2 py-1 rounded bg-neonGold/10">POTENSI: +${tTomPoints} PTS</span>
+                            </div>
+                            <div class="glass-card p-5 rounded-xl space-y-4 mb-4">
+                                <input id="task-in" type="text" placeholder="Input nama misi..." value="${this.state.tempTaskInput || ''}" class="w-full bg-charcoal text-white rounded-lg px-4 py-3 text-sm border border-slate-700 focus:border-neonCyan outline-none">
+                                <div class="flex gap-2">${['easy','medium','hard'].map(diffBtn).join('')}</div>
+                                <button onclick="App.controller.initTask()" class="w-full btn-action bg-neonCyan hover:bg-white hover:text-obsidian text-obsidian font-bold py-3 rounded-lg text-xs uppercase tracking-widest shadow-[0_0_15px_rgba(6,182,212,0.3)] flex justify-center gap-2"><i data-lucide="plus-circle" class="w-4 h-4"></i> Jadwalkan</button>
+                            </div>
+                            <div class="space-y-0">${tTom.map(t => ComponentFactory.taskItem(t, false)).join('')}</div>
+                        </div>
                     </div>`;
                 } 
                 else if (this.state.view === 'rank') {
                     const rnk = Engine.calcRank(monthKey, tasks, financeData);
-                    const history = Engine.getDailyPointsHistory(tasks);
-                    
                     let hHtml = '';
                     for(let i=1; i<=3; i++) {
                         const d = new Date(); d.setMonth(d.getMonth()-i);
                         const k = Utils.getISO(d).slice(0,7);
                         const r = Engine.calcRank(k, tasks, financeData);
-                        hHtml += `<div class="glass-card px-4 py-3 rounded-xl flex items-center justify-between mb-2"><span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">${Utils.formatMonth(k)}</span><div class="flex gap-4"><div class="flex items-center gap-2" title="Execution Rank"><span class="text-[8px] font-mono text-slate-600">EXEC</span><span class="font-display text-base ${r.exec.tier.class}">${r.exec.tier.code}</span></div><div class="w-px h-4 bg-white/5"></div><div class="flex items-center gap-2" title="Consistency Rank"><span class="text-[8px] font-mono text-slate-600">CONS</span><span class="font-display text-base ${r.cons.tier.class}">${r.cons.tier.code}</span></div></div></div>`;
+                        hHtml += `
+                        <div class="glass-card px-4 py-3 rounded-xl flex items-center justify-between mb-2">
+                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">${Utils.formatMonth(k)}</span>
+                            <div class="flex gap-4">
+                                <div class="flex items-center gap-2" title="Execution Rank">
+                                    <span class="text-[8px] font-mono text-slate-600">EXEC</span>
+                                    <span class="font-display text-base ${r.exec.tier.class}">${r.exec.tier.code}</span>
+                                </div>
+                                <div class="w-px h-4 bg-white/5"></div>
+                                <div class="flex items-center gap-2" title="Consistency Rank">
+                                    <span class="text-[8px] font-mono text-slate-600">CONS</span>
+                                    <span class="font-display text-base ${r.cons.tier.class}">${r.cons.tier.code}</span>
+                                </div>
+                            </div>
+                        </div>`;
                     }
-                    
                     main.innerHTML = `
                     <div class="space-y-8 animate-[fadeIn_0.4s_ease-out] pt-4">
                         <div class="text-center"><div class="inline-block px-6 py-2 rounded-full border border-neonCyan/30 bg-neonCyan/10 backdrop-blur-md mb-2"><h2 class="text-neonCyan font-black text-sm uppercase tracking-[0.2em] drop-shadow-[0_0_10px_rgba(6,182,212,0.5)]">${Utils.formatMonth(monthKey)}</h2></div><p class="text-[10px] text-slate-500 uppercase tracking-widest">Laporan Kinerja Bulanan</p></div>
                         <div class="flex flex-col gap-4">${ComponentFactory.rankCard('EXECUTION RANK', rnk.exec, 'swords')}<div class="text-center text-[9px] text-slate-500 font-mono -mt-2 mb-2">SYARAT: SEMUA SELESAI (2x)</div>${ComponentFactory.rankCard('CONSISTENCY RANK', rnk.cons, 'zap')}<div class="text-center text-[9px] text-slate-500 font-mono -mt-2">SYARAT: CAPAI TARGET HARIAN (${rnk.dailyTarget} PTS)</div></div>
-                        
-                        <!-- INSIGHT CHART -->
-                        <div class="pt-4 border-t border-white/5">
-                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2"><i data-lucide="bar-chart-2" class="w-3 h-3"></i> Insight 7 Hari</h3>
-                            <div class="glass-card p-4 rounded-xl">
-                                <p class="text-[9px] text-slate-500 mb-2">Performa Poin Harian</p>
-                                ${ComponentFactory.insightChart(history)}
-                            </div>
-                        </div>
-
                         <div class="pt-4 border-t border-white/5"><h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2"><i data-lucide="archive" class="w-3 h-3"></i> Arsip Bulanan</h3>${hHtml}</div>
                         <div class="pt-4 border-t border-white/5"><h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2"><i data-lucide="list" class="w-3 h-3"></i> Codex Pangkat</h3><div class="bg-charcoal/50 p-2 rounded-xl border border-white/5 h-64 overflow-y-auto custom-scroll">${ComponentFactory.rankLegend()}</div></div>
                     </div>`;
                 }
                 else if (this.state.view === 'rewards') {
+                    // Uses pts calculated globally at start of render
                     const { mon } = pts;
                     const active = rewards.filter(r => r.status === 'active');
-                    const redeemed = rewards.filter(r => r.status === 'redeemed' && !r.isSystem).sort((a,b)=>new Date(b.redeemedDate)-new Date(a.redeemedDate));
-                    const shieldCount = inventory.shields || 0;
-
+                    const redeemed = rewards.filter(r => r.status === 'redeemed').sort((a,b)=>new Date(b.redeemedDate)-new Date(a.redeemedDate));
+                    
+                    // --- FINANCE LOGIC ---
+                    const curMonthKey = Utils.getMonthKey(Utils.getISO());
+                    const myFinance = financeData.find(f => f.month === curMonthKey);
+                    
                     let financeSection = '';
                     if (!myFinance) {
-                        financeSection = `<div class="p-3 bg-neonRed/10 border border-neonRed/30 rounded-lg text-center mb-4"><p class="text-xs text-neonRed font-bold">⚠️ Protokol belum dikalibrasi</p><p class="text-[10px] text-slate-400">Silakan isi data keuangan di menu PETA.</p></div>`;
+                        const selectedModeId = this.state.tempMode;
+                        financeSection = `
+                        <div class="glass-card p-5 rounded-xl border border-neonGold/30 bg-neonGold/5 mb-4 animate-[pulse-slow]">
+                            <div class="flex items-center gap-2 mb-3">
+                                <i data-lucide="settings-2" class="w-5 h-5 text-neonGold"></i>
+                                <h3 class="text-sm font-bold text-white">Kalibrasi Protokol Bulan Ini</h3>
+                            </div>
+                            <p class="text-xs text-slate-400 mb-3 leading-relaxed">Agar kalkulasi nilai poin & rank akurat, masukkan parameter finansial & pilih mode operasi Anda.</p>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="text-[9px] text-slate-500 uppercase font-bold mb-1 block">Anggaran/Gaji (Rp)</label>
+                                    <input id="income-in" type="number" placeholder="Contoh: 1800000" value="${this.state.tempIncome || ''}" class="w-full bg-obsidian text-white rounded-lg px-3 py-2.5 text-sm border border-slate-700 focus:border-neonGold outline-none transition-colors">
+                                </div>
+                                <div>
+                                    <label class="text-[9px] text-slate-500 uppercase font-bold mb-1 block">Alokasi Self Reward (%)</label>
+                                    <select id="alloc-in" class="w-full bg-obsidian text-white rounded-lg px-3 py-2.5 text-sm border border-slate-700 focus:border-neonGold outline-none transition-colors">
+                                        <option value="0.1" ${this.state.tempAlloc === '0.1' ? 'selected' : ''}>10% (Mode Hemat)</option>
+                                        <option value="0.2" ${this.state.tempAlloc === '0.2' || !this.state.tempAlloc ? 'selected' : ''}>20% (Mode Wajar)</option>
+                                        <option value="0.3" ${this.state.tempAlloc === '0.3' ? 'selected' : ''}>30% (Mode Sultan)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="text-[9px] text-slate-500 uppercase font-bold mb-2 block">Pilih Mode Operasi</label>
+                                    <div class="grid grid-cols-2 gap-2">
+                                        ${Config.PRODUCTIVITY_MODES.map(m => {
+                                            const isSel = selectedModeId === m.id;
+                                            const border = isSel ? `border-${m.color.split('-')[1]}` : 'border-slate-700';
+                                            const bg = isSel ? 'bg-slate-700' : 'bg-slate-800';
+                                            return `
+                                            <button onclick="App.controller.selectMode('${m.id}')" class="${bg} border ${border} hover:bg-slate-700 p-2 rounded-lg text-left transition-all active:scale-95 group relative overflow-hidden">
+                                                ${isSel ? `<div class="absolute inset-0 bg-white/5"></div>` : ''}
+                                                <div class="flex items-center gap-2 mb-1">
+                                                    <i data-lucide="${m.icon}" class="w-3 h-3 ${m.color}"></i>
+                                                    <span class="text-xs font-bold text-white">${m.label}</span>
+                                                </div>
+                                                <div class="flex justify-between items-center">
+                                                    <span class="text-[9px] text-slate-400">${m.desc}</span>
+                                                    <span class="text-[10px] font-mono font-bold ${m.color}">${m.pts} Pts</span>
+                                                </div>
+                                            </button>`;
+                                        }).join('')}
+                                    </div>
+                                </div>
+                                <button onclick="App.controller.saveMonthlyConfig()" class="w-full bg-neonGold text-obsidian px-4 py-3 rounded-lg font-bold hover:bg-white transition-colors shadow-lg mt-2 flex justify-center items-center gap-2"><i data-lucide="check-circle" class="w-4 h-4"></i> Simpan Parameter</button>
+                            </div>
+                        </div>`;
                     } else {
+                        // Info Valuasi Kecil
                         const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
                         const allocation = myFinance.allocation || 0.2;
                         const dailyBudget = (myFinance.amount * allocation) / daysInMonth;
+                        
                         const dailyTarget = myFinance.targetPts || 10;
                         const valPerPoint = Math.max(1, Math.round(dailyBudget / dailyTarget));
+                        
                         const mode = Config.PRODUCTIVITY_MODES.find(m => m.id === myFinance.modeId) || { label: 'Custom', color: 'text-white' };
                         
                         financeSection = `
@@ -1426,34 +1460,56 @@
                     // --- REWARD FORM LOGIC ---
                     let rewardForm = '';
                     if (this.state.rewardStep === 0) {
-                        rewardForm = `<div class="flex gap-2"><input id="rew-name" type="text" placeholder="Nama hadiah..." class="w-full bg-charcoal text-white rounded-lg px-4 py-3 text-sm border border-slate-700 focus:border-neonCyan outline-none"><button onclick="App.controller.initReward()" class="bg-neonCyan hover:bg-white hover:text-obsidian text-obsidian px-5 rounded-lg font-bold transition-all shadow-lg"><i data-lucide="arrow-right" class="w-5 h-5"></i></button></div>`;
+                        rewardForm = `
+                        <div class="flex gap-2">
+                            <input id="rew-name" type="text" placeholder="Nama hadiah..." class="w-full bg-charcoal text-white rounded-lg px-4 py-3 text-sm border border-slate-700 focus:border-neonCyan outline-none">
+                            <button onclick="App.controller.initReward()" class="bg-neonCyan hover:bg-white hover:text-obsidian text-obsidian px-5 rounded-lg font-bold transition-all shadow-lg"><i data-lucide="arrow-right" class="w-5 h-5"></i></button>
+                        </div>`;
                     } else if (this.state.rewardStep === 1) {
-                        rewardForm = `<div class="text-center py-2 animate-[fadeIn_0.3s]"><p class="text-white text-xs font-bold mb-3">Apakah hadiah ini memiliki harga nominal (Rp)?</p><div class="flex gap-3 justify-center"><button onclick="App.controller.setRewardHasPrice(false)" class="px-4 py-2 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-700 text-xs">Tidak</button><button onclick="App.controller.setRewardHasPrice(true)" class="px-4 py-2 rounded-lg bg-neonPurple text-white hover:bg-neonPurple/80 shadow-lg text-xs font-bold">Ya, Ada</button></div></div>`;
+                        rewardForm = `
+                        <div class="text-center py-2 animate-[fadeIn_0.3s]">
+                            <p class="text-white text-xs font-bold mb-3">Apakah hadiah ini memiliki harga nominal (Rp)?</p>
+                            <div class="flex gap-3 justify-center">
+                                <button onclick="App.controller.setRewardHasPrice(false)" class="px-4 py-2 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-700 text-xs">Tidak</button>
+                                <button onclick="App.controller.setRewardHasPrice(true)" class="px-4 py-2 rounded-lg bg-neonPurple text-white hover:bg-neonPurple/80 shadow-lg text-xs font-bold">Ya, Ada</button>
+                            </div>
+                        </div>`;
                     } else if (this.state.rewardStep === 2) {
                         const showPriceInput = this.state.tempReward.hasPrice;
-                        rewardForm = `<div class="space-y-3 animate-[fadeIn_0.3s]"><div class="flex items-center justify-between text-xs text-slate-400 px-1"><span>Item: <strong class="text-white">${this.state.tempReward.name}</strong></span><button onclick="App.controller.resetRewardForm()" class="text-neonRed hover:underline">Batal</button></div>${showPriceInput ? `<input id="rew-price" type="number" onkeyup="App.controller.calcRewardRecs()" placeholder="Masukkan Harga (Rp)..." class="w-full bg-charcoal text-white rounded-lg px-4 py-3 text-sm border border-slate-700 focus:border-neonPurple outline-none">` : ''}<div id="rec-container"></div><div class="flex gap-2"><input id="rew-cost" type="number" placeholder="Target Poin (Contoh: 50)" class="flex-1 bg-charcoal text-white rounded-lg px-4 py-3 text-sm border border-slate-700 focus:border-neonCyan outline-none"><button onclick="App.controller.saveReward()" class="bg-neonCyan hover:bg-white hover:text-obsidian text-obsidian px-5 rounded-lg font-bold transition-all shadow-lg"><i data-lucide="check" class="w-5 h-5"></i></button></div></div>`;
+                        rewardForm = `
+                        <div class="space-y-3 animate-[fadeIn_0.3s]">
+                            <div class="flex items-center justify-between text-xs text-slate-400 px-1"><span>Item: <strong class="text-white">${this.state.tempReward.name}</strong></span><button onclick="App.controller.resetRewardForm()" class="text-neonRed hover:underline">Batal</button></div>
+                            ${showPriceInput ? `<input id="rew-price" type="number" onkeyup="App.controller.calcRewardRecs()" placeholder="Masukkan Harga (Rp)..." class="w-full bg-charcoal text-white rounded-lg px-4 py-3 text-sm border border-slate-700 focus:border-neonPurple outline-none">` : ''}
+                            
+                            <!-- Dynamic Recs Container -->
+                            <div id="rec-container"></div>
+
+                            <div class="flex gap-2">
+                                <input id="rew-cost" type="number" placeholder="Target Poin (Contoh: 50)" class="flex-1 bg-charcoal text-white rounded-lg px-4 py-3 text-sm border border-slate-700 focus:border-neonCyan outline-none">
+                                <button onclick="App.controller.saveReward()" class="bg-neonCyan hover:bg-white hover:text-obsidian text-obsidian px-5 rounded-lg font-bold transition-all shadow-lg"><i data-lucide="check" class="w-5 h-5"></i></button>
+                            </div>
+                        </div>`;
                     }
 
                     main.innerHTML = `
                     <div class="space-y-6 animate-[fadeIn_0.4s_ease-out] pt-4">
                         <div class="glass-card p-8 rounded-2xl text-center relative overflow-hidden"><div class="absolute inset-0 bg-gradient-to-br from-neonCyan/10 to-transparent"></div><p class="text-neonCyan mb-2 text-[10px] uppercase tracking-[0.3em] font-bold relative z-10">SALDO POIN</p><p class="text-6xl font-black text-white drop-shadow-[0_0_20px_rgba(6,182,212,0.5)] font-mono relative z-10">${Utils.formatCurrency(mon)}</p></div>
-                        ${financeSection}
                         
-                        <!-- SHOP SECTION -->
-                        <div class="grid grid-cols-2 gap-3 mb-4">
-                            <div class="glass-card p-3 rounded-xl border border-white/5 flex flex-col justify-between relative overflow-hidden group hover:border-neonCyan/50 transition-all cursor-pointer" onclick="App.controller.buyShield()">
-                                <div class="absolute right-0 top-0 p-2 opacity-10 group-hover:opacity-30 transition-opacity"><i data-lucide="shield" class="w-12 h-12 text-white"></i></div>
-                                <div><p class="text-[10px] text-slate-400 uppercase mb-1">Item Support</p><p class="text-sm font-bold text-white">Shield</p></div>
-                                <div class="mt-2 flex justify-between items-end"><span class="text-neonCyan font-mono font-bold text-xs">100 Pts</span><div class="bg-slate-700 px-2 py-0.5 rounded text-[9px] text-white">Beli</div></div>
-                            </div>
-                            <div class="glass-card p-3 rounded-xl border border-white/5 flex flex-col justify-center items-center">
-                                <span class="text-[10px] text-slate-500 uppercase tracking-widest mb-1">Inventory</span>
-                                <div class="flex items-center gap-2 text-white"><i data-lucide="shield" class="w-5 h-5 text-neonGreen"></i><span class="text-2xl font-bold font-mono">${shieldCount}</span></div>
-                            </div>
-                        </div>
+                        ${financeSection}
 
                         <div class="space-y-2"><h3 class="text-xs font-bold text-white uppercase tracking-widest pl-2 border-l-2 border-neonCyan">Target Baru</h3><div class="glass-card p-4 rounded-xl space-y-3">${rewardForm}</div></div>
-                        <div class="space-y-3"><h3 class="text-xs font-bold text-white uppercase tracking-widest pl-2 border-l-2 border-neonPurple">Wishlist</h3>${active.length===0?'<div class="text-center py-8 text-xs text-slate-600 border border-dashed border-slate-800 rounded-xl">KOSONG</div>':active.map(r=>{const p=Math.min((mon/r.cost)*100,100); const col=mon>=r.cost?'bg-neonGreen':'bg-gradient-to-r from-neonCyan to-neonPurple'; return `<div class="glass-card p-4 rounded-xl relative overflow-hidden group"><div class="absolute bottom-0 left-0 h-1 ${col} transition-all duration-1000 shadow-[0_0_10px_currentColor]" style="width:${p}%"></div><div class="flex justify-between items-center relative z-10"><div><p class="text-white text-sm font-bold group-hover:text-neonCyan transition-colors">${r.name}</p>${r.price ? `<p class="text-[10px] text-neonGold font-mono mb-0.5">Rp ${Utils.formatCurrency(r.price)}</p>` : ''}<p class="text-[10px] text-slate-400 mt-0.5 font-mono tracking-wide">Progress: ${Utils.formatCurrency(mon)} / <span class="text-white">${Utils.formatCurrency(r.cost)} PTS</span></p></div><button onclick="App.controller.delReward('${r.id}')" class="text-slate-600 hover:text-neonRed transition-colors p-2"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div></div>`}).join('')}</div>
+                        <div class="space-y-3"><h3 class="text-xs font-bold text-white uppercase tracking-widest pl-2 border-l-2 border-neonPurple">Wishlist</h3>${active.length===0?'<div class="text-center py-8 text-xs text-slate-600 border border-dashed border-slate-800 rounded-xl">KOSONG</div>':active.map(r=>{const p=Math.min((mon/r.cost)*100,100); const col=mon>=r.cost?'bg-neonGreen':'bg-gradient-to-r from-neonCyan to-neonPurple'; return `
+                        <div class="glass-card p-4 rounded-xl relative overflow-hidden group">
+                            <div class="absolute bottom-0 left-0 h-1 ${col} transition-all duration-1000 shadow-[0_0_10px_currentColor]" style="width:${p}%"></div>
+                            <div class="flex justify-between items-center relative z-10">
+                                <div>
+                                    <p class="text-white text-sm font-bold group-hover:text-neonCyan transition-colors">${r.name}</p>
+                                    ${r.price ? `<p class="text-[10px] text-neonGold font-mono mb-0.5">Rp ${Utils.formatCurrency(r.price)}</p>` : ''}
+                                    <p class="text-[10px] text-slate-400 mt-0.5 font-mono tracking-wide">Progress: ${Utils.formatCurrency(mon)} / <span class="text-white">${Utils.formatCurrency(r.cost)} PTS</span></p>
+                                </div>
+                                <button onclick="App.controller.delReward('${r.id}')" class="text-slate-600 hover:text-neonRed transition-colors p-2"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                            </div>
+                        </div>`}).join('')}</div>
                         <div class="pt-4 border-t border-white/5 space-y-3"><h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest pl-2 border-l-2 border-slate-600">Riwayat Klaim</h3>${redeemed.length===0?'<div class="text-center py-4 text-xs text-slate-700">Belum ada.</div>':redeemed.map(r=>`<div class="glass-card p-3 rounded-lg flex items-center justify-between opacity-70"><div><p class="text-white text-xs font-bold">${r.name}</p><p class="text-[9px] text-slate-500">${Utils.formatDate(r.redeemedDate)}</p></div><div class="text-neonGreen text-[10px] font-mono flex items-center gap-1"><i data-lucide="check-circle" class="w-3 h-3"></i> TUKAR</div></div>`).join('')}</div>
                     </div>`;
                 }
@@ -1466,7 +1522,9 @@
                     const sd = this.state.histDate;
                     const sTasks = sd ? tasks.filter(t=>t.date===sd) : [];
                     const sRef = sd ? reflections.find(r=>r.date===sd) : null;
-                    const shieldedDays = Store.get('shieldedDays');
+
+                    // NEW: Calculate Ranks for the selected history month
+                    const histRank = Engine.calcRank(this.state.histMonth, tasks, financeData);
 
                     let grid = '';
                     for(let i=0;i<offset;i++) grid+=`<div class="aspect-square"></div>`;
@@ -1475,62 +1533,42 @@
                         const has = dayTasks.length>0;
                         const all = has && dayTasks.every(t=>t.status==='completed');
                         const fail = dayTasks.some(t=>t.status==='failed');
-                        const isShielded = shieldedDays.includes(d);
-                        
                         let bg='bg-slate-800/30 text-slate-500', br='border-transparent';
-                        
-                        if(isShielded) {
-                             bg='bg-neonGreen/10 text-neonGreen'; br='border-neonGreen/30';
-                        } else if(has) { 
-                            if(all){bg='bg-neonGreen/20 text-white';br='border-neonGreen/50'} 
-                            else if(fail){bg='bg-neonRed/20 text-white';br='border-neonRed/50'} 
-                            else {bg='bg-neonPurple/20 text-white';br='border-neonPurple/50'} 
-                        }
+                        if(has) { if(all){bg='bg-neonGreen/20 text-white';br='border-neonGreen/50'} else if(fail){bg='bg-neonRed/20 text-white';br='border-neonRed/50'} else {bg='bg-neonPurple/20 text-white';br='border-neonPurple/50'} }
                         if(sd===d) { bg='bg-neonCyan text-obsidian font-bold shadow-[0_0_10px_rgba(6,182,212,0.5)]'; br='border-white'; }
-                        
-                        // Shield Icon Indicator
-                        const shieldIcon = isShielded ? `<div class="absolute -top-1 -right-1"><div class="w-2 h-2 bg-neonGreen rounded-full shadow-[0_0_5px_currentColor]"></div></div>` : '';
-
-                        grid+=`<button onclick="App.controller.setDate('${d}')" class="cal-cell ${sd===d?'active':''} aspect-square rounded-lg flex items-center justify-center text-xs border ${br} ${bg} transition-all hover:scale-105 active:scale-95 relative">${new Date(d).getDate()}${shieldIcon}</button>`;
+                        grid+=`<button onclick="App.controller.setDate('${d}')" class="cal-cell ${sd===d?'active':''} aspect-square rounded-lg flex items-center justify-center text-xs border ${br} ${bg} transition-all hover:scale-105 active:scale-95">${new Date(d).getDate()}</button>`;
                     });
-
-                    // Logic for Shield Button in Day Detail
-                    let shieldBtn = '';
-                    if (sd && !shieldedDays.includes(sd)) {
-                         // Check if day has failures or 0 pts
-                         const dayFail = sTasks.some(t => t.status === 'failed') || (sTasks.length > 0 && !sTasks.every(t=>t.status==='completed'));
-                         // Or simply allow shield anytime if user wants to secure the day? Let's limit to days with issues.
-                         // But simple logic: Just show if not shielded yet.
-                         shieldBtn = `<button onclick="App.controller.useShield('${sd}')" class="w-full mt-4 p-3 rounded-xl border border-neonGreen/30 bg-neonGreen/5 text-neonGreen text-xs font-bold hover:bg-neonGreen/20 transition-all flex items-center justify-center gap-2"><i data-lucide="shield" class="w-4 h-4"></i> Gunakan Shield (Proteksi Hari Ini)</button>`;
-                    } else if (sd && shieldedDays.includes(sd)) {
-                        shieldBtn = `<div class="w-full mt-4 p-3 rounded-xl border border-neonGreen/50 bg-neonGreen/10 text-neonGreen text-xs font-bold text-center flex items-center justify-center gap-2"><i data-lucide="check-circle" class="w-4 h-4"></i> Hari Terlindungi (Shield Active)</div>`;
-                    }
 
                     main.innerHTML = `
                     <div class="pt-2 animate-[fadeIn_0.4s_ease-out] pb-24">
-                        <div class="text-center mb-4">
-                            <div class="inline-block px-4 py-1 rounded-full bg-slate-800/50 border border-slate-700 mb-2">
-                                <p class="text-[10px] text-slate-400 uppercase tracking-widest">HARI INI</p>
-                                <p class="text-neonCyan font-bold text-sm">${Utils.formatDate(today)}</p>
-                            </div>
-                            <div class="flex justify-center gap-2">
-                                 <div class="px-3 py-1 rounded-lg bg-neonPurple/10 border border-neonPurple/30 flex items-center gap-2">
-                                    <i data-lucide="trending-up" class="w-3 h-3 text-neonPurple"></i>
-                                    <span class="text-[10px] text-neonPurple font-bold">AVG: ${pts.avg} PTS/HARI</span>
-                                 </div>
-                            </div>
+                        
+                        <!-- Month Nav -->
+                        <div class="flex items-center justify-between glass-card p-2 rounded-xl mb-4">
+                            <button onclick="App.controller.navMonth(-1)" class="p-2 hover:bg-white/10 rounded-lg text-slate-400 group">
+                                <i data-lucide="chevron-left" class="w-5 h-5 group-active:-translate-x-1 transition-transform"></i>
+                            </button>
+                            <span class="text-white font-black text-sm tracking-[0.2em]">${Utils.formatMonth(this.state.histMonth)}</span>
+                            <button onclick="App.controller.navMonth(1)" class="p-2 hover:bg-white/10 rounded-lg text-slate-400 group">
+                                <i data-lucide="chevron-right" class="w-5 h-5 group-active:translate-x-1 transition-transform"></i>
+                            </button>
                         </div>
 
-                        <div class="flex items-center justify-between glass-card p-2 rounded-xl mb-4"><button onclick="App.controller.navMonth(-1)" class="p-2 hover:bg-white/10 rounded-lg text-slate-400"><i data-lucide="chevron-left" class="w-5 h-5"></i></button><span class="text-white font-black text-sm tracking-[0.2em]">${Utils.formatMonth(this.state.histMonth)}</span><button onclick="App.controller.navMonth(1)" class="p-2 hover:bg-white/10 rounded-lg text-slate-400"><i data-lucide="chevron-right" class="w-5 h-5"></i></button></div>
+                        <!-- NEW: Monthly Rank History Display -->
+                        <div class="flex gap-3 mb-6">
+                            ${ComponentFactory.rankCard('EXECUTION', histRank.exec, 'swords')}
+                            ${ComponentFactory.rankCard('CONSISTENCY', histRank.cons, 'zap')}
+                        </div>
+
+                        <!-- Calendar Grid -->
                         <div class="grid grid-cols-7 gap-1 text-center mb-2">${['SEN','SEL','RAB','KAM','JUM','SAB','MIN'].map(d=>`<div class="text-[8px] font-bold text-slate-500 tracking-wider">${d}</div>`).join('')}</div>
                         <div class="grid grid-cols-7 gap-1.5 mb-6">${grid}</div>
                         
+                        <!-- Selected Date Details -->
                         <div class="space-y-4 border-t border-white/5 pt-4">
-                            ${!sd ? `<div class="text-center text-slate-600 text-xs font-mono pt-10 flex flex-col items-center gap-2"><i data-lucide="calendar-search" class="w-8 h-8 opacity-50"></i>PILIH TANGGAL</div>` : 
+                            ${!sd ? `<div class="text-center text-slate-600 text-xs font-mono pt-4 flex flex-col items-center gap-2"><i data-lucide="touchpad" class="w-8 h-8 opacity-50"></i>PILIH TANGGAL</div>` : 
                             `<div class="flex justify-between items-center mb-2"><h3 class="text-neonCyan font-bold text-lg">${Utils.formatDate(sd)}</h3><span class="text-[10px] bg-slate px-2 py-1 rounded text-slate-400 font-mono border border-slate-700">LOG</span></div>
                             <div class="glass-card p-4 rounded-xl mb-4 relative overflow-hidden"><div class="absolute top-0 right-0 p-3 opacity-10"><i data-lucide="brain-circuit" class="w-12 h-12 text-white"></i></div><div class="text-[9px] text-neonPurple font-bold uppercase mb-2 tracking-wider">Refleksi</div><p class="text-slate-300 text-sm italic relative z-10">"${sRef ? sRef.text : 'Tidak ada catatan.'}"</p></div>
-                            <div class="space-y-0">${sTasks.length === 0 ? '<p class="text-center text-xs text-slate-600 py-8">Tidak ada misi.</p>' : sTasks.map(t => ComponentFactory.taskItem(t, false)).join('')}</div>
-                            ${shieldBtn}`}
+                            <div class="space-y-0">${sTasks.length === 0 ? '<p class="text-center text-xs text-slate-600 py-8">Tidak ada misi.</p>' : sTasks.map(t => ComponentFactory.taskItem(t, false)).join('')}</div>`}
                         </div>
                     </div>`;
                 }

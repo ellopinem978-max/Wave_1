@@ -228,9 +228,18 @@
          */
         const Config = {
             APP_NAME: 'Wake Map',
-            VERSION: '6.8.0-SOLID',
+            VERSION: '7.2.0-CODEX',
             STORAGE_PREFIX: 'wakemap_arch_',
             
+            // Goal Categories
+            GOAL_CATEGORIES: [
+                { id: 'disiplin', label: 'Disiplin', color: 'text-neonCyan', border: 'border-neonCyan' },
+                { id: 'finansial', label: 'Finansial', color: 'text-neonGold', border: 'border-neonGold' },
+                { id: 'kesehatan', label: 'Kesehatan', color: 'text-neonGreen', border: 'border-neonGreen' },
+                { id: 'skill', label: 'Skill', color: 'text-neonPurple', border: 'border-neonPurple' },
+                { id: 'lainnya', label: 'Lainnya', color: 'text-slate-400', border: 'border-slate-500' }
+            ],
+
             // Time Protocol
             TIME_SLOTS: [
                 { id: 'halt', label: 'HALT', range: '00:00 - 02:00', start: 0, end: 2, desc: 'Deep Rest & Recovery' },
@@ -248,7 +257,7 @@
                 { id: 'all',  label: 'ALL',  range: '00:00 - 24:00', start: 0, end: 24, desc: 'Full Day Cycle' }
             ],
 
-            // Rank Definitions
+            // Rank Definitions (CODEX PANGKAT)
             TIERS: [
                 { id:0, code:'F', name:'Failing', class:'tier-f', barColor:'#4B5563' },
                 { id:1, code:'E', name:'Elementary', class:'tier-e', barColor:'#6B7280' },
@@ -283,13 +292,10 @@
                 { id: 'dominasi', label: 'Dominasi', pts: 50, desc: 'Elite', icon: 'flame', color: 'text-neonRed' },
                 { id: 'god', label: 'God Tier', pts: 70, desc: 'Limitless', icon: 'crown', color: 'text-neonGold' }
             ],
-
-            // Achievement Tiers
+            
+            // Reusing Tiers for Achievements if needed, logic is dynamic now
             ACHIEVEMENT_TIERS: {
-                common: { id: 'common', label: 'Iron', bg: 'bg-slate-700', border: 'border-slate-500', glow: 'none' },
-                rare: { id: 'rare', label: 'Cobalt', bg: 'bg-blue-900/50', border: 'border-blue-500', glow: 'shadow-blue-500/20' },
-                epic: { id: 'epic', label: 'Plasma', bg: 'bg-purple-900/50', border: 'border-purple-500', glow: 'shadow-purple-500/30' },
-                legendary: { id: 'legendary', label: 'Legend', bg: 'bg-yellow-900/50', border: 'border-yellow-500', glow: 'shadow-yellow-500/50 animate-pulse-slow' }
+                common: { id: 'common', label: 'Iron', bg: 'bg-slate-700', border: 'border-slate-500', glow: 'none' }
             }
         };
 
@@ -435,7 +441,6 @@
          * MODULE 5: GAME ENGINE (LOGIC)
          */
         class Engine {
-            // UPDATED: Helper for sorting tasks by time ID
             static sortTasks(tasks) {
                 return tasks.sort((a, b) => {
                     const slotA = Config.TIME_SLOTS.find(s => s.id === a.timeSlot) || { start: 99 };
@@ -509,7 +514,6 @@
                 };
             }
 
-            // UPDATED: Smarter Auto Fail Logic
             static checkAutoFail(tasks) {
                 const now = new Date();
                 const today = Utils.getISO(now);
@@ -518,12 +522,10 @@
 
                 tasks.forEach(task => {
                     if (task.status === 'pending') {
-                        // Case 1: Past Date (e.g. Yesterday) -> FAIL IT
                         if (task.date < today) {
                             task.status = 'failed';
                             hasChange = true;
                         } 
-                        // Case 2: Today but time passed -> FAIL IT
                         else if (task.date === today) {
                             const slot = Config.TIME_SLOTS.find(s => s.id === (task.timeSlot||'all'));
                             if(slot && slot.id !== 'all' && h >= slot.end) {
@@ -698,19 +700,77 @@
                 </div>`;
             },
 
+            // UPDATED: Use Config.TIERS instead of static achievement tiers
             achievementBadge(ach) {
-                const tier = Config.ACHIEVEMENT_TIERS[ach.tier] || Config.ACHIEVEMENT_TIERS.common;
+                const tier = Config.TIERS[ach.tierIndex] || Config.TIERS[0];
+                const cat = Config.GOAL_CATEGORIES.find(c => c.id === ach.category) || {color:'text-white', label:''};
+                
                 return `
-                <div onclick="App.controller.openAchAction('${ach.id}')" class="glass-card flex flex-col items-center justify-center p-3 rounded-xl border ${tier.border} ${tier.bg} relative overflow-hidden group hover:scale-105 transition-transform duration-300 shadow-[0_0_15px_rgba(0,0,0,0.3)] ${tier.glow} cursor-pointer active:scale-95">
-                    <div class="p-2 rounded-full bg-black/30 mb-2">
-                        <i data-lucide="${ach.icon}" class="w-6 h-6 text-white"></i>
+                <div class="glass-card flex flex-col items-center justify-center p-3 rounded-xl border border-white/10 relative overflow-hidden group hover:scale-105 transition-transform duration-300 shadow-[0_0_15px_rgba(0,0,0,0.3)] relative">
+                    ${ach.isFinal ? `<div class="absolute top-1 right-1 text-neonGreen"><i data-lucide="check-circle-2" class="w-3 h-3"></i></div>` : ''}
+                    <div class="p-2 rounded-full bg-black/30 mb-2 font-display text-xl" style="color: ${tier.barColor}; text-shadow: 0 0 10px ${tier.barColor}">
+                        ${tier.code}
                     </div>
                     <span class="text-[9px] text-center font-bold text-white uppercase leading-tight">${ach.title}</span>
                     <span class="text-[8px] text-center text-white/60 font-mono mt-1">${Utils.formatDate(ach.dateUnlocked).split(',')[1]}</span>
+                    <span class="text-[7px] uppercase mt-1 px-1.5 py-0.5 rounded bg-black/30 ${cat.color}">${cat.label}</span>
+                    <button onclick="if(confirm('Hapus snapshot sejarah ini?')){App.controller.deleteAchievement('${ach.id}')}" class="absolute top-1 left-1 opacity-0 group-hover:opacity-100 text-slate-500 hover:text-neonRed transition-opacity"><i data-lucide="trash" class="w-3 h-3"></i></button>
                 </div>`;
             },
 
-            // UPDATED: Visual Improvement (Solid Colors, No Opacity Fading)
+            // NEW: Stack Component for Progressive Goals
+            achievementStack(goalId, snapshots) {
+                const latest = snapshots[snapshots.length - 1];
+                const tier = Config.TIERS[latest.tierIndex] || Config.TIERS[0];
+                const count = snapshots.length;
+                const cat = Config.GOAL_CATEGORIES.find(c => c.id === latest.category) || {color:'text-white', label:''};
+
+                return `
+                <div onclick="App.controller.openStackDetails('${goalId}')" class="glass-card flex flex-col items-center justify-center p-3 rounded-xl border border-white/10 relative overflow-hidden group hover:scale-105 transition-transform duration-300 cursor-pointer shadow-[0_0_15px_rgba(0,0,0,0.3)]">
+                    <div class="absolute top-[-5px] right-[-5px] w-6 h-6 flex items-center justify-center bg-neonCyan text-obsidian font-bold text-[8px] rounded-bl-lg z-10">${count}</div>
+                    
+                    ${latest.isFinal ? `<div class="absolute top-1 right-5 text-neonGreen"><i data-lucide="check-circle-2" class="w-3 h-3"></i></div>` : ''}
+                    
+                    <div class="p-2 rounded-full bg-black/30 mb-2 font-display text-xl" style="color: ${tier.barColor}; text-shadow: 0 0 10px ${tier.barColor}">
+                        ${tier.code}
+                    </div>
+                    <span class="text-[9px] text-center font-bold text-white uppercase leading-tight line-clamp-2">${latest.title}</span>
+                    <span class="text-[8px] text-center text-white/60 font-mono mt-1">Updated: ${Utils.formatDate(latest.dateUnlocked).split(',')[1]}</span>
+                    <span class="text-[7px] uppercase mt-1 px-1.5 py-0.5 rounded bg-black/30 ${cat.color}">${cat.label}</span>
+                    
+                    <!-- Stack Visual Effect -->
+                    <div class="absolute bottom-0 inset-x-2 h-1 bg-white/10 rounded-t-sm"></div>
+                    <div class="absolute bottom-1 inset-x-3 h-1 bg-white/5 rounded-t-sm"></div>
+                </div>`;
+            },
+
+            goalCard(goal) {
+                const cat = Config.GOAL_CATEGORIES.find(c => c.id === goal.category) || {label:'Lainnya', color:'text-slate-400', border:'border-slate-500'};
+                
+                return `
+                <div class="glass-card p-4 rounded-xl border ${cat.border} relative group min-w-[200px] flex flex-col justify-between">
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="target" class="w-4 h-4 ${cat.color}"></i>
+                            <span class="text-[10px] font-bold uppercase tracking-widest ${cat.color}">${cat.label}</span>
+                        </div>
+                        <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onclick="App.controller.editGoal('${goal.id}')" class="p-1 text-slate-400 hover:text-white"><i data-lucide="edit-2" class="w-3 h-3"></i></button>
+                            <button onclick="App.controller.deleteGoal('${goal.id}')" class="p-1 text-slate-400 hover:text-neonRed"><i data-lucide="trash" class="w-3 h-3"></i></button>
+                        </div>
+                    </div>
+                    
+                    <h3 class="text-sm font-bold text-white mb-1">${goal.title}</h3>
+                    <p class="text-xs text-slate-400 font-mono mb-4">
+                        ${goal.type === 'progressive' ? `Target: <span class="text-white">${goal.currentTarget}</span>` : `<span class="text-neonGold font-bold">RANK ${Config.TIERS[goal.rankIndex].code}</span>`}
+                    </p>
+                    
+                    <button onclick="App.controller.openSnapshotModal('${goal.id}')" class="w-full bg-slate-800 hover:bg-neonCyan hover:text-obsidian text-slate-300 text-[10px] font-bold py-2 rounded-lg transition-colors flex items-center justify-center gap-1 border border-slate-700">
+                        <i data-lucide="camera" class="w-3 h-3"></i> CHECKPOINT
+                    </button>
+                </div>`;
+            },
+
             taskItem(t, isToday) {
                 const slot = Config.TIME_SLOTS.find(s=>s.id === (t.timeSlot||'all'));
                 const diff = Config.DIFFICULTY[t.difficulty];
@@ -719,21 +779,17 @@
                 let cardClass = '';
                 let textClass = 'text-white font-medium';
 
-                // --- STATE LOGIC ---
                 if (t.status === 'completed') {
-                    // SUCCESS STATE: Solid Green BG
                     cardClass = 'bg-green-900/20 border-green-500/30 shadow-[0_0_10px_rgba(16,185,129,0.1)]';
                     action = `<i data-lucide="check-circle" class="text-neonGreen w-5 h-5 drop-shadow-md"></i>`;
                     textClass = 'text-neonGreen font-bold';
                 } 
                 else if (t.status === 'failed') {
-                    // FAILED STATE: Solid Red BG
                     cardClass = 'bg-red-900/20 border-red-500/30';
                     action = `<i data-lucide="x-circle" class="text-neonRed w-5 h-5 drop-shadow-md"></i>`;
                     textClass = 'text-neonRed font-bold';
                 }
                 else if (isToday && t.status === 'pending') {
-                    // ACTIVE STATE: Dashed Border, Solid White Text
                     cardClass = 'border-dashed border-slate-600 bg-transparent';
                     action = `
                     <div class="flex gap-2">
@@ -742,8 +798,7 @@
                     </div>`;
                 } 
                 else {
-                    // FUTURE / PENDING (General): Normal Glass
-                    cardClass = 'glass-card opacity-90'; // Slight opacity for future tasks
+                    cardClass = 'glass-card opacity-90';
                     action = `<button onclick="App.controller.deleteTask('${t.id}')" class="text-slate-500 hover:text-neonRed p-2 transition-colors"><i data-lucide="trash-2" class="w-4 h-4"></i></button>`;
                 }
 
@@ -788,7 +843,8 @@
                 tempIncome: '',
                 tempAlloc: '',
                 tempTaskInput: '',
-                tempAch: { title: '', icon: 'medal', tier: 'common', replaceId: null },
+                tempGoal: { id: null, title: '', target: '', category: 'lainnya', type: 'progressive', rankIndex: 0 },
+                tempSnapshot: { goalId: null, milestone: '', isFinal: false, nextTarget: '', tierIndex: 0 },
                 lastNotifTime: 0
             },
 
@@ -809,7 +865,6 @@
                     const tasks = Store.get('tasks');
                     let hasUpdate = false;
 
-                    // 1. Auto Fail Check
                     if (Engine.checkAutoFail(tasks)) {
                         Store.set('tasks', tasks);
                         this.sound.play('error'); 
@@ -817,7 +872,6 @@
                         hasUpdate = true;
                     }
 
-                    // 2. Notification Check
                     this.checkNotifications(tasks);
 
                     if(hasUpdate && this.state.view === 'home') this.render();
@@ -978,124 +1032,379 @@
                 }
             },
 
-            // --- ACHIEVEMENT ACTIONS ---
-            openAchModal(replaceId = null, currentTitle = '', currentTier = 'common', currentIcon = 'medal') {
+            // --- BLUEPRINT SYSTEM ---
+            openBlueprintManager() {
                 this.sound.play('click');
-                this.state.tempAch.replaceId = replaceId;
-                this.state.tempAch.tier = currentTier;
-                this.state.tempAch.icon = currentIcon;
-                const isUpgrade = !!replaceId;
+                const blueprints = Store.get('blueprints'); 
                 
+                const m = document.getElementById('modal-layer');
+                m.innerHTML = `
+                <div class="bg-charcoal border-t sm:border border-slate-700 rounded-t-3xl sm:rounded-2xl w-full max-w-sm p-6 shadow-2xl pointer-events-auto animate-[slideIn_0.3s_ease-out] max-h-[80vh] flex flex-col">
+                    <div class="flex justify-between items-center mb-4">
+                        <div>
+                            <h3 class="text-xl font-bold text-white">Blueprint System</h3>
+                            <p class="text-slate-400 text-xs font-mono">Template Misi Rutin</p>
+                        </div>
+                        <button onclick="App.controller.closeModal()" class="text-slate-500 hover:text-white bg-slate-800/50 p-2 rounded-full"><i data-lucide="x" class="w-5 h-5"></i></button>
+                    </div>
+                    
+                    <div class="overflow-y-auto custom-scroll flex-1 pr-1 mb-4 space-y-3">
+                        ${blueprints.length === 0 ? '<div class="text-center py-8 text-xs text-slate-600 border border-dashed border-slate-800 rounded-xl">Belum ada blueprint.</div>' : 
+                        blueprints.map(bp => {
+                            const d = Config.DIFFICULTY[bp.difficulty];
+                            const s = Config.TIME_SLOTS.find(slot => slot.id === bp.timeSlot) || {label:'ALL'};
+                            return `
+                            <div class="glass-card p-3 rounded-xl flex items-center justify-between group">
+                                <div>
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <span class="text-[8px] font-mono font-bold text-slate-300 bg-surface px-1.5 py-0.5 rounded border border-white/5">${s.label}</span>
+                                        <span class="text-[8px] font-bold border px-1.5 py-0.5 rounded uppercase ${d.color} ${d.border} bg-white/5">${d.label}</span>
+                                    </div>
+                                    <p class="text-sm text-white font-medium">${bp.text}</p>
+                                </div>
+                                <div class="flex gap-2">
+                                    <button onclick="App.controller.deleteBlueprint('${bp.id}')" class="p-2 rounded-lg bg-slate-800 text-slate-500 hover:text-neonRed"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                                    <button onclick="App.controller.useBlueprint('${bp.id}')" class="p-2 rounded-lg bg-neonCyan text-obsidian hover:bg-white font-bold shadow-lg"><i data-lucide="plus" class="w-4 h-4"></i></button>
+                                </div>
+                            </div>`;
+                        }).join('')}
+                    </div>
+
+                    <div class="pt-4 border-t border-slate-700">
+                        <h4 class="text-xs font-bold text-white uppercase tracking-widest mb-3">Buat Baru</h4>
+                        <div class="space-y-3">
+                            <input id="bp-text" type="text" placeholder="Nama Rutinitas..." class="w-full bg-surface text-white rounded-lg px-4 py-2 text-sm border border-slate-700 focus:border-neonCyan outline-none">
+                            <div class="flex gap-2">
+                                <select id="bp-diff" class="bg-surface text-white rounded-lg px-3 py-2 text-xs border border-slate-700 outline-none flex-1">
+                                    <option value="easy">Mudah</option>
+                                    <option value="medium">Sedang</option>
+                                    <option value="hard">Sulit</option>
+                                </select>
+                                <select id="bp-slot" class="bg-surface text-white rounded-lg px-3 py-2 text-xs border border-slate-700 outline-none flex-1">
+                                    ${Config.TIME_SLOTS.map(s => `<option value="${s.id}">${s.label}</option>`).join('')}
+                                </select>
+                            </div>
+                            <button onclick="App.controller.saveBlueprint()" class="w-full bg-slate-700 hover:bg-neonCyan hover:text-obsidian text-white py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-colors">Simpan Template</button>
+                        </div>
+                    </div>
+                </div>`;
+                m.classList.remove('opacity-0', 'invisible', 'pointer-events-none');
+                lucide.createIcons();
+            },
+
+            saveBlueprint() {
+                const text = document.getElementById('bp-text').value.trim();
+                const diff = document.getElementById('bp-diff').value;
+                const slot = document.getElementById('bp-slot').value;
+
+                if(!text) { this.toast('Nama blueprint wajib diisi', 'error'); return; }
+
+                const bps = Store.get('blueprints');
+                bps.push({
+                    id: Utils.generateId(),
+                    text: text,
+                    difficulty: diff,
+                    timeSlot: slot
+                });
+                Store.set('blueprints', bps);
+                this.sound.play('success');
+                this.toast('Blueprint tersimpan', 'success');
+                this.openBlueprintManager(); 
+            },
+
+            deleteBlueprint(id) {
+                if(confirm('Hapus blueprint ini?')) {
+                    const bps = Store.get('blueprints').filter(b => b.id !== id);
+                    Store.set('blueprints', bps);
+                    this.sound.play('click');
+                    this.openBlueprintManager(); 
+                }
+            },
+
+            useBlueprint(id) {
+                const bps = Store.get('blueprints');
+                const bp = bps.find(b => b.id === id);
+                if(bp) {
+                    const tasks = Store.get('tasks');
+                    tasks.push({
+                        id: Utils.generateId(),
+                        text: bp.text,
+                        difficulty: bp.difficulty,
+                        timeSlot: bp.timeSlot,
+                        date: Utils.getTomorrow(),
+                        status: 'pending',
+                        createdAt: new Date().toISOString()
+                    });
+                    Store.set('tasks', tasks);
+                    this.sound.play('success');
+                    this.toast('Misi ditambahkan untuk besok!', 'success');
+                    this.closeModal();
+                    this.render();
+                }
+            },
+
+            // --- GOAL & SNAPSHOT SYSTEM (NEW HALL OF FAME) ---
+            openGoalModal(goalId = null) {
+                this.sound.play('click');
+                const goals = Store.get('goals') || [];
+                const goal = goalId ? goals.find(g => g.id === goalId) : null;
+                
+                // Set temp state
+                this.state.tempGoal = goal ? { ...goal } : { id: null, title: '', target: '', category: 'lainnya', type: 'progressive', rankIndex: 0 };
+
                 const m = document.getElementById('modal-layer');
                 m.innerHTML = `
                 <div class="bg-charcoal border-t sm:border border-slate-700 rounded-t-3xl sm:rounded-2xl w-full max-w-sm p-6 shadow-2xl pointer-events-auto animate-[slideIn_0.3s_ease-out]">
                     <button onclick="App.controller.closeModal()" class="absolute top-6 right-6 text-slate-500 hover:text-white bg-slate-800/50 p-2 rounded-full"><i data-lucide="x" class="w-5 h-5"></i></button>
-                    <div class="mb-4">
-                        <h3 class="text-xl font-bold text-white mb-1">${isUpgrade ? 'Ascension Protocol' : 'New Achievement'}</h3>
-                        <p class="text-slate-400 text-xs font-mono">${isUpgrade ? 'Evolusi pencapaian ke tingkat berikutnya.' : 'Abadikan pencapaianmu di Hall of Fame.'}</p>
-                    </div>
+                    <div class="mb-6"><h3 class="text-xl font-bold text-white mb-1">${goalId ? 'Edit Target' : 'Target Baru'}</h3><p class="text-slate-400 text-xs font-mono">Tentukan fokus jangka panjangmu.</p></div>
                     
                     <div class="space-y-4">
-                        <input id="ach-title" type="text" value="${currentTitle}" placeholder="Judul (Misal: Bangun Pagi 7 Hari)..." style="background-color: #1e293b; color: white;" class="w-full rounded-lg px-4 py-3 text-sm border border-slate-700 focus:border-neonCyan outline-none">
+                        <!-- Goal Type Selection -->
+                        <div class="flex bg-surface p-1 rounded-lg border border-slate-700">
+                            <label class="flex-1 text-center cursor-pointer">
+                                <input type="radio" name="goalType" value="progressive" class="peer hidden" ${this.state.tempGoal.type !== 'single' ? 'checked' : ''} onchange="App.controller.toggleGoalType('progressive')">
+                                <div class="py-2 text-[10px] font-bold text-slate-400 peer-checked:bg-slate-700 peer-checked:text-neonCyan rounded-md transition-all">BERJENJANG (Level Up)</div>
+                            </label>
+                            <label class="flex-1 text-center cursor-pointer">
+                                <input type="radio" name="goalType" value="single" class="peer hidden" ${this.state.tempGoal.type === 'single' ? 'checked' : ''} onchange="App.controller.toggleGoalType('single')">
+                                <div class="py-2 text-[10px] font-bold text-slate-400 peer-checked:bg-slate-700 peer-checked:text-neonGold rounded-md transition-all">SEKALI JADI (One-Shot)</div>
+                            </label>
+                        </div>
+
+                        <div>
+                            <label class="text-[9px] text-slate-500 uppercase font-bold mb-1 block">Nama Target</label>
+                            <input id="goal-title" type="text" value="${this.state.tempGoal.title}" placeholder="Misal: Berhenti Main Game" class="w-full bg-surface text-white rounded-lg px-4 py-2.5 text-sm border border-slate-700 focus:border-neonCyan outline-none">
+                        </div>
                         
-                        <div>
-                            <label class="text-[9px] text-slate-500 uppercase font-bold mb-2 block">Pilih Ikon</label>
-                            <div class="grid grid-cols-5 gap-2">
-                                ${['medal','trophy','star','zap','shield','crown','flame','target','flag','heart'].map(i => `
-                                    <button onclick="App.controller.setAchIcon('${i}')" id="btn-icon-${i}" class="p-2 rounded-lg bg-surface border border-slate-700 hover:border-neonCyan flex justify-center ${this.state.tempAch.icon===i ? 'border-neonCyan bg-neonCyan/20' : ''}">
-                                        <i data-lucide="${i}" class="w-4 h-4 text-white"></i>
-                                    </button>
-                                `).join('')}
-                            </div>
+                        <div id="target-input-container" style="${this.state.tempGoal.type === 'single' ? 'display:none' : ''}">
+                            <label class="text-[9px] text-slate-500 uppercase font-bold mb-1 block">Target Awal</label>
+                            <input id="goal-target" type="text" value="${this.state.tempGoal.target}" placeholder="Misal: 3 Hari / Semester 1" class="w-full bg-surface text-white rounded-lg px-4 py-2.5 text-sm border border-slate-700 focus:border-neonCyan outline-none">
+                        </div>
+
+                        <div id="rank-input-container" style="${this.state.tempGoal.type !== 'single' ? 'display:none' : ''}">
+                            <label class="text-[9px] text-slate-500 uppercase font-bold mb-1 block">Pilih Codex Pangkat (Difficulty)</label>
+                            <select id="goal-rank" class="w-full bg-surface text-white rounded-lg px-4 py-2.5 text-sm border border-slate-700 focus:border-neonGold outline-none font-mono">
+                                ${Config.TIERS.map((t, idx) => `<option value="${idx}" ${this.state.tempGoal.rankIndex === idx ? 'selected' : ''}>${t.code} - ${t.name}</option>`).join('')}
+                            </select>
                         </div>
 
                         <div>
-                            <label class="text-[9px] text-slate-500 uppercase font-bold mb-2 block">Pilih Tingkat (Rarity)</label>
-                            <div class="grid grid-cols-4 gap-2">
-                                <button onclick="App.controller.setAchTier('common')" class="p-2 rounded-lg border ${this.state.tempAch.tier==='common'?'border-slate-400 bg-slate-700':'border-slate-700 bg-surface'} text-[10px] text-white">IRON</button>
-                                <button onclick="App.controller.setAchTier('rare')" class="p-2 rounded-lg border ${this.state.tempAch.tier==='rare'?'border-blue-400 bg-blue-900':'border-slate-700 bg-surface'} text-[10px] text-blue-400">COBALT</button>
-                                <button onclick="App.controller.setAchTier('epic')" class="p-2 rounded-lg border ${this.state.tempAch.tier==='epic'?'border-purple-400 bg-purple-900':'border-slate-700 bg-surface'} text-[10px] text-purple-400">PLASMA</button>
-                                <button onclick="App.controller.setAchTier('legendary')" class="p-2 rounded-lg border ${this.state.tempAch.tier==='legendary'?'border-yellow-400 bg-yellow-900':'border-slate-700 bg-surface'} text-[10px] text-yellow-400">LEGEND</button>
-                            </div>
+                            <label class="text-[9px] text-slate-500 uppercase font-bold mb-1 block">Kategori</label>
+                            <select id="goal-cat" class="w-full bg-surface text-white rounded-lg px-4 py-2.5 text-sm border border-slate-700 focus:border-neonCyan outline-none">
+                                ${Config.GOAL_CATEGORIES.map(c => `<option value="${c.id}" ${this.state.tempGoal.category === c.id ? 'selected' : ''}>${c.label}</option>`).join('')}
+                            </select>
                         </div>
-
-                        <button onclick="App.controller.addAchievement()" class="w-full bg-neonGreen text-obsidian px-4 py-3 rounded-lg font-bold hover:bg-white transition-colors shadow-lg flex justify-center items-center gap-2"><i data-lucide="${isUpgrade ? 'arrow-up-circle' : 'save'}" class="w-4 h-4"></i> ${isUpgrade ? 'Evolusi Permanen' : 'Simpan Permanen'}</button>
+                        <button onclick="App.controller.saveGoal()" class="w-full bg-neonCyan text-obsidian px-4 py-3 rounded-lg font-bold hover:bg-white transition-colors shadow-lg flex justify-center items-center gap-2"><i data-lucide="save" class="w-4 h-4"></i> Simpan Target</button>
                     </div>
                 </div>`;
                 m.classList.remove('opacity-0', 'invisible', 'pointer-events-none');
                 lucide.createIcons();
             },
 
-            openAchAction(id) {
-                this.sound.play('click');
-                const achs = Store.get('achievements');
-                const ach = achs.find(a => a.id === id);
-                if(!ach) return;
+            toggleGoalType(type) {
+                const targetContainer = document.getElementById('target-input-container');
+                const rankContainer = document.getElementById('rank-input-container');
+                if (type === 'single') {
+                    targetContainer.style.display = 'none';
+                    rankContainer.style.display = 'block';
+                } else {
+                    targetContainer.style.display = 'block';
+                    rankContainer.style.display = 'none';
+                }
+            },
 
-                const tier = Config.ACHIEVEMENT_TIERS[ach.tier];
+            saveGoal() {
+                const title = document.getElementById('goal-title').value.trim();
+                const type = document.querySelector('input[name="goalType"]:checked').value;
+                // For single type, Title IS the target. For progressive, we need a separate initial target.
+                const target = type === 'progressive' ? document.getElementById('goal-target').value.trim() : title;
+                const cat = document.getElementById('goal-cat').value;
+                const rankIndex = type === 'single' ? parseInt(document.getElementById('goal-rank').value) : 0;
+
+                if(!title || (type === 'progressive' && !target)) { this.toast('Semua data wajib diisi', 'error'); return; }
+
+                let goals = Store.get('goals') || [];
                 
+                if (this.state.tempGoal.id) {
+                    const idx = goals.findIndex(g => g.id === this.state.tempGoal.id);
+                    if (idx !== -1) {
+                        goals[idx] = { ...goals[idx], title, currentTarget: target, category: cat, type, rankIndex };
+                    }
+                } else {
+                    goals.push({
+                        id: Utils.generateId(),
+                        title: title,
+                        currentTarget: target,
+                        category: cat,
+                        type: type,
+                        rankIndex: rankIndex,
+                        status: 'active',
+                        createdAt: Utils.getISO()
+                    });
+                }
+                
+                Store.set('goals', goals);
+                this.sound.play('success');
+                this.toast('Target Aktif tersimpan!', 'success');
+                this.closeModal();
+                this.render();
+            },
+
+            deleteGoal(id) {
+                if(confirm('Hapus target ini? (Snapshot di Hall of Fame tidak akan hilang)')) {
+                    const goals = Store.get('goals') || [];
+                    const newGoals = goals.filter(g => g.id !== id);
+                    Store.set('goals', newGoals);
+                    this.sound.play('click');
+                    this.render();
+                }
+            },
+
+            openSnapshotModal(goalId) {
+                this.sound.play('click');
+                const goals = Store.get('goals') || [];
+                const goal = goals.find(g => g.id === goalId);
+                if (!goal) return;
+
+                const goalType = goal.type || 'progressive'; 
+
+                // Auto Calc Tier for Progressive based on count
+                let calculatedTierIndex = 0; // Default F
+                if (goalType === 'progressive') {
+                    const achs = Store.get('achievements').filter(a => a.goalId === goalId);
+                    const count = achs.length;
+                    calculatedTierIndex = Math.min(count, Config.TIERS.length - 1);
+                } else {
+                    calculatedTierIndex = goal.rankIndex || 0;
+                }
+
+                this.state.tempSnapshot = { goalId: goal.id, milestone: goal.currentTarget, isFinal: false, nextTarget: '', tierIndex: calculatedTierIndex };
+
                 const m = document.getElementById('modal-layer');
+                let modalContent = '';
+
+                // Show Locked Rank Badge
+                const tierInfo = Config.TIERS[calculatedTierIndex];
+
+                if (goalType === 'progressive') {
+                    // PROGRESSIVE UI: Continue or Finalize
+                    modalContent = `
+                    <div class="mb-4 text-center">
+                        <div class="font-display text-4xl mb-1 transition-all duration-500" style="color:${tierInfo.barColor}; text-shadow: 0 0 15px ${tierInfo.barColor};">
+                            ${tierInfo.code}
+                        </div>
+                        <div class="text-[10px] text-white font-bold tracking-[0.2em] uppercase opacity-80">${tierInfo.name}</div>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div>
+                            <label class="text-[9px] text-slate-500 uppercase font-bold mb-1 block flex justify-between">
+                                <span>Pencapaian Saat Ini (Locked)</span>
+                                <i data-lucide="lock" class="w-3 h-3 text-slate-500"></i>
+                            </label>
+                            <input type="text" value="${goal.currentTarget}" disabled class="w-full bg-slate-900 text-neonCyan font-bold rounded-lg px-4 py-3 text-sm border border-slate-800 cursor-not-allowed">
+                        </div>
+
+                        <div>
+                            <label class="text-[9px] text-slate-500 uppercase font-bold mb-1 block">Target Berikutnya (Untuk Lanjut)</label>
+                            <input id="snap-next" type="text" placeholder="Misal: Semester 2..." class="w-full bg-surface text-white rounded-lg px-4 py-3 text-sm border border-slate-700 focus:border-neonCyan outline-none">
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3 pt-2">
+                            <button onclick="App.controller.saveSnapshot('final')" class="p-3 rounded-xl border border-neonRed/30 bg-neonRed/10 text-neonRed hover:bg-neonRed hover:text-white transition-all flex flex-col items-center justify-center gap-1 group">
+                                <i data-lucide="flag" class="w-5 h-5 group-hover:scale-110 transition-transform"></i>
+                                <span class="text-[10px] font-bold">TAMAT / FINAL</span>
+                            </button>
+                            <button onclick="App.controller.saveSnapshot('continue')" class="p-3 rounded-xl bg-neonCyan text-obsidian hover:bg-white transition-all flex flex-col items-center justify-center gap-1 shadow-lg font-bold group">
+                                <i data-lucide="arrow-up-circle" class="w-5 h-5 group-hover:scale-110 transition-transform"></i>
+                                <span class="text-[10px]">SIMPAN & LANJUT</span>
+                            </button>
+                        </div>
+                    </div>`;
+                } else {
+                    // SINGLE UI: Just confirmation
+                    modalContent = `
+                    <div class="mb-6 text-center">
+                        <div class="font-display text-6xl mb-2 transition-all duration-500" style="color:${tierInfo.barColor}; text-shadow: 0 0 20px ${tierInfo.barColor};">
+                            ${tierInfo.code}
+                        </div>
+                        <div class="text-xs text-white font-bold tracking-[0.3em] uppercase opacity-80 mb-4">${tierInfo.name}</div>
+                        <p class="text-slate-400 text-xs px-4">Anda akan menyimpan "<strong>${goal.title}</strong>" ke Hall of Fame sebagai pencapaian Rank ${tierInfo.code}.</p>
+                    </div>
+                    <button onclick="App.controller.saveSnapshot('final')" class="w-full bg-neonGold text-obsidian px-4 py-4 rounded-xl font-bold hover:bg-white transition-colors shadow-[0_0_20px_rgba(245,158,11,0.3)] flex justify-center items-center gap-2 tracking-widest">
+                        <i data-lucide="trophy" class="w-5 h-5"></i> KLAIM KEJAYAAN
+                    </button>`;
+                }
+
                 m.innerHTML = `
                 <div class="bg-charcoal border-t sm:border border-slate-700 rounded-t-3xl sm:rounded-2xl w-full max-w-sm p-6 shadow-2xl pointer-events-auto animate-[slideIn_0.3s_ease-out]">
                     <button onclick="App.controller.closeModal()" class="absolute top-6 right-6 text-slate-500 hover:text-white bg-slate-800/50 p-2 rounded-full"><i data-lucide="x" class="w-5 h-5"></i></button>
-                    
-                    <div class="flex flex-col items-center mb-6">
-                        <div class="p-4 rounded-full bg-slate-800 border-2 ${tier.border} mb-3 shadow-[0_0_20px_currentColor] ${tier.bg} text-white">
-                            <i data-lucide="${ach.icon}" class="w-10 h-10"></i>
-                        </div>
-                        <h3 class="text-lg font-bold text-white text-center uppercase tracking-widest">${ach.title}</h3>
-                        <span class="text-[10px] font-mono text-slate-400 mt-1">UNLOCKED: ${Utils.formatDate(ach.dateUnlocked)}</span>
-                        <span class="text-[10px] font-bold mt-2 px-2 py-0.5 rounded border ${tier.border} ${tier.bg} text-white">${tier.label} TIER</span>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-3">
-                        <button onclick="if(confirm('Hapus permanen? Data tidak bisa kembali.')){ App.controller.deleteAchievement('${ach.id}'); }" class="p-3 rounded-xl bg-slate-800 border border-slate-700 hover:border-neonRed group flex flex-col items-center gap-2">
-                            <i data-lucide="flame" class="w-5 h-5 text-neonRed group-hover:scale-110 transition-transform"></i>
-                            <span class="text-[10px] font-bold text-slate-400 group-hover:text-neonRed">INCINERATE</span>
-                        </button>
-                        <button onclick="App.controller.openAchModal('${ach.id}', '${ach.title}', '${ach.tier}', '${ach.icon}')" class="p-3 rounded-xl bg-slate-800 border border-slate-700 hover:border-neonCyan group flex flex-col items-center gap-2">
-                            <i data-lucide="arrow-up-circle" class="w-5 h-5 text-neonCyan group-hover:scale-110 transition-transform"></i>
-                            <span class="text-[10px] font-bold text-slate-400 group-hover:text-neonCyan">ASCEND</span>
-                        </button>
-                    </div>
+                    <div class="mb-4"><h3 class="text-xl font-bold text-white mb-1">Checkpoint Protocol</h3></div>
+                    ${modalContent}
                 </div>`;
                 m.classList.remove('opacity-0', 'invisible', 'pointer-events-none');
                 lucide.createIcons();
             },
 
-            setAchIcon(icon) {
-                this.state.tempAch.icon = icon;
-                const currentText = document.getElementById('ach-title').value;
-                this.openAchModal(this.state.tempAch.replaceId, currentText, this.state.tempAch.tier, icon); 
-            },
-
-            setAchTier(tier) {
-                this.state.tempAch.tier = tier;
-                const currentText = document.getElementById('ach-title').value;
-                this.openAchModal(this.state.tempAch.replaceId, currentText, tier, this.state.tempAch.icon);
-            },
-
-            addAchievement() {
-                const title = document.getElementById('ach-title').value.trim();
-                if (!title) { this.toast('Judul wajib diisi', 'error'); return; }
-
-                let achs = Store.get('achievements');
+            saveSnapshot(action) {
+                const goalId = this.state.tempSnapshot.goalId;
                 
-                if (this.state.tempAch.replaceId) {
-                    achs = achs.filter(a => a.id !== this.state.tempAch.replaceId);
+                // 1. Get Goal & Validate
+                let goals = Store.get('goals') || [];
+                const goalIndex = goals.findIndex(g => g.id === goalId);
+                if (goalIndex === -1) return;
+                const goal = goals[goalIndex];
+                const milestone = goal.currentTarget; 
+
+                const goalType = goal.type || 'progressive';
+                let nextTarget = '';
+                
+                // Logic Check
+                if (goalType === 'progressive' && action === 'continue') {
+                    nextTarget = document.getElementById('snap-next').value.trim();
+                    if (!nextTarget) {
+                        this.toast('Target selanjutnya wajib diisi untuk lanjut!', 'error');
+                        return;
+                    }
                 }
+
+                // 2. Prevent Duplicate
+                let achs = Store.get('achievements');
+                const isDuplicate = achs.some(a => a.goalId === goalId && a.title === milestone); // Exact title match for milestones
+                if (isDuplicate) {
+                    this.toast('Checkpoint ini sudah ada!', 'error');
+                    return;
+                }
+
+                // 3. Save Achievement
+                const isFinal = (action === 'final');
+                // Use tempSnapshot tierIndex which was calculated in openSnapshotModal
+                const tierIdx = this.state.tempSnapshot.tierIndex;
 
                 achs.push({
                     id: Utils.generateId(),
-                    title: title,
-                    icon: this.state.tempAch.icon,
-                    tier: this.state.tempAch.tier,
-                    dateUnlocked: Utils.getISO()
+                    title: milestone, // Just the milestone text (e.g. "Semester 1") or Title for Single
+                    parentTitle: goal.title, // Keep parent title ref
+                    tierIndex: tierIdx, 
+                    category: goal.category,
+                    dateUnlocked: Utils.getISO(),
+                    isFinal: isFinal,
+                    goalId: goalId
                 });
                 Store.set('achievements', achs);
-                
+
+                // 4. Update Goal State
+                if (isFinal) {
+                    // Remove from Active Goals if final
+                    goals = goals.filter(g => g.id !== goalId);
+                } else if (nextTarget) {
+                    goals[goalIndex].currentTarget = nextTarget;
+                }
+
+                Store.set('goals', goals);
+
                 this.sound.play('success');
-                this.toast(this.state.tempAch.replaceId ? 'Achievement Evolved!' : 'Achievement Unlocked!', 'success');
+                this.toast(isFinal ? 'Legenda telah diabadikan!' : 'Level Up! Target diperbarui.', 'success');
                 this.closeModal();
                 this.render();
             },
@@ -1104,9 +1413,51 @@
                 const achs = Store.get('achievements').filter(a => a.id !== id);
                 Store.set('achievements', achs);
                 this.sound.play('click');
-                this.toast('Achievement dihapus', 'info');
-                this.closeModal(); 
+                this.toast('Snapshot dihapus', 'info');
+                this.closeModal(); // In case stack modal is open
                 this.render();
+            },
+
+            // New: Show Stack Details
+            openStackDetails(goalId) {
+                this.sound.play('click');
+                const achs = Store.get('achievements').filter(a => a.goalId === goalId);
+                // Sort newest first
+                achs.sort((a,b) => new Date(b.dateUnlocked) - new Date(a.dateUnlocked));
+                
+                if (achs.length === 0) return;
+                const parentTitle = achs[0].parentTitle || "Pencapaian";
+
+                const m = document.getElementById('modal-layer');
+                m.innerHTML = `
+                <div class="bg-charcoal border-t sm:border border-slate-700 rounded-t-3xl sm:rounded-2xl w-full max-w-sm p-6 shadow-2xl pointer-events-auto animate-[slideIn_0.3s_ease-out] max-h-[80vh] flex flex-col">
+                    <div class="flex justify-between items-center mb-4">
+                        <div>
+                            <h3 class="text-lg font-bold text-white">${parentTitle}</h3>
+                            <p class="text-slate-400 text-xs font-mono">Riwayat Perjalanan</p>
+                        </div>
+                        <button onclick="App.controller.closeModal()" class="text-slate-500 hover:text-white bg-slate-800/50 p-2 rounded-full"><i data-lucide="x" class="w-5 h-5"></i></button>
+                    </div>
+                    
+                    <div class="overflow-y-auto custom-scroll flex-1 pr-1 space-y-3">
+                        ${achs.map(ach => {
+                            const tier = Config.TIERS[ach.tierIndex] || Config.TIERS[0];
+                            return `
+                            <div class="glass-card p-3 rounded-xl flex items-center justify-between border border-white/5">
+                                <div class="flex items-center gap-3">
+                                    <div class="font-display text-2xl w-10 text-center" style="color:${tier.barColor}; text-shadow:0 0 10px ${tier.barColor}">${tier.code}</div>
+                                    <div>
+                                        <div class="text-sm font-bold text-white">${ach.title}</div>
+                                        <div class="text-[10px] text-slate-500 font-mono">${Utils.formatDate(ach.dateUnlocked)}</div>
+                                    </div>
+                                </div>
+                                <button onclick="if(confirm('Hapus entry ini?')){App.controller.deleteAchievement('${ach.id}')}" class="text-slate-600 hover:text-neonRed p-2"><i data-lucide="trash" class="w-4 h-4"></i></button>
+                            </div>`;
+                        }).join('')}
+                    </div>
+                </div>`;
+                m.classList.remove('opacity-0', 'invisible', 'pointer-events-none');
+                lucide.createIcons();
             },
 
             // --- FINANCE & REWARD ACTIONS ---
@@ -1376,6 +1727,8 @@
                     tasks: Store.get('tasks'),
                     rewards: Store.get('rewards'),
                     achievements: Store.get('achievements'), 
+                    goals: Store.get('goals'), // EXPORT GOALS
+                    blueprints: Store.get('blueprints'), 
                     reflections: Store.get('reflections'),
                     finance: Store.get('finance'),
                     settings: Store.get('settings')
@@ -1404,6 +1757,8 @@
                             if (data.tasks) Store.set('tasks', data.tasks);
                             if (data.rewards) Store.set('rewards', data.rewards);
                             if (data.achievements) Store.set('achievements', data.achievements); 
+                            if (data.goals) Store.set('goals', data.goals); // IMPORT GOALS
+                            if (data.blueprints) Store.set('blueprints', data.blueprints); 
                             if (data.reflections) Store.set('reflections', data.reflections);
                             if (data.finance) Store.set('finance', data.finance);
                             if (data.settings) Store.set('settings', data.settings);
@@ -1468,6 +1823,7 @@
                 const reflections = Store.get('reflections');
                 const financeData = Store.get('finance'); 
                 const achievements = Store.get('achievements');
+                const goals = Store.get('goals') || []; // Load Goals
                 
                 const today = Utils.getISO();
                 const monthKey = Utils.getISO().slice(0, 7);
@@ -1540,9 +1896,10 @@
                                 <div>
                                     <label class="text-[9px] text-slate-500 uppercase font-bold mb-1 block">Alokasi Self Reward (%)</label>
                                     <select id="alloc-in" class="w-full bg-obsidian text-white rounded-lg px-3 py-2.5 text-sm border border-slate-700 focus:border-neonGold outline-none transition-colors">
-                                        <option value="0.1" ${this.state.tempAlloc === '0.1' ? 'selected' : ''}>10% (Mode Hemat)</option>
-                                        <option value="0.2" ${this.state.tempAlloc === '0.2' || !this.state.tempAlloc ? 'selected' : ''}>20% (Mode Wajar)</option>
-                                        <option value="0.3" ${this.state.tempAlloc === '0.3' ? 'selected' : ''}>30% (Mode Sultan)</option>
+                                        <option value="0.1" ${this.state.tempAlloc === '0.1' ? 'selected' : ''}>10% (Mode Konservatif)</option>
+                                        <option value="0.2" ${this.state.tempAlloc === '0.2' || !this.state.tempAlloc ? 'selected' : ''}>20% (Mode Seimbang)</option>
+                                        <option value="0.3" ${this.state.tempAlloc === '0.3' ? 'selected' : ''}>30% (Mode Agresif)</option>
+                                        <option value="0.4" ${this.state.tempAlloc === '0.4' ? 'selected' : ''}>40% (Mode Ekstrem)</option>
                                     </select>
                                 </div>
                                 <div>
@@ -1662,10 +2019,17 @@
                                 <h2 class="text-sm font-bold text-white flex items-center gap-2"><i data-lucide="sunrise" class="w-4 h-4 text-neonGold"></i> PERENCANAAN BESOK</h2>
                                 <span class="text-[10px] font-mono text-neonGold border border-neonGold/30 px-2 py-1 rounded bg-neonGold/10">POTENSI: +${tTomPoints} PTS</span>
                             </div>
-                            <div class="glass-card p-5 rounded-xl space-y-4 mb-4">
-                                <input id="task-in" type="text" placeholder="Input nama misi..." value="${this.state.tempTaskInput || ''}" class="w-full bg-charcoal text-white rounded-lg px-4 py-3 text-sm border border-slate-700 focus:border-neonCyan outline-none">
+                            <div class="glass-card p-5 rounded-xl space-y-4 mb-4 relative group">
+                                <!-- Blueprint Button -->
+                                <button onclick="App.controller.openBlueprintManager()" class="absolute top-5 right-5 text-neonCyan hover:text-white bg-neonCyan/10 p-1.5 rounded-lg border border-neonCyan/20 transition-all active:scale-95" title="Blueprint System">
+                                    <i data-lucide="folder-open" class="w-4 h-4"></i>
+                                </button>
+
+                                <input id="task-in" type="text" placeholder="Input nama misi..." value="${this.state.tempTaskInput || ''}" class="w-full bg-charcoal text-white rounded-lg px-4 py-3 text-sm border border-slate-700 focus:border-neonCyan outline-none pr-12">
                                 <div class="flex gap-2">${['easy','medium','hard'].map(diffBtn).join('')}</div>
-                                <button onclick="App.controller.initTask()" class="w-full btn-action bg-neonCyan hover:bg-white hover:text-obsidian text-obsidian font-bold py-3 rounded-lg text-xs uppercase tracking-widest shadow-[0_0_15px_rgba(6,182,212,0.3)] flex justify-center gap-2"><i data-lucide="plus-circle" class="w-4 h-4"></i> Jadwalkan</button>
+                                <div class="flex gap-2">
+                                    <button onclick="App.controller.initTask()" class="flex-1 btn-action bg-neonCyan hover:bg-white hover:text-obsidian text-obsidian font-bold py-3 rounded-lg text-xs uppercase tracking-widest shadow-[0_0_15px_rgba(6,182,212,0.3)] flex justify-center gap-2"><i data-lucide="plus-circle" class="w-4 h-4"></i> Jadwalkan</button>
+                                </div>
                             </div>
                             <div class="space-y-0">${tTom.map(t => ComponentFactory.taskItem(t, false)).join('')}</div>
                         </div>
@@ -1699,18 +2063,47 @@
                         <div class="text-center"><div class="inline-block px-6 py-2 rounded-full border border-neonCyan/30 bg-neonCyan/10 backdrop-blur-md mb-2"><h2 class="text-neonCyan font-black text-sm uppercase tracking-[0.2em] drop-shadow-[0_0_10px_rgba(6,182,212,0.5)]">${Utils.formatMonth(monthKey)}</h2></div><p class="text-[10px] text-slate-500 uppercase tracking-widest">Laporan Kinerja Bulanan</p></div>
                         <div class="flex flex-col gap-4">${ComponentFactory.rankCard('EXECUTION RANK', rnk.exec, 'swords')}<div class="text-center text-[9px] text-slate-500 font-mono -mt-2 mb-2">SYARAT: SEMUA SELESAI (2x)</div>${ComponentFactory.rankCard('CONSISTENCY RANK', rnk.cons, 'zap')}<div class="text-center text-[9px] text-slate-500 font-mono -mt-2">SYARAT: CAPAI TARGET HARIAN (${rnk.dailyTarget} PTS)</div></div>
                         
-                        <!-- Achievement Section -->
+                        <!-- NEW: Active Goal Section -->
                         <div class="pt-4 border-t border-white/5">
                             <div class="flex justify-between items-center mb-4">
-                                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2"><i data-lucide="medal" class="w-3 h-3 text-neonGold"></i> Hall of Fame</h3>
-                                <button onclick="App.controller.openAchModal()" class="text-[9px] bg-surface hover:bg-slate-700 text-neonCyan px-2 py-1 rounded border border-slate-700 flex items-center gap-1"><i data-lucide="plus" class="w-3 h-3"></i> ADD</button>
+                                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2"><i data-lucide="target" class="w-3 h-3 text-neonPurple"></i> Target Aktif</h3>
+                                <button onclick="App.controller.openGoalModal()" class="text-[9px] bg-surface hover:bg-slate-700 text-neonPurple px-2 py-1 rounded border border-slate-700 flex items-center gap-1"><i data-lucide="plus" class="w-3 h-3"></i> SET GOAL</button>
+                            </div>
+                            ${goals.length === 0 
+                                ? `<div class="text-center py-6 text-[10px] text-slate-600 border border-dashed border-slate-800 rounded-xl italic">Belum ada target aktif.</div>` 
+                                : `<div class="flex gap-3 overflow-x-auto pb-4 hide-scroll">${goals.map(g => ComponentFactory.goalCard(g)).join('')}</div>`
+                            }
+                        </div>
+
+                        <!-- Updated: Achievement Section (Hall of Fame) -->
+                        <div class="pt-4 border-t border-white/5">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2"><i data-lucide="medal" class="w-3 h-3 text-neonGold"></i> Hall of Fame (Riwayat)</h3>
                             </div>
                             
                             ${achievements.length === 0 
                                 ? `<div class="text-center py-6 text-[10px] text-slate-600 border border-dashed border-slate-800 rounded-xl italic">Belum ada pencapaian legendaris.</div>` 
-                                : `<div class="grid grid-cols-3 gap-2">${achievements.map(a => ComponentFactory.achievementBadge(a)).join('')}</div>`
+                                : `<div class="grid grid-cols-3 gap-2">
+                                    ${Object.values(achievements.reduce((acc, a) => {
+                                        if (!acc[a.goalId] || new Date(a.dateUnlocked) > new Date(acc[a.goalId].latest.dateUnlocked)) {
+                                            acc[a.goalId] = { latest: a, count: (acc[a.goalId] ? acc[a.goalId].count + 1 : 1), all: (acc[a.goalId] ? [...acc[a.goalId].all, a] : [a]) };
+                                        } else {
+                                            acc[a.goalId].count++;
+                                            acc[a.goalId].all.push(a);
+                                        }
+                                        return acc;
+                                    }, {})).map(group => {
+                                        if (group.count > 1 || goals.find(g => g.id === group.latest.goalId)?.type === 'progressive') {
+                                            // Render Stack for progressive or multiple items
+                                            return ComponentFactory.achievementStack(group.latest.goalId, group.all.sort((a,b) => new Date(a.dateUnlocked) - new Date(b.dateUnlocked)));
+                                        } else {
+                                            // Render Single
+                                            return ComponentFactory.achievementBadge(group.latest);
+                                        }
+                                    }).join('')}
+                                  </div>`
                             }
-                            <p class="text-[8px] text-slate-600 mt-2 text-center">Tap lencana untuk Evolusi (Upgrade) atau Hapus.</p>
+                            <p class="text-[8px] text-slate-600 mt-2 text-center">Rekaman sejarah tidak bisa diubah.</p>
                         </div>
 
                         <div class="pt-4 border-t border-white/5"><h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2"><i data-lucide="archive" class="w-3 h-3"></i> Arsip Bulanan</h3>${hHtml}</div>
@@ -1727,9 +2120,6 @@
                     
                     let financeSection = '';
                     if (!myFinance) {
-                         // Finance Card logic is same as HOME, omitted to save space for brevity in logic but included in HTML output structure if needed.
-                         // But for now, we will just show the warning or basic info.
-                         // Actually let's just reuse the logic from Home or prompt user to go to Map.
                          financeSection = `<div class="glass-card p-4 rounded-xl border border-neonGold/30 bg-neonGold/5 mb-4"><p class="text-xs text-white text-center">⚠️ Harap kalibrasi data finansial di menu <strong>PETA</strong> untuk membuka fitur kalkulasi otomatis.</p></div>`;
                     } else {
                         const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();

@@ -42,28 +42,29 @@
                     },
                     colors: {
                         // Dynamic Theme Colors mapped to CSS Variables
-                        obsidian: "var(--bg-app)",      // Main Background
-                        charcoal: "var(--bg-panel)",    // Secondary/Modal
-                        surface: "var(--bg-card)",      // Card Background
+                        obsidian: "var(--bg-app)",      
+                        charcoal: "var(--bg-panel)",    
+                        surface: "var(--bg-card)",      
                         
                         // Text Colors
-                        white: "var(--text-main)",      // Main Text (Inverts in Light Mode)
+                        white: "var(--text-main)",      
                         slate: {
-                            400: "var(--text-muted)",   // Secondary Text
-                            500: "var(--text-dim)",     // Dim Text
-                            700: "var(--border-dim)",   // Borders
-                            800: "var(--bg-input)"      // Inputs
+                            400: "var(--text-muted)",   
+                            500: "var(--text-dim)",     
+                            700: "var(--border-dim)",   
+                            800: "var(--bg-input)"      
                         },
 
                         // Accents (Dynamic)
                         neonCyan: "var(--accent-primary)", 
                         
-                        // Functional Colors (Static/Specific)
+                        // Functional Colors
                         iron: "#334155",
                         neonPurple: "#8b5cf6",
                         neonGold: "#f59e0b",
                         neonRed: "#ef4444",
                         neonGreen: "#10b981",
+                        glass: "rgba(15, 23, 42, 0.65)",
                     },
                     animation: {
                         'float': 'float 6s ease-in-out infinite',
@@ -99,7 +100,7 @@
         :root {
             --ease-expo: cubic-bezier(0.19, 1, 0.22, 1);
             
-            /* DEFAULT THEME (Cyan/Obsidian) Initialization */
+            /* DEFAULT THEME (Cyan/Obsidian) */
             --bg-app: #020617;
             --bg-panel: #0f172a;
             --bg-card: #1e293b;
@@ -124,7 +125,7 @@
         .hide-scroll::-webkit-scrollbar { display: none; }
         .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
 
-        /* Glassmorphism System - Updated for Theming */
+        /* Glassmorphism System */
         .glass-card {
             background: var(--bg-glass);
             backdrop-filter: blur(16px);
@@ -161,9 +162,6 @@
         .tier-hs { background: linear-gradient(to right, #B91C1C, #F59E0B, #B91C1C); background-size: 200% auto; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: shimmer 6s linear infinite; filter: drop-shadow(0 0 8px rgba(245,158,11,0.4)); }
         .tier-ps { color: #F9FAFB; text-shadow: 0 0 10px rgba(255,255,255,0.8), 0 0 30px rgba(255,255,255,0.4); }
         .tier-max { background: linear-gradient(to bottom, #FFFFFF 30%, #FDE68A 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 0 0 15px #FDE68A, 0 0 40px #F59E0B; position: relative; animation: float 4s ease-in-out infinite; }
-
-        @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
-        @keyframes glow-pulse { 0%, 100% { text-shadow: 0 0 5px currentColor; } 50% { text-shadow: 0 0 20px currentColor, 0 0 10px #fff; } }
 
         /* Navigation Dock */
         .nav-dock {
@@ -259,119 +257,17 @@
          */
         const Config = {
             APP_NAME: 'Wake Map',
-            VERSION: '7.3.0-THEMES',
+            VERSION: '7.4.0-GUARD',
             STORAGE_PREFIX: 'wakemap_arch_',
             
             // THEME DEFINITIONS
             THEMES: [
-                {
-                    id: 'default',
-                    label: 'Default',
-                    desc: 'Cyber Cyan',
-                    colors: {
-                        '--bg-app': '#020617',
-                        '--bg-panel': '#0f172a',
-                        '--bg-card': '#1e293b',
-                        '--bg-glass': 'rgba(15, 23, 42, 0.65)',
-                        '--bg-input': '#1e293b',
-                        '--text-main': '#ffffff',
-                        '--text-muted': '#94a3b8',
-                        '--text-dim': '#64748b',
-                        '--border-dim': '#334155',
-                        '--accent-primary': '#06b6d4'
-                    },
-                    preview: 'bg-cyan-500'
-                },
-                {
-                    id: 'emerald',
-                    label: 'Emerald',
-                    desc: 'Hacker Green',
-                    colors: {
-                        '--bg-app': '#020617',
-                        '--bg-panel': '#022c22',
-                        '--bg-card': '#064e3b',
-                        '--bg-glass': 'rgba(6, 78, 59, 0.65)',
-                        '--bg-input': '#065f46',
-                        '--text-main': '#ffffff',
-                        '--text-muted': '#a7f3d0',
-                        '--text-dim': '#34d399',
-                        '--border-dim': '#059669',
-                        '--accent-primary': '#10b981'
-                    },
-                    preview: 'bg-emerald-500'
-                },
-                {
-                    id: 'amber',
-                    label: 'Amber',
-                    desc: 'Industrial',
-                    colors: {
-                        '--bg-app': '#1c1917',
-                        '--bg-panel': '#292524',
-                        '--bg-card': '#44403c',
-                        '--bg-glass': 'rgba(41, 37, 36, 0.75)',
-                        '--bg-input': '#57534e',
-                        '--text-main': '#fffbeb',
-                        '--text-muted': '#d6d3d1',
-                        '--text-dim': '#a8a29e',
-                        '--border-dim': '#57534e',
-                        '--accent-primary': '#f59e0b'
-                    },
-                    preview: 'bg-amber-500'
-                },
-                {
-                    id: 'crimson',
-                    label: 'Crimson',
-                    desc: 'Vanguard',
-                    colors: {
-                        '--bg-app': '#2b0a0a', // Dark Maroon
-                        '--bg-panel': '#450a0a',
-                        '--bg-card': '#551010',
-                        '--bg-glass': 'rgba(69, 10, 10, 0.7)',
-                        '--bg-input': '#7f1d1d',
-                        '--text-main': '#fef2f2',
-                        '--text-muted': '#fecaca',
-                        '--text-dim': '#f87171',
-                        '--border-dim': '#991b1b',
-                        '--accent-primary': '#ef4444' // Red 500
-                    },
-                    preview: 'bg-red-600'
-                },
-                {
-                    id: 'violet',
-                    label: 'Violet',
-                    desc: 'Dreamscape',
-                    colors: {
-                        '--bg-app': '#1e1b4b', // Indigo 950
-                        '--bg-panel': '#312e81',
-                        '--bg-card': '#4338ca',
-                        '--bg-glass': 'rgba(49, 46, 129, 0.65)',
-                        '--bg-input': '#3730a3',
-                        '--text-main': '#e0e7ff',
-                        '--text-muted': '#a5b4fc',
-                        '--text-dim': '#818cf8',
-                        '--border-dim': '#4f46e5',
-                        '--accent-primary': '#c084fc' // Purple 400
-                    },
-                    preview: 'bg-purple-500'
-                },
-                {
-                    id: 'light',
-                    label: 'Minimalist',
-                    desc: 'Day Mode',
-                    colors: {
-                        '--bg-app': '#f1f5f9', // Slate 100
-                        '--bg-panel': '#cbd5e1', // Slate 300
-                        '--bg-card': '#e2e8f0', // Slate 200
-                        '--bg-glass': 'rgba(255, 255, 255, 0.6)',
-                        '--bg-input': '#f8fafc',
-                        '--text-main': '#0f172a', // Slate 900 (Inverted)
-                        '--text-muted': '#475569', // Slate 600
-                        '--text-dim': '#64748b', // Slate 500
-                        '--border-dim': '#cbd5e1',
-                        '--accent-primary': '#1e3a8a' // Blue 900
-                    },
-                    preview: 'bg-slate-200 border border-slate-400'
-                }
+                { id: 'default', label: 'Default', colors: { '--bg-app': '#020617', '--bg-panel': '#0f172a', '--bg-card': '#1e293b', '--bg-glass': 'rgba(15, 23, 42, 0.65)', '--bg-input': '#1e293b', '--text-main': '#ffffff', '--text-muted': '#94a3b8', '--text-dim': '#64748b', '--border-dim': '#334155', '--accent-primary': '#06b6d4' }, preview: 'bg-cyan-500' },
+                { id: 'emerald', label: 'Emerald', colors: { '--bg-app': '#020617', '--bg-panel': '#022c22', '--bg-card': '#064e3b', '--bg-glass': 'rgba(6, 78, 59, 0.65)', '--bg-input': '#065f46', '--text-main': '#ffffff', '--text-muted': '#a7f3d0', '--text-dim': '#34d399', '--border-dim': '#059669', '--accent-primary': '#10b981' }, preview: 'bg-emerald-500' },
+                { id: 'amber', label: 'Amber', colors: { '--bg-app': '#1c1917', '--bg-panel': '#292524', '--bg-card': '#44403c', '--bg-glass': 'rgba(41, 37, 36, 0.75)', '--bg-input': '#57534e', '--text-main': '#fffbeb', '--text-muted': '#d6d3d1', '--text-dim': '#a8a29e', '--border-dim': '#57534e', '--accent-primary': '#f59e0b' }, preview: 'bg-amber-500' },
+                { id: 'crimson', label: 'Crimson', colors: { '--bg-app': '#2b0a0a', '--bg-panel': '#450a0a', '--bg-card': '#551010', '--bg-glass': 'rgba(69, 10, 10, 0.7)', '--bg-input': '#7f1d1d', '--text-main': '#fef2f2', '--text-muted': '#fecaca', '--text-dim': '#f87171', '--border-dim': '#991b1b', '--accent-primary': '#ef4444' }, preview: 'bg-red-600' },
+                { id: 'violet', label: 'Violet', colors: { '--bg-app': '#1e1b4b', '--bg-panel': '#312e81', '--bg-card': '#4338ca', '--bg-glass': 'rgba(49, 46, 129, 0.65)', '--bg-input': '#3730a3', '--text-main': '#e0e7ff', '--text-muted': '#a5b4fc', '--text-dim': '#818cf8', '--border-dim': '#4f46e5', '--accent-primary': '#c084fc' }, preview: 'bg-purple-500' },
+                { id: 'light', label: 'Minimalist', colors: { '--bg-app': '#f1f5f9', '--bg-panel': '#cbd5e1', '--bg-card': '#e2e8f0', '--bg-glass': 'rgba(255, 255, 255, 0.6)', '--bg-input': '#f8fafc', '--text-main': '#0f172a', '--text-muted': '#475569', '--text-dim': '#64748b', '--border-dim': '#cbd5e1', '--accent-primary': '#1e3a8a' }, preview: 'bg-slate-200 border border-slate-400' }
             ],
 
             // Goal Categories
@@ -920,7 +816,8 @@
                 </div>`;
             },
 
-            taskItem(t, isToday) {
+            // Updated taskItem to handle view modes (active, locked, edit, etc.)
+            taskItem(t, mode) { 
                 const slot = Config.TIME_SLOTS.find(s=>s.id === (t.timeSlot||'all'));
                 const diff = Config.DIFFICULTY[t.difficulty];
                 
@@ -929,26 +826,40 @@
                 let textClass = 'text-white font-medium';
 
                 if (t.status === 'completed') {
+                    // COMPLETED: Solid Green
                     cardClass = 'bg-green-900/20 border-green-500/30 shadow-[0_0_10px_rgba(16,185,129,0.1)]';
                     action = `<i data-lucide="check-circle" class="text-neonGreen w-5 h-5 drop-shadow-md"></i>`;
                     textClass = 'text-neonGreen font-bold';
                 } 
                 else if (t.status === 'failed') {
+                    // FAILED: Solid Red
                     cardClass = 'bg-red-900/20 border-red-500/30';
                     action = `<i data-lucide="x-circle" class="text-neonRed w-5 h-5 drop-shadow-md"></i>`;
                     textClass = 'text-neonRed font-bold';
                 }
-                else if (isToday && t.status === 'pending') {
+                else if (mode === 'active' && t.status === 'pending') {
+                    // ACTIVE: Actionable
                     cardClass = 'border-dashed border-slate-600 bg-transparent';
                     action = `
                     <div class="flex gap-2">
                         <button onclick="App.controller.updateTask('${t.id}','failed')" class="w-9 h-9 rounded-xl bg-slate-800 border border-neonRed/30 text-neonRed flex items-center justify-center hover:bg-neonRed/20 active:scale-95 transition-all"><i data-lucide="x" class="w-4 h-4"></i></button>
                         <button onclick="App.controller.updateTask('${t.id}','completed')" class="w-9 h-9 rounded-xl bg-slate-800 border border-neonGreen/30 text-neonGreen flex items-center justify-center hover:bg-neonGreen/20 active:scale-95 transition-all shadow-[0_0_10px_rgba(16,185,129,0.2)]"><i data-lucide="check" class="w-4 h-4"></i></button>
                     </div>`;
-                } 
-                else {
+                }
+                else if (mode === 'locked' && t.status === 'pending') {
+                    // LOCKED: Upcoming today, read-only
+                    cardClass = 'glass-card opacity-80 border-slate-700';
+                    action = `<i data-lucide="lock" class="text-slate-600 w-4 h-4"></i>`;
+                }
+                else if (mode === 'edit') {
+                    // PLAN: Tomorrow, editable
                     cardClass = 'glass-card opacity-90';
                     action = `<button onclick="App.controller.deleteTask('${t.id}')" class="text-slate-500 hover:text-neonRed p-2 transition-colors"><i data-lucide="trash-2" class="w-4 h-4"></i></button>`;
+                }
+                else {
+                    // VIEW/HISTORY: Read-only (fallback)
+                    cardClass = 'glass-card opacity-70';
+                    // No action button
                 }
 
                 return `
@@ -1043,9 +954,6 @@
                 // Save setting
                 const settings = Store.get('settings');
                 Store.set('settings', { ...settings, theme: themeId });
-                
-                // Optional: Force re-render if needed
-                // this.render();
             },
 
             // --- NOTIFICATION SYSTEM ---
@@ -1313,7 +1221,7 @@
                 }
             },
 
-            // --- GOAL & SNAPSHOT SYSTEM (NEW HALL OF FAME) ---
+            // --- GOAL & SNAPSHOT SYSTEM ---
             openGoalModal(goalId = null) {
                 this.sound.play('click');
                 const goals = Store.get('goals') || [];
@@ -1356,8 +1264,8 @@
                             <input id="goal-target" type="text" value="${this.state.tempGoal.target}" placeholder="Misal: 3 Hari / Semester 1" class="w-full bg-surface text-white rounded-lg px-4 py-2.5 text-sm border border-slate-700 focus:border-neonCyan outline-none">
                         </div>
 
-                        <div id="rank-input-container" style="${this.state.tempGoal.type !== 'single' ? 'display:none' : ''}">
-                            <label class="text-[9px] text-slate-500 uppercase font-bold mb-1 block">Pilih Codex Pangkat (Difficulty)</label>
+                        <div id="rank-input-container"> <!-- Always Visible now based on request logic adjustment, contextually labelled -->
+                            <label id="rank-label" class="text-[9px] text-slate-500 uppercase font-bold mb-1 block">${this.state.tempGoal.type === 'single' ? 'Pilih Pangkat (Difficulty)' : 'Pilih Pangkat Awal (Start Tier)'}</label>
                             <select id="goal-rank" class="w-full bg-surface text-white rounded-lg px-4 py-2.5 text-sm border border-slate-700 focus:border-neonGold outline-none font-mono">
                                 ${Config.TIERS.map((t, idx) => `<option value="${idx}" ${this.state.tempGoal.rankIndex === idx ? 'selected' : ''}>${t.code} - ${t.name}</option>`).join('')}
                             </select>
@@ -1378,23 +1286,23 @@
 
             toggleGoalType(type) {
                 const targetContainer = document.getElementById('target-input-container');
-                const rankContainer = document.getElementById('rank-input-container');
+                const rankLabel = document.getElementById('rank-label');
+                
                 if (type === 'single') {
                     targetContainer.style.display = 'none';
-                    rankContainer.style.display = 'block';
+                    rankLabel.innerText = 'Pilih Pangkat (Difficulty)';
                 } else {
                     targetContainer.style.display = 'block';
-                    rankContainer.style.display = 'none';
+                    rankLabel.innerText = 'Pilih Pangkat Awal (Start Tier)';
                 }
             },
 
             saveGoal() {
                 const title = document.getElementById('goal-title').value.trim();
                 const type = document.querySelector('input[name="goalType"]:checked').value;
-                // For single type, Title IS the target. For progressive, we need a separate initial target.
                 const target = type === 'progressive' ? document.getElementById('goal-target').value.trim() : title;
                 const cat = document.getElementById('goal-cat').value;
-                const rankIndex = type === 'single' ? parseInt(document.getElementById('goal-rank').value) : 0;
+                const rankIndex = parseInt(document.getElementById('goal-rank').value);
 
                 if(!title || (type === 'progressive' && !target)) { this.toast('Semua data wajib diisi', 'error'); return; }
 
@@ -1443,14 +1351,13 @@
 
                 const goalType = goal.type || 'progressive'; 
 
-                // Auto Calc Tier for Progressive based on count
-                let calculatedTierIndex = 0; // Default F
+                // Calculate Tier
+                let calculatedTierIndex = goal.rankIndex || 0; // Base rank
                 if (goalType === 'progressive') {
                     const achs = Store.get('achievements').filter(a => a.goalId === goalId);
                     const count = achs.length;
-                    calculatedTierIndex = Math.min(count, Config.TIERS.length - 1);
-                } else {
-                    calculatedTierIndex = goal.rankIndex || 0;
+                    // Add accumulated progress to base rank
+                    calculatedTierIndex = Math.min(calculatedTierIndex + count, Config.TIERS.length - 1);
                 }
 
                 this.state.tempSnapshot = { goalId: goal.id, milestone: goal.currentTarget, isFinal: false, nextTarget: '', tierIndex: calculatedTierIndex };
@@ -1458,11 +1365,9 @@
                 const m = document.getElementById('modal-layer');
                 let modalContent = '';
 
-                // Show Locked Rank Badge
                 const tierInfo = Config.TIERS[calculatedTierIndex];
 
                 if (goalType === 'progressive') {
-                    // PROGRESSIVE UI: Continue or Finalize
                     modalContent = `
                     <div class="mb-4 text-center">
                         <div class="font-display text-4xl mb-1 transition-all duration-500" style="color:${tierInfo.barColor}; text-shadow: 0 0 15px ${tierInfo.barColor};">
@@ -1497,7 +1402,6 @@
                         </div>
                     </div>`;
                 } else {
-                    // SINGLE UI: Just confirmation
                     modalContent = `
                     <div class="mb-6 text-center">
                         <div class="font-display text-6xl mb-2 transition-all duration-500" style="color:${tierInfo.barColor}; text-shadow: 0 0 20px ${tierInfo.barColor};">
@@ -1529,7 +1433,6 @@
             saveSnapshot(action) {
                 const goalId = this.state.tempSnapshot.goalId;
                 
-                // 1. Get Goal & Validate
                 let goals = Store.get('goals') || [];
                 const goalIndex = goals.findIndex(g => g.id === goalId);
                 if (goalIndex === -1) return;
@@ -1539,7 +1442,6 @@
                 const goalType = goal.type || 'progressive';
                 let nextTarget = '';
                 
-                // Logic Check
                 if (goalType === 'progressive' && action === 'continue') {
                     nextTarget = document.getElementById('snap-next').value.trim();
                     if (!nextTarget) {
@@ -1548,23 +1450,20 @@
                     }
                 }
 
-                // 2. Prevent Duplicate
                 let achs = Store.get('achievements');
-                const isDuplicate = achs.some(a => a.goalId === goalId && a.title === milestone); // Exact title match for milestones
+                const isDuplicate = achs.some(a => a.goalId === goalId && a.title === milestone); 
                 if (isDuplicate) {
                     this.toast('Checkpoint ini sudah ada!', 'error');
                     return;
                 }
 
-                // 3. Save Achievement
                 const isFinal = (action === 'final');
-                // Use tempSnapshot tierIndex which was calculated in openSnapshotModal
                 const tierIdx = this.state.tempSnapshot.tierIndex;
 
                 achs.push({
                     id: Utils.generateId(),
-                    title: milestone, // Just the milestone text (e.g. "Semester 1") or Title for Single
-                    parentTitle: goal.title, // Keep parent title ref
+                    title: milestone, 
+                    parentTitle: goal.title, 
                     tierIndex: tierIdx, 
                     category: goal.category,
                     dateUnlocked: Utils.getISO(),
@@ -1573,9 +1472,7 @@
                 });
                 Store.set('achievements', achs);
 
-                // 4. Update Goal State
                 if (isFinal) {
-                    // Remove from Active Goals if final
                     goals = goals.filter(g => g.id !== goalId);
                 } else if (nextTarget) {
                     goals[goalIndex].currentTarget = nextTarget;
@@ -1594,7 +1491,7 @@
                 Store.set('achievements', achs);
                 this.sound.play('click');
                 this.toast('Snapshot dihapus', 'info');
-                this.closeModal(); // In case stack modal is open
+                this.closeModal(); 
                 this.render();
             },
 
@@ -1602,7 +1499,6 @@
             openStackDetails(goalId) {
                 this.sound.play('click');
                 const achs = Store.get('achievements').filter(a => a.goalId === goalId);
-                // Sort newest first
                 achs.sort((a,b) => new Date(b.dateUnlocked) - new Date(a.dateUnlocked));
                 
                 if (achs.length === 0) return;
@@ -2182,7 +2078,7 @@
                         </div>
 
                         ${ref ? `<div class="glass-card p-5 rounded-xl border-l-4 border-l-neonPurple"><div class="flex items-center gap-2 mb-2 text-neonPurple"><i data-lucide="brain-circuit" class="w-4 h-4"></i><span class="text-[10px] font-bold uppercase tracking-widest">LOG REFLEKSI</span></div><p class="text-sm text-slate-200 italic">"${ref.text}"</p></div>` : 
-                        `<div class="p-5 rounded-xl border border-dashed border-slate-700 bg-slate/20"><label class="block text-slate-400 text-[10px] font-bold mb-3 uppercase tracking-widest flex items-center gap-2"><i data-lucide="edit-3" class="w-3 h-3"></i> Refleksi Wajib</label><div class="flex gap-2"><input id="ref-in" type="text" placeholder="Apa yang dipelajari?" class="flex-1 bg-charcoal text-white rounded-lg px-4 py-3 text-sm border border-slate-700 focus:border-neonPurple outline-none"><button onclick="App.controller.saveRef()" class="bg-neonPurple text-white px-4 rounded-lg shadow-lg"><i data-lucide="save" class="w-4 h-4"></i></button></div></div>`}
+                        `<div class="p-5 rounded-xl border border-dashed border-slate-700 bg-slate/20"><label class="block text-slate-400 text-[10px] font-bold mb-3 uppercase tracking-widest flex items-center gap-2"><i data-lucide="edit-3" class="w-3 h-3"></i> Refleksi Hari Ini</label><div class="flex gap-2"><input id="ref-in" type="text" placeholder="Apa yang dipelajari?" class="flex-1 bg-charcoal text-white rounded-lg px-4 py-3 text-sm border border-slate-700 focus:border-neonPurple outline-none"><button onclick="App.controller.saveRef()" class="bg-neonPurple text-white px-4 rounded-lg shadow-lg"><i data-lucide="save" class="w-4 h-4"></i></button></div></div>`}
 
                         <!-- SECTION: MISI GAGAL -->
                         ${tFailed.length > 0 ? `
@@ -2211,7 +2107,7 @@
                                     <span class="text-[8px] text-slate-500 font-mono">${currentSlot.range}</span>
                                 </div>
                             </div>
-                            <div class="space-y-0">${tActive.length===0 ? '<div class="text-center py-8 text-xs text-slate-600 font-mono border border-dashed border-slate-800 rounded-xl">ISTIRAHAT / FASE KOSONG</div>' : tActive.map(t => ComponentFactory.taskItem(t, true)).join('')}</div>
+                            <div class="space-y-0">${tActive.length===0 ? '<div class="text-center py-8 text-xs text-slate-600 font-mono border border-dashed border-slate-800 rounded-xl">ISTIRAHAT / FASE KOSONG</div>' : tActive.map(t => ComponentFactory.taskItem(t, 'active')).join('')}</div>
                         </div>
 
                         <!-- SECTION: MISI AKAN DATANG -->
@@ -2220,7 +2116,7 @@
                              <div class="flex justify-between mb-2 items-center border-b border-neonPurple/20 pb-2">
                                 <h2 class="text-sm font-bold text-neonPurple flex items-center gap-2"><i data-lucide="clock" class="w-4 h-4"></i> AKAN DATANG HARI INI</h2>
                             </div>
-                            <div class="space-y-0 opacity-80">${tUpcoming.map(t => ComponentFactory.taskItem(t, true)).join('')}</div>
+                            <div class="space-y-0 opacity-80">${tUpcoming.map(t => ComponentFactory.taskItem(t, 'locked')).join('')}</div>
                         </div>` : ''}
 
                         <div class="flex items-center justify-center opacity-20 py-2"><div class="h-px bg-white w-full"></div><div class="mx-4 text-[9px] font-mono text-white whitespace-nowrap">NEXT CYCLE</div><div class="h-px bg-white w-full"></div></div>
@@ -2243,11 +2139,12 @@
                                     <button onclick="App.controller.initTask()" class="flex-1 btn-action bg-neonCyan hover:bg-white hover:text-obsidian text-obsidian font-bold py-3 rounded-lg text-xs uppercase tracking-widest shadow-[0_0_15px_rgba(6,182,212,0.3)] flex justify-center gap-2"><i data-lucide="plus-circle" class="w-4 h-4"></i> Jadwalkan</button>
                                 </div>
                             </div>
-                            <div class="space-y-0">${tTom.map(t => ComponentFactory.taskItem(t, false)).join('')}</div>
+                            <div class="space-y-0">${tTom.map(t => ComponentFactory.taskItem(t, 'edit')).join('')}</div>
                         </div>
                     </div>`;
                 } 
                 else if (this.state.view === 'rank') {
+                    // ... (Rank View logic remains similar)
                     const rnk = Engine.calcRank(monthKey, tasks, financeData);
                     let hHtml = '';
                     for(let i=1; i<=3; i++) {
@@ -2323,6 +2220,7 @@
                     </div>`;
                 }
                 else if (this.state.view === 'rewards') {
+                    // ... (Reward View logic)
                     const { mon } = pts;
                     const active = rewards.filter(r => r.status === 'active');
                     const redeemed = rewards.filter(r => r.status === 'redeemed').sort((a,b)=>new Date(b.redeemedDate)-new Date(a.redeemedDate));
@@ -2406,6 +2304,7 @@
                     </div>`;
                 }
                 else if (this.state.view === 'history') {
+                    // ... (History View logic)
                     const [hy, hm] = this.state.histMonth.split('-');
                     const dim = new Date(hy, hm, 0).getDate();
                     const fDay = new Date(hy, parseInt(hm)-1, 1).getDay();
@@ -2413,7 +2312,6 @@
                     const days = Array.from({length:dim},(_,i)=>`${this.state.histMonth}-${String(i+1).padStart(2,'0')}`);
                     const sd = this.state.histDate;
                     
-                    // UPDATED: Sorted tasks for history details
                     const sTasks = sd ? Engine.sortTasks(tasks.filter(t=>t.date===sd)) : [];
                     const sRef = sd ? reflections.find(r=>r.date===sd) : null;
                     const histRank = Engine.calcRank(this.state.histMonth, tasks, financeData);
@@ -2460,7 +2358,7 @@
                             ${!sd ? `<div class="text-center text-slate-600 text-xs font-mono pt-4 flex flex-col items-center gap-2"><i data-lucide="touchpad" class="w-8 h-8 opacity-50"></i>PILIH TANGGAL</div>` : 
                             `<div class="flex justify-between items-center mb-2"><h3 class="text-neonCyan font-bold text-lg">${Utils.formatDate(sd)}</h3><span class="text-[10px] bg-slate px-2 py-1 rounded text-slate-400 font-mono border border-slate-700">LOG</span></div>
                             <div class="glass-card p-4 rounded-xl mb-4 relative overflow-hidden"><div class="absolute top-0 right-0 p-3 opacity-10"><i data-lucide="brain-circuit" class="w-12 h-12 text-white"></i></div><div class="text-[9px] text-neonPurple font-bold uppercase mb-2 tracking-wider">Refleksi</div><p class="text-slate-300 text-sm italic relative z-10">"${sRef ? sRef.text : 'Tidak ada catatan.'}"</p></div>
-                            <div class="space-y-0">${sTasks.length === 0 ? '<p class="text-center text-xs text-slate-600 py-8">Tidak ada misi.</p>' : sTasks.map(t => ComponentFactory.taskItem(t, false)).join('')}</div>`}
+                            <div class="space-y-0">${sTasks.length === 0 ? '<p class="text-center text-xs text-slate-600 py-8">Tidak ada misi.</p>' : sTasks.map(t => ComponentFactory.taskItem(t, 'view')).join('')}</div>`}
                         </div>
                     </div>`;
                 }

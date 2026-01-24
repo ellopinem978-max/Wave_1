@@ -257,7 +257,7 @@
          */
         const Config = {
             APP_NAME: 'Wake Map',
-            VERSION: '7.5.0-BLUEPRINT-UI',
+            VERSION: '7.8.2-FULL-FIX',
             STORAGE_PREFIX: 'wakemap_arch_',
             
             // THEME DEFINITIONS
@@ -298,21 +298,21 @@
 
             // Rank Definitions (CODEX PANGKAT)
             TIERS: [
-                { id:0, code:'F', name:'Failing', class:'tier-f', barColor:'#4B5563' },
-                { id:1, code:'E', name:'Elementary', class:'tier-e', barColor:'#6B7280' },
-                { id:2, code:'D', name:'Developing', class:'tier-d', barColor:'#7C5C3B' },
-                { id:3, code:'C', name:'Capable', class:'tier-c', barColor:'#4B7F52' },
-                { id:4, code:'B', name:'Balanced', class:'tier-b', barColor:'#3B82F6' },
-                { id:5, code:'A', name:'Advanced', class:'tier-a', barColor:'#2563EB' },
-                { id:6, code:'S', name:'Superior', class:'tier-s', barColor:'#7C3AED' },
-                { id:7, code:'SS', name:'Supremely Skilled', class:'tier-ss', barColor:'#9333EA' },
-                { id:8, code:'EX', name:'Exceptional', class:'tier-ex', barColor:'#FACC15' },
-                { id:9, code:'MR', name:'Master Rank', class:'tier-mr', barColor:'#EAB308' },
-                { id:10, code:'UR', name:'Ultra Rare', class:'tier-ur', barColor:'#22D3EE' },
-                { id:11, code:'EXR', name:'Extreme Rank', class:'tier-exr', barColor:'#DC2626' },
-                { id:12, code:'HS', name:'High Spec', class:'tier-hs', barColor:'#F59E0B' },
-                { id:13, code:'PS', name:'Peak State', class:'tier-ps', barColor:'#F8FAFB' },
-                { id:14, code:'MAX', name:'Maximum', class:'tier-max', barColor:'#FDE68A' }
+                { id:0, code:'F', name:'Failing', class:'tier-f', barColor:'#4B5563', bonus: 0 },
+                { id:1, code:'E', name:'Elementary', class:'tier-e', barColor:'#6B7280', bonus: 25 },
+                { id:2, code:'D', name:'Developing', class:'tier-d', barColor:'#7C5C3B', bonus: 50 },
+                { id:3, code:'C', name:'Capable', class:'tier-c', barColor:'#4B7F52', bonus: 100 },
+                { id:4, code:'B', name:'Balanced', class:'tier-b', barColor:'#3B82F6', bonus: 200 },
+                { id:5, code:'A', name:'Advanced', class:'tier-a', barColor:'#2563EB', bonus: 350 },
+                { id:6, code:'S', name:'Superior', class:'tier-s', barColor:'#7C3AED', bonus: 500 },
+                { id:7, code:'SS', name:'Supremely Skilled', class:'tier-ss', barColor:'#9333EA', bonus: 750 },
+                { id:8, code:'EX', name:'Exceptional', class:'tier-ex', barColor:'#FACC15', bonus: 1000 },
+                { id:9, code:'MR', name:'Master Rank', class:'tier-mr', barColor:'#EAB308', bonus: 1500 },
+                { id:10, code:'UR', name:'Ultra Rare', class:'tier-ur', barColor:'#22D3EE', bonus: 2000 },
+                { id:11, code:'EXR', name:'Extreme Rank', class:'tier-exr', barColor:'#DC2626', bonus: 3000 },
+                { id:12, code:'HS', name:'High Spec', class:'tier-hs', barColor:'#F59E0B', bonus: 5000 },
+                { id:13, code:'PS', name:'Peak State', class:'tier-ps', barColor:'#F8FAFB', bonus: 7500 },
+                { id:14, code:'MAX', name:'Maximum', class:'tier-max', barColor:'#FDE68A', bonus: 10000 }
             ],
 
             // Difficulty Settings
@@ -410,6 +410,13 @@
                 const fCount = fins.length;
                 fins = fins.filter(f => f.month >= limitMonth);
                 if(fins.length < fCount) this.set('finance', fins);
+
+                // NEW: Prune redeemed rewards (expenses) older than limitDate
+                let rewards = this.get('rewards');
+                const rwdCount = rewards.length;
+                // Keep active rewards OR redeemed rewards within the time limit
+                rewards = rewards.filter(r => r.status === 'active' || (r.redeemedDate && r.redeemedDate >= limitDate));
+                if(rewards.length < rwdCount) this.set('rewards', rewards);
             }
         }
 
@@ -425,7 +432,6 @@
 
             setMuted(val) {
                 this.muted = val;
-                // Preserve theme setting when toggling mute
                 const currentSettings = Store.get('settings');
                 Store.set('settings', { ...currentSettings, muted: val });
             }
@@ -489,6 +495,13 @@
                 });
             }
 
+            // Updated Calc Expense Logic
+            static calcExpense(monthKey, rewards) {
+                if (!rewards || rewards.length === 0) return 0;
+                return rewards.filter(r => r.status === 'redeemed' && r.redeemedDate && r.redeemedDate.startsWith(monthKey))
+                              .reduce((acc, r) => acc + (r.price || 0), 0);
+            }
+
             static calcPoints(tasks) {
                 const dObj = new Date();
                 const today = Utils.getISO(dObj);
@@ -499,7 +512,8 @@
                 let cur = 0, mon = 0, last = 0;
                 tasks.forEach(t => {
                     if (t.status === 'completed') {
-                        const pts = Config.DIFFICULTY[t.difficulty]?.pts || 0;
+                        const pts = t.pts !== undefined ? t.pts : (Config.DIFFICULTY[t.difficulty]?.pts || 0);
+                        
                         if (t.date === today) cur += pts;
                         if (t.date.startsWith(monthKey)) mon += pts;
                         if (t.date.startsWith(prevMonthKey)) last += pts;
@@ -514,7 +528,7 @@
             
             static calcRank(monthKey, tasks, financeData) {
                 let eTier=0, eBar=0, cTier=0, cBar=0;
-                const mTasks = tasks.filter(t => t.date.startsWith(monthKey));
+                const mTasks = tasks.filter(t => t.date.startsWith(monthKey) && t.type !== 'bonus');
                 
                 const config = financeData.find(f => f.month === monthKey);
                 const dailyTarget = config ? config.targetPts : 10;
@@ -561,6 +575,8 @@
                 let hasChange = false;
 
                 tasks.forEach(task => {
+                    if (task.type === 'bonus') return;
+
                     if (task.status === 'pending') {
                         if (task.date < today) {
                             task.status = 'failed';
@@ -627,7 +643,7 @@
                     
                     // Dynamic Particle Color
                     const accentColor = getComputedStyle(document.body).getPropertyValue('--accent-primary').trim();
-                    this.ctx.fillStyle = accentColor || 'rgba(6, 182, 212, 0.5)'; // Fallback
+                    this.ctx.fillStyle = accentColor || 'rgba(6, 182, 212, 0.5)'; 
                     this.ctx.globalAlpha = p.alpha;
                     
                     this.ctx.beginPath();
@@ -671,8 +687,7 @@
                     </div>
 
                     <div class="text-[8px] text-white font-bold tracking-[0.2em] z-10 mb-3 uppercase opacity-80">${t.name}</div>
-                    
-                    <div class="flex gap-2 w-full max-w-[60px] z-10">${bars}</div>
+                    <div class="flex gap-2 w-full max-w-[60px] z-10 mt-2">${bars}</div>
                 </div>`;
             },
 
@@ -688,7 +703,7 @@
                     const dayName = d.toLocaleDateString('id-ID', {weekday:'short'}).toUpperCase().slice(0,3);
                     labels.push(dayName);
                     
-                    const dayTasks = tasks.filter(t => t.date === iso && t.status === 'completed');
+                    const dayTasks = tasks.filter(t => t.date === iso && t.status === 'completed' && t.type !== 'bonus');
                     const pts = dayTasks.reduce((acc, t) => acc + (Config.DIFFICULTY[t.difficulty]?.pts || 0), 0);
                     data.push(pts);
                 }
@@ -758,12 +773,14 @@
                     </div>
                     <span class="text-[9px] text-center font-bold text-white uppercase leading-tight">${ach.title}</span>
                     <span class="text-[8px] text-center text-white/60 font-mono mt-1">${Utils.formatDate(ach.dateUnlocked).split(',')[1]}</span>
+                    
+                    <span class="text-[9px] font-mono font-bold text-neonGold mt-1 border border-neonGold/30 px-1.5 rounded bg-black/40">+${Utils.formatCurrency(tier.bonus)} Pts</span>
+                    
                     <span class="text-[7px] uppercase mt-1 px-1.5 py-0.5 rounded bg-black/30 ${cat.color}">${cat.label}</span>
                     <button onclick="if(confirm('Hapus snapshot sejarah ini?')){App.controller.deleteAchievement('${ach.id}')}" class="absolute top-1 left-1 opacity-0 group-hover:opacity-100 text-slate-500 hover:text-neonRed transition-opacity"><i data-lucide="trash" class="w-3 h-3"></i></button>
                 </div>`;
             },
 
-            // NEW: Stack Component for Progressive Goals
             achievementStack(goalId, snapshots) {
                 const latest = snapshots[snapshots.length - 1];
                 const tier = Config.TIERS[latest.tierIndex] || Config.TIERS[0];
@@ -781,9 +798,11 @@
                     </div>
                     <span class="text-[9px] text-center font-bold text-white uppercase leading-tight line-clamp-2">${latest.title}</span>
                     <span class="text-[8px] text-center text-white/60 font-mono mt-1">Updated: ${Utils.formatDate(latest.dateUnlocked).split(',')[1]}</span>
+                    
+                    <span class="text-[9px] font-mono font-bold text-neonGold mt-1 border border-neonGold/30 px-1.5 rounded bg-black/40">+${Utils.formatCurrency(tier.bonus)} Pts</span>
+
                     <span class="text-[7px] uppercase mt-1 px-1.5 py-0.5 rounded bg-black/30 ${cat.color}">${cat.label}</span>
                     
-                    <!-- Stack Visual Effect -->
                     <div class="absolute bottom-0 inset-x-2 h-1 bg-white/10 rounded-t-sm"></div>
                     <div class="absolute bottom-1 inset-x-3 h-1 bg-white/5 rounded-t-sm"></div>
                 </div>`;
@@ -816,29 +835,32 @@
                 </div>`;
             },
 
-            // Updated taskItem to handle view modes (active, locked, edit, etc.)
             taskItem(t, mode) { 
                 const slot = Config.TIME_SLOTS.find(s=>s.id === (t.timeSlot||'all'));
-                const diff = Config.DIFFICULTY[t.difficulty];
+                const diff = Config.DIFFICULTY[t.difficulty] || {label:'BONUS', color:'text-neonGold', border:'border-neonGold'};
                 
+                if (t.type === 'bonus' && mode !== 'view') return ''; 
+
                 let action = '';
                 let cardClass = '';
                 let textClass = 'text-white font-medium';
 
-                if (t.status === 'completed') {
-                    // COMPLETED: Solid Green
+                if (t.type === 'bonus') {
+                     cardClass = 'bg-neonGold/10 border-neonGold/30';
+                     action = `<span class="text-xs font-bold text-neonGold">+${t.pts} PTS</span>`;
+                     textClass = 'text-neonGold font-bold uppercase';
+                }
+                else if (t.status === 'completed') {
                     cardClass = 'bg-green-900/20 border-green-500/30 shadow-[0_0_10px_rgba(16,185,129,0.1)]';
                     action = `<i data-lucide="check-circle" class="text-neonGreen w-5 h-5 drop-shadow-md"></i>`;
                     textClass = 'text-neonGreen font-bold';
                 } 
                 else if (t.status === 'failed') {
-                    // FAILED: Solid Red
                     cardClass = 'bg-red-900/20 border-red-500/30';
                     action = `<i data-lucide="x-circle" class="text-neonRed w-5 h-5 drop-shadow-md"></i>`;
                     textClass = 'text-neonRed font-bold';
                 }
                 else if (mode === 'active' && t.status === 'pending') {
-                    // ACTIVE: Actionable
                     cardClass = 'border-dashed border-slate-600 bg-transparent';
                     action = `
                     <div class="flex gap-2">
@@ -847,19 +869,15 @@
                     </div>`;
                 }
                 else if (mode === 'locked' && t.status === 'pending') {
-                    // LOCKED: Upcoming today, read-only
                     cardClass = 'glass-card opacity-80 border-slate-700';
                     action = `<i data-lucide="lock" class="text-slate-600 w-4 h-4"></i>`;
                 }
                 else if (mode === 'edit') {
-                    // PLAN: Tomorrow, editable
                     cardClass = 'glass-card opacity-90';
                     action = `<button onclick="App.controller.deleteTask('${t.id}')" class="text-slate-500 hover:text-neonRed p-2 transition-colors"><i data-lucide="trash-2" class="w-4 h-4"></i></button>`;
                 }
                 else {
-                    // VIEW/HISTORY: Read-only (fallback)
                     cardClass = 'glass-card opacity-70';
-                    // No action button
                 }
 
                 return `
@@ -867,7 +885,7 @@
                     <div class="flex-1 pr-3">
                         <div class="flex items-center gap-2 mb-1.5">
                             <span class="text-[8px] font-mono font-bold text-slate-300 bg-surface px-1.5 py-0.5 rounded border border-white/5">${slot.label}</span>
-                            <span class="text-[8px] font-bold border px-1.5 py-0.5 rounded uppercase ${diff.color} ${diff.border} bg-white/5">${diff.label}</span>
+                            ${t.type !== 'bonus' ? `<span class="text-[8px] font-bold border px-1.5 py-0.5 rounded uppercase ${diff.color} ${diff.border} bg-white/5">${diff.label}</span>` : ''}
                         </div>
                         <p class="text-sm ${textClass} leading-snug">${t.text}</p>
                     </div>
@@ -881,6 +899,9 @@
                     <div class="font-display w-8 text-center text-lg ${t.class}">${t.code}</div>
                     <div class="flex-1">
                         <div class="text-[10px] font-bold text-white uppercase tracking-wider">${t.name}</div>
+                        <div class="flex justify-between mt-1">
+                             <span class="text-[8px] text-neonGold bg-black/20 px-1 rounded border border-white/10">Bonus: +${Utils.formatCurrency(t.bonus)}</span>
+                        </div>
                     </div>
                 </div>`).join('');
             }
@@ -906,7 +927,7 @@
                 tempGoal: { id: null, title: '', target: '', category: 'lainnya', type: 'progressive', rankIndex: 0 },
                 tempSnapshot: { goalId: null, milestone: '', isFinal: false, nextTarget: '', tierIndex: 0 },
                 lastNotifTime: 0,
-                tempBlueprintDiff: 'easy' // New state for Blueprint modal
+                tempBlueprintDiff: 'easy'
             },
 
             init() {
@@ -947,12 +968,10 @@
                 const theme = Config.THEMES.find(t => t.id === themeId) || Config.THEMES[0];
                 const root = document.documentElement;
                 
-                // Apply CSS variables
                 Object.entries(theme.colors).forEach(([key, value]) => {
                     root.style.setProperty(key, value);
                 });
 
-                // Save setting
                 const settings = Store.get('settings');
                 Store.set('settings', { ...settings, theme: themeId });
             },
@@ -1415,6 +1434,7 @@
                             ${tierInfo.code}
                         </div>
                         <div class="text-[10px] text-white font-bold tracking-[0.2em] uppercase opacity-80">${tierInfo.name}</div>
+                        <div class="text-[9px] text-neonGold mt-1 bg-black/30 px-2 py-0.5 rounded-full inline-block border border-neonGold/30">BONUS: +${Utils.formatCurrency(tierInfo.bonus)} PTS</div>
                     </div>
 
                     <div class="space-y-4">
@@ -1449,7 +1469,8 @@
                             ${tierInfo.code}
                         </div>
                         <div class="text-xs text-white font-bold tracking-[0.3em] uppercase opacity-80 mb-4">${tierInfo.name}</div>
-                        <p class="text-slate-400 text-xs px-4">Anda akan menyimpan "<strong>${goal.title}</strong>" ke Hall of Fame sebagai pencapaian Rank ${tierInfo.code}.</p>
+                        <div class="text-[10px] text-neonGold mt-2 bg-black/30 px-3 py-1 rounded-full inline-block border border-neonGold/30 font-bold">BONUS: +${Utils.formatCurrency(tierInfo.bonus)} PTS</div>
+                        <p class="text-slate-400 text-xs px-4 mt-4">Anda akan menyimpan "<strong>${goal.title}</strong>" ke Hall of Fame sebagai pencapaian Rank ${tierInfo.code}.</p>
                     </div>
                     <button onclick="App.controller.saveSnapshot('final')" class="w-full bg-neonGold text-obsidian px-4 py-4 rounded-xl font-bold hover:bg-white transition-colors shadow-[0_0_20px_rgba(245,158,11,0.3)] flex justify-center items-center gap-2 tracking-widest">
                         <i data-lucide="trophy" class="w-5 h-5"></i> KLAIM KEJAYAAN
@@ -1500,7 +1521,9 @@
 
                 const isFinal = (action === 'final');
                 const tierIdx = this.state.tempSnapshot.tierIndex;
+                const tier = Config.TIERS[tierIdx];
 
+                // 1. SAVE ACHIEVEMENT
                 achs.push({
                     id: Utils.generateId(),
                     title: milestone, 
@@ -1513,6 +1536,24 @@
                 });
                 Store.set('achievements', achs);
 
+                // 2. INJECT BONUS POINTS (AS HIDDEN COMPLETED TASK)
+                if (tier.bonus > 0) {
+                    const tasks = Store.get('tasks');
+                    tasks.push({
+                        id: Utils.generateId(),
+                        text: `Hall of Fame Bonus: ${goal.title} (${tier.code})`,
+                        difficulty: 'easy', // Placeholder
+                        pts: tier.bonus, // Explicit Points
+                        type: 'bonus', // Special Type
+                        timeSlot: 'all',
+                        date: Utils.getISO(),
+                        status: 'completed',
+                        createdAt: new Date().toISOString()
+                    });
+                    Store.set('tasks', tasks);
+                }
+
+                // 3. UPDATE GOAL STATE
                 if (isFinal) {
                     goals = goals.filter(g => g.id !== goalId);
                 } else if (nextTarget) {
@@ -1522,7 +1563,7 @@
                 Store.set('goals', goals);
 
                 this.sound.play('success');
-                this.toast(isFinal ? 'Legenda telah diabadikan!' : 'Level Up! Target diperbarui.', 'success');
+                this.toast(`Snapshot tersimpan! +${tier.bonus} PTS ditambahkan!`, 'success');
                 this.closeModal();
                 this.render();
             },
@@ -1566,6 +1607,7 @@
                                     <div>
                                         <div class="text-sm font-bold text-white">${ach.title}</div>
                                         <div class="text-[10px] text-slate-500 font-mono">${Utils.formatDate(ach.dateUnlocked)}</div>
+                                        <div class="text-[8px] text-neonGold mt-0.5">+${Utils.formatCurrency(tier.bonus)} Pts</div>
                                     </div>
                                 </div>
                                 <button onclick="if(confirm('Hapus entry ini?')){App.controller.deleteAchievement('${ach.id}')}" class="text-slate-600 hover:text-neonRed p-2"><i data-lucide="trash" class="w-4 h-4"></i></button>
@@ -1844,7 +1886,7 @@
                                 </div>
                             </button>
                             
-                            <button onclick="if(confirm('Yakin ingin menghapus SEMUA data? Aksi ini tidak bisa dibatalkan.')) { localStorage.clear(); location.reload(); }" class="w-full flex items-center gap-3 p-4 rounded-xl bg-surface border border-slate-700 hover:border-neonRed transition-all group">
+                            <button onclick="if(confirm('Yakin ingin menghapus SEMUA data? Aksi ini tidak bisa dibatalkan.')) { localStorage.clear(); location.reload(); }" class="w-full flex items-center gap-3 p-4 rounded-xl bg-surface border border-slate-700 hover:border-neonRed transition-all group mt-6">
                                 <div class="p-2 bg-neonRed/10 rounded-lg text-neonRed"><i data-lucide="trash-2" class="w-5 h-5"></i></div>
                                 <div class="text-left">
                                     <span class="block text-sm font-bold text-white group-hover:text-neonRed transition-colors">Reset Total</span>
@@ -1976,6 +2018,7 @@
                 
                 const today = Utils.getISO();
                 const monthKey = Utils.getISO().slice(0, 7);
+                const prevMonthKey = Utils.getISO(new Date(new Date().setMonth(new Date().getMonth() - 1))).slice(0,7);
                 const currentSlot = Utils.getCurrentSlot();
                 const currentHour = new Date().getHours();
                 
@@ -2185,7 +2228,6 @@
                     </div>`;
                 } 
                 else if (this.state.view === 'rank') {
-                    // ... (Rank View logic remains similar)
                     const rnk = Engine.calcRank(monthKey, tasks, financeData);
                     let hHtml = '';
                     for(let i=1; i<=3; i++) {
@@ -2264,10 +2306,21 @@
                     // ... (Reward View logic)
                     const { mon } = pts;
                     const active = rewards.filter(r => r.status === 'active');
-                    const redeemed = rewards.filter(r => r.status === 'redeemed').sort((a,b)=>new Date(b.redeemedDate)-new Date(a.redeemedDate));
                     
                     const curMonthKey = Utils.getMonthKey(Utils.getISO());
+                    const prevMonthKey = Utils.getISO(new Date(new Date().setMonth(new Date().getMonth() - 1))).slice(0, 7);
+                    
+                    const redeemed = rewards.filter(r => r.status === 'redeemed').sort((a,b)=>new Date(b.redeemedDate)-new Date(a.redeemedDate));
+                    const redeemedThisMonth = redeemed.filter(r => r.redeemedDate.startsWith(curMonthKey));
+                    const redeemedLastMonth = redeemed.filter(r => r.redeemedDate.startsWith(prevMonthKey));
+                    
                     const myFinance = financeData.find(f => f.month === curMonthKey);
+
+                    // NEW: Calculate Expenditure for finance tracking
+                    const expenseCurrent = Engine.calcExpense(curMonthKey, rewards);
+                    const expenseLast = Engine.calcExpense(prevMonthKey, rewards);
+                    const budgetCurrent = myFinance ? (myFinance.amount * myFinance.allocation) : 0;
+                    const budgetPercent = budgetCurrent > 0 ? Math.min((expenseCurrent / budgetCurrent) * 100, 100) : 0;
                     
                     let financeSection = '';
                     if (!myFinance) {
@@ -2283,6 +2336,31 @@
                         const mode = Config.PRODUCTIVITY_MODES.find(m => m.id === myFinance.modeId) || { label: 'Custom', color: 'text-white' };
                         
                         financeSection = `
+                        <div class="glass-card p-4 rounded-xl border border-white/10 mb-4 bg-gradient-to-br from-slate-800 to-transparent">
+                            <h3 class="text-xs font-bold text-white uppercase tracking-widest mb-3 flex items-center gap-2"><i data-lucide="pie-chart" class="w-4 h-4 text-neonCyan"></i> Neraca Reward</h3>
+                            
+                            <div class="space-y-3">
+                                <div>
+                                    <div class="flex justify-between text-[10px] text-slate-400 mb-1">
+                                        <span>Terpakai Bulan Ini</span>
+                                        <span>${expenseCurrent > budgetCurrent ? '<span class="text-neonRed font-bold">OVER</span>' : Math.round(budgetPercent) + '%'}</span>
+                                    </div>
+                                    <div class="h-2 w-full bg-black/30 rounded-full overflow-hidden border border-white/5">
+                                        <div class="h-full ${expenseCurrent > budgetCurrent ? 'bg-neonRed' : 'bg-neonCyan'} transition-all duration-1000" style="width: ${budgetPercent}%"></div>
+                                    </div>
+                                    <div class="flex justify-between text-[10px] font-mono mt-1">
+                                        <span class="${expenseCurrent > budgetCurrent ? 'text-neonRed' : 'text-white'} font-bold">Rp ${Utils.formatCurrency(expenseCurrent)}</span>
+                                        <span class="text-slate-500">/ Rp ${Utils.formatCurrency(budgetCurrent)}</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex justify-between pt-2 border-t border-white/5 text-[10px]">
+                                    <span class="text-slate-500">Bulan Lalu:</span>
+                                    <span class="text-slate-300 font-mono">Rp ${Utils.formatCurrency(expenseLast)}</span>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="mb-4 flex justify-between items-center text-[10px] text-slate-500 font-mono border-b border-white/5 pb-2">
                             <span>MODE: <span class="${mode.color} font-bold">${mode.label.toUpperCase()}</span></span>
                             <span title="Berdasarkan Alokasi ${allocation*100}%">1 PTS ≈ Rp ${Utils.formatCurrency(valPerPoint)}</span>
@@ -2341,7 +2419,19 @@
                                 <button onclick="App.controller.delReward('${r.id}')" class="text-slate-600 hover:text-neonRed transition-colors p-2"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                             </div>
                         </div>`}).join('')}</div>
-                        <div class="pt-4 border-t border-white/5 space-y-3"><h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest pl-2 border-l-2 border-slate-600">Riwayat Klaim</h3>${redeemed.length===0?'<div class="text-center py-4 text-xs text-slate-700">Belum ada.</div>':redeemed.map(r=>`<div class="glass-card p-3 rounded-lg flex items-center justify-between opacity-70"><div><p class="text-white text-xs font-bold">${r.name}</p><p class="text-[9px] text-slate-500">${Utils.formatDate(r.redeemedDate)}</p></div><div class="text-neonGreen text-[10px] font-mono flex items-center gap-1"><i data-lucide="check-circle" class="w-3 h-3"></i> TUKAR</div></div>`).join('')}</div>
+                        
+                        <!-- Claim History Section -->
+                        <div class="pt-4 border-t border-white/5 space-y-4">
+                            <div>
+                                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest pl-2 border-l-2 border-slate-600 mb-2">Klaim Bulan Ini</h3>
+                                ${redeemedThisMonth.length === 0 ? '<div class="text-center py-4 text-xs text-slate-700">Belum ada.</div>' : redeemedThisMonth.map(r=>`<div class="glass-card p-3 rounded-lg flex items-center justify-between opacity-70 mb-2"><div><p class="text-white text-xs font-bold">${r.name}</p><p class="text-[9px] text-slate-500">${Utils.formatDate(r.redeemedDate)}</p></div><div class="text-neonGreen text-[10px] font-mono flex items-center gap-1"><i data-lucide="check-circle" class="w-3 h-3"></i> TUKAR</div></div>`).join('')}
+                            </div>
+                            
+                            <div>
+                                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest pl-2 border-l-2 border-slate-700 mb-2">Klaim Bulan Lalu</h3>
+                                ${redeemedLastMonth.length === 0 ? '<div class="text-center py-4 text-xs text-slate-700">Belum ada.</div>' : redeemedLastMonth.map(r=>`<div class="glass-card p-3 rounded-lg flex items-center justify-between opacity-50 mb-2"><div><p class="text-white text-xs font-bold">${r.name}</p><p class="text-[9px] text-slate-500">${Utils.formatDate(r.redeemedDate)}</p></div><div class="text-slate-500 text-[10px] font-mono flex items-center gap-1"><i data-lucide="history" class="w-3 h-3"></i> ARSIP</div></div>`).join('')}
+                            </div>
+                        </div>
                     </div>`;
                 }
                 else if (this.state.view === 'history') {
@@ -2356,6 +2446,10 @@
                     const sTasks = sd ? Engine.sortTasks(tasks.filter(t=>t.date===sd)) : [];
                     const sRef = sd ? reflections.find(r=>r.date===sd) : null;
                     const histRank = Engine.calcRank(this.state.histMonth, tasks, financeData);
+                    
+                    // Filter rewards redeemed in the selected history month
+                    const histRewards = rewards.filter(r => r.status === 'redeemed' && r.redeemedDate && r.redeemedDate.startsWith(this.state.histMonth)).sort((a,b) => new Date(b.redeemedDate) - new Date(a.redeemedDate));
+                    const totalHistExpense = histRewards.reduce((acc, r) => acc + (r.price || 0), 0);
 
                     let grid = '';
                     for(let i=0;i<offset;i++) grid+=`<div class="aspect-square"></div>`;
@@ -2385,15 +2479,38 @@
                         </div>
 
                         <!-- Monthly Rank History Display -->
-                        <div class="flex gap-3 mb-6">
+                        <div class="flex gap-3 mb-6 relative">
                             ${ComponentFactory.rankCard('EXECUTION', histRank.exec, 'swords')}
                             ${ComponentFactory.rankCard('CONSISTENCY', histRank.cons, 'zap')}
+                            
+                            <!-- Monthly Expense Badge for History -->
+                            <div class="absolute top-[-10px] right-2 bg-neonRed/20 border border-neonRed/40 text-neonRed text-[9px] px-2 py-0.5 rounded-full font-bold shadow-lg">
+                                Pengeluaran: Rp ${Utils.formatCurrency(totalHistExpense)}
+                            </div>
                         </div>
 
                         <!-- Calendar Grid -->
                         <div class="grid grid-cols-7 gap-1 text-center mb-2">${['SEN','SEL','RAB','KAM','JUM','SAB','MIN'].map(d=>`<div class="text-[8px] font-bold text-slate-500 tracking-wider">${d}</div>`).join('')}</div>
                         <div class="grid grid-cols-7 gap-1.5 mb-6">${grid}</div>
                         
+                        <!-- NEW: Log Pengeluaran (Reward) -->
+                        <div class="mb-6 border-b border-white/5 pb-4">
+                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2"><i data-lucide="shopping-bag" class="w-3 h-3 text-neonGold"></i> Log Pengeluaran (${Utils.formatMonth(this.state.histMonth)})</h3>
+                            ${histRewards.length === 0 ? '<div class="text-center py-4 text-xs text-slate-700 italic">Tidak ada pengeluaran reward bulan ini.</div>' : 
+                            histRewards.map(r => `
+                                <div class="flex justify-between items-center py-2 border-b border-white/5 last:border-0">
+                                    <div>
+                                        <span class="text-xs text-white font-bold block">${r.name}</span>
+                                        <span class="text-[9px] text-slate-500 font-mono">${Utils.formatDate(r.redeemedDate)}</span>
+                                    </div>
+                                    <div class="text-right">
+                                        <span class="text-[10px] text-neonRed font-mono font-bold block">- Rp ${Utils.formatCurrency(r.price)}</span>
+                                        <span class="text-[9px] text-slate-600 font-mono">Cost: ${r.cost} Pts</span>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+
                         <!-- Selected Date Details -->
                         <div class="space-y-4 border-t border-white/5 pt-4">
                             ${!sd ? `<div class="text-center text-slate-600 text-xs font-mono pt-4 flex flex-col items-center gap-2"><i data-lucide="touchpad" class="w-8 h-8 opacity-50"></i>PILIH TANGGAL</div>` : 

@@ -390,16 +390,36 @@
             static set(key, data) { 
                 localStorage.setItem(Config.STORAGE_PREFIX + key, JSON.stringify(data)); 
             }
-            static prune(years) {
+           static prune(years) {
                 const now = new Date();
                 now.setFullYear(now.getFullYear() - years);
                 const limitDate = Utils.getISO(now);
                 const limitMonth = limitDate.slice(0, 7);
 
+                // --- BAGIAN INI DIMODIFIKASI UNTUK SELAMATKAN POIN ---
                 let tasks = this.get('tasks');
                 const tCount = tasks.length;
-                tasks = tasks.filter(t => t.date >= limitDate);
-                if(tasks.length < tCount) this.set('tasks', tasks);
+                
+                // 1. Ambil task tua yang akan dihapus
+                const tasksToDelete = tasks.filter(t => t.date < limitDate);
+                const tasksToKeep = tasks.filter(t => t.date >= limitDate);
+                
+                if (tasksToDelete.length > 0) {
+                    // 2. Hitung poin dari task yang mau dihapus
+                    const pointsToArchive = tasksToDelete.reduce((acc, t) => {
+                        return acc + (t.status === 'completed' ? (Config.DIFFICULTY[t.difficulty]?.pts || 0) : 0);
+                    }, 0);
+
+                    // 3. Simpan poin itu ke 'archived_points' di Settings
+                    const settings = this.get('settings');
+                    settings.archivedPoints = (settings.archivedPoints || 0) + pointsToArchive;
+                    this.set('settings', settings);
+
+                    // 4. Baru hapus task-nya
+                    this.set('tasks', tasksToKeep);
+                    console.log(`Pruned: ${tasksToDelete.length} tasks. Archived Points: ${pointsToArchive}`);
+                }
+                // -----------------------------------------------------
 
                 let refs = this.get('reflections');
                 const rCount = refs.length;
@@ -411,10 +431,8 @@
                 fins = fins.filter(f => f.month >= limitMonth);
                 if(fins.length < fCount) this.set('finance', fins);
 
-                // NEW: Prune redeemed rewards (expenses) older than limitDate
                 let rewards = this.get('rewards');
                 const rwdCount = rewards.length;
-                // Keep active rewards OR redeemed rewards within the time limit
                 rewards = rewards.filter(r => r.status === 'active' || (r.redeemedDate && r.redeemedDate >= limitDate));
                 if(rewards.length < rwdCount) this.set('rewards', rewards);
             }
@@ -501,7 +519,6 @@
                 return rewards.filter(r => r.status === 'redeemed' && r.redeemedDate && r.redeemedDate.startsWith(monthKey))
                               .reduce((acc, r) => acc + (r.price || 0), 0);
             }
-
             static calcPoints(tasks) {
                 const dObj = new Date();
                 const today = Utils.getISO(dObj);
@@ -509,11 +526,19 @@
                 const d = new Date(); d.setMonth(d.getMonth() - 1);
                 const prevMonthKey = Utils.getISO(d).slice(0,7);
                 
+                // Ambil Poin Simpanan (Archived)
+                const settings = Store.get('settings');
+                const archived = settings.archivedPoints || 0;
+
                 let cur = 0, mon = 0, last = 0;
+                let total = archived; // Start Total dari Poin Simpanan
+
                 tasks.forEach(t => {
                     if (t.status === 'completed') {
                         const pts = t.pts !== undefined ? t.pts : (Config.DIFFICULTY[t.difficulty]?.pts || 0);
                         
+                        total += pts; // Tambah poin dari task yang masih ada
+
                         if (t.date === today) cur += pts;
                         if (t.date.startsWith(monthKey)) mon += pts;
                         if (t.date.startsWith(prevMonthKey)) last += pts;
@@ -523,7 +548,7 @@
                 const dayNum = dObj.getDate();
                 const avg = dayNum > 0 ? (mon / dayNum).toFixed(1) : '0.0';
 
-                return { cur, mon, last, avg };
+                return { cur, mon, last, avg, total };
             }
             
             static calcRank(monthKey, tasks, financeData) {
@@ -2320,120 +2345,123 @@
                     </div>`;
                 }
               // --- GANTI SELURUH BLOK VIEW 'REWARDS' DENGAN INI ---
+         // --- GANTI TOTAL BAGIAN VIEW REWARDS ---
             else if (this.state.view === 'rewards') {
-                const { mon } = pts; // Total Poin yang didapat bulan ini (Pendapatan)
+                const { total } = pts; // Total Poin Global (Seumur Hidup)
                 const active = rewards.filter(r => r.status === 'active');
                 
+                // Ambil semua yang sudah diklaim
+                const allRedeemed = rewards.filter(r => r.status === 'redeemed');
+                
+                // [FIX CRITICAL] Menghitung Total Pengeluaran Poin (Cost), BUKAN Harga (Price)
+                const totalSpent = allRedeemed.reduce((acc, r) => acc + (r.cost || 0), 0);
+                
+                // Hitung Saldo Wallet
+                const walletBalance = total - totalSpent;
+                const isMinus = walletBalance < 0;
+
+                // Hitung Pengeluaran Rupiah Bulan Ini (Hanya untuk Info Visual)
                 const curMonthKey = Utils.getMonthKey(Utils.getISO());
-                const prevMonthKey = Utils.getISO(new Date(new Date().setMonth(new Date().getMonth() - 1))).slice(0, 7);
-                
-                // Hitung Poin yang sudah terpakai bulan ini
-                const expenseCurrent = Engine.calcExpense(curMonthKey, rewards);
-                
-                // Poin Tersedia (WALLET) = Pendapatan Bulan Ini - Pengeluaran Bulan Ini
-                const walletBalance = mon - expenseCurrent;
+                const redeemedThisMonth = allRedeemed.filter(r => r.redeemedDate && r.redeemedDate.startsWith(curMonthKey));
+                const expenseRupiahCurrent = redeemedThisMonth.reduce((acc, r) => acc + (r.price || 0), 0);
 
-                // Riwayat Klaim (Filter 2 Tahun Terakhir otomatis karena Store.prune)
-                const redeemed = rewards.filter(r => r.status === 'redeemed').sort((a,b)=>new Date(b.redeemedDate)-new Date(a.redeemedDate));
-                const redeemedThisMonth = redeemed.filter(r => r.redeemedDate && r.redeemedDate.startsWith(curMonthKey));
-                const redeemedLastMonth = redeemed.filter(r => r.redeemedDate && r.redeemedDate.startsWith(prevMonthKey));
-
-                // --- FINANCE CARD DISPLAY ---
-                // (Bagian ini sama dengan sebelumnya, hanya variabel budget yang menyesuaikan)
+                // Finance Config
                 const myFinance = financeData.find(f => f.month === curMonthKey);
                 let financeSection = '';
                 
                 if (!myFinance) {
                      financeSection = `<div class="glass-card p-4 rounded-xl border border-neonGold/30 bg-neonGold/5 mb-4"><p class="text-xs text-white text-center">⚠️ Harap kalibrasi data finansial di menu <strong>PETA</strong>.</p></div>`;
                 } else {
-                    const budgetCurrent = (myFinance.amount * myFinance.allocation);
-                    const budgetPercent = budgetCurrent > 0 ? Math.min((expenseCurrent / budgetCurrent) * 100, 100) : 0;
+                    const budgetRupiah = (myFinance.amount * myFinance.allocation);
+                    const budgetPercent = budgetRupiah > 0 ? Math.min((expenseRupiahCurrent / budgetRupiah) * 100, 100) : 0;
                     
                     financeSection = `
                     <div class="glass-card p-4 rounded-xl border border-white/10 mb-4 bg-gradient-to-br from-slate-800 to-transparent">
-                        <div class="flex justify-between items-center mb-2">
-                             <h3 class="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-2"><i data-lucide="wallet" class="w-4 h-4 text-neonGreen"></i> WALLET BULAN INI</h3>
-                             <span class="text-neonGreen font-mono font-bold text-sm">${Utils.formatCurrency(walletBalance)} PTS</span>
+                        <!-- BAGIAN ATAS: SALDO POIN (WALLET) -->
+                        <div class="flex justify-between items-center mb-2 pb-2 border-b border-white/5">
+                             <h3 class="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-2"><i data-lucide="wallet" class="w-4 h-4 text-neonGreen"></i> SALDO DOMPET</h3>
+                             <span class="${isMinus ? 'text-neonRed' : 'text-neonGreen'} font-mono font-bold text-lg">${Utils.formatCurrency(walletBalance)} PTS</span>
                         </div>
-                        <div class="h-1.5 w-full bg-black/30 rounded-full overflow-hidden mb-1">
-                            <div class="h-full bg-neonGreen transition-all duration-1000" style="width: ${Math.min((walletBalance/ (myFinance.targetPts * 30)) * 100, 100)}%"></div>
+                        <div class="flex justify-between text-[9px] text-slate-400 mb-3">
+                            <span>Total Pendapatan: ${Utils.formatCurrency(total)}</span>
+                            <span>Total Poin Terpakai: ${Utils.formatCurrency(totalSpent)}</span>
                         </div>
-                        <p class="text-[9px] text-slate-400 text-right">Total Pendapatan: ${mon} Pts | Terpakai: ${expenseCurrent} Pts</p>
 
-                        <div class="mt-3 pt-3 border-t border-white/5">
+                        <!-- BAGIAN BAWAH: TRACKER RUPIAH BULAN INI -->
+                        <div class="pt-2">
                             <div class="flex justify-between text-[10px] text-slate-400 mb-1">
-                                <span>Budget Rupiah (Reward)</span>
-                                <span class="${expenseCurrent > budgetCurrent ? 'text-neonRed font-bold' : 'text-neonCyan'}">Rp ${Utils.formatCurrency(expenseCurrent)} / ${Utils.formatCurrency(budgetCurrent)}</span>
+                                <span>Budget Rupiah (Bulan Ini)</span>
+                                <span class="${expenseRupiahCurrent > budgetRupiah ? 'text-neonRed font-bold' : 'text-neonCyan'}">Rp ${Utils.formatCurrency(expenseRupiahCurrent)} / ${Utils.formatCurrency(budgetRupiah)}</span>
                             </div>
                             <div class="h-1.5 w-full bg-black/30 rounded-full overflow-hidden">
-                                <div class="h-full ${expenseCurrent > budgetCurrent ? 'bg-neonRed' : 'bg-neonCyan'} transition-all duration-1000" style="width: ${budgetPercent}%"></div>
+                                <div class="h-full ${expenseRupiahCurrent > budgetRupiah ? 'bg-neonRed' : 'bg-neonCyan'} transition-all duration-1000" style="width: ${budgetPercent}%"></div>
                             </div>
                         </div>
                     </div>`;
                 }
 
-                // --- REWARD FORM (SAMA) ---
+                // Form Input Reward (Sama seperti sebelumnya)
                 let rewardForm = ''; 
-                // ... (Biarkan kode form reward input sama seperti sebelumnya / copy dari kode lama jika perlu, tapi fokus kita di List Active di bawah ini)
                 if (this.state.rewardStep === 0) {
                      rewardForm = `<div class="flex gap-2"><input id="rew-name" type="text" placeholder="Nama hadiah..." class="w-full bg-charcoal text-white rounded-lg px-4 py-3 text-sm border border-slate-700 focus:border-neonCyan outline-none"><button onclick="App.controller.initReward()" class="bg-neonCyan hover:bg-white hover:text-obsidian text-obsidian px-5 rounded-lg font-bold transition-all shadow-lg"><i data-lucide="arrow-right" class="w-5 h-5"></i></button></div>`;
                 } else if (this.state.rewardStep === 1) {
                     rewardForm = `<div class="text-center py-2 animate-[fadeIn_0.3s]"><p class="text-white text-xs font-bold mb-3">Ada harga nominal (Rp)?</p><div class="flex gap-3 justify-center"><button onclick="App.controller.setRewardHasPrice(false)" class="px-4 py-2 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-700 text-xs">Tidak</button><button onclick="App.controller.setRewardHasPrice(true)" class="px-4 py-2 rounded-lg bg-neonPurple text-white hover:bg-neonPurple/80 shadow-lg text-xs font-bold">Ya</button></div></div>`;
                 } else if (this.state.rewardStep === 2) {
                      const showPriceInput = this.state.tempReward.hasPrice;
-                     rewardForm = `<div class="space-y-3 animate-[fadeIn_0.3s]"><div class="flex items-center justify-between text-xs text-slate-400 px-1"><span>Item: <strong class="text-white">${this.state.tempReward.name}</strong></span><button onclick="App.controller.resetRewardForm()" class="text-neonRed hover:underline">Batal</button></div>${showPriceInput ? `<input id="rew-price" type="number" onkeyup="App.controller.calcRewardRecs()" placeholder="Harga (Rp)..." class="w-full bg-charcoal text-white rounded-lg px-4 py-3 text-sm border border-slate-700 focus:border-neonPurple outline-none">` : ''}<div id="rec-container"></div><div class="flex gap-2"><input id="rew-cost" type="number" placeholder="Target Poin..." class="flex-1 bg-charcoal text-white rounded-lg px-4 py-3 text-sm border border-slate-700 focus:border-neonCyan outline-none"><button onclick="App.controller.saveReward()" class="bg-neonCyan hover:bg-white hover:text-obsidian text-obsidian px-5 rounded-lg font-bold transition-all shadow-lg"><i data-lucide="check" class="w-5 h-5"></i></button></div></div>`;
+                     rewardForm = `<div class="space-y-3 animate-[fadeIn_0.3s]"><div class="flex items-center justify-between text-xs text-slate-400 px-1"><span>Item: <strong class="text-white">${this.state.tempReward.name}</strong></span><button onclick="App.controller.resetRewardForm()" class="text-neonRed hover:underline">Batal</button></div>${showPriceInput ? `<input id="rew-price" type="number" onkeyup="App.controller.calcRewardRecs()" placeholder="Harga (Rp)..." class="w-full bg-charcoal text-white rounded-lg px-4 py-3 text-sm border border-slate-700 focus:border-neonPurple outline-none">` : ''}<div id="rec-container"></div><div class="flex gap-2"><input id="rew-cost" type="number" placeholder="Target Poin (Cost)..." class="flex-1 bg-charcoal text-white rounded-lg px-4 py-3 text-sm border border-slate-700 focus:border-neonCyan outline-none"><button onclick="App.controller.saveReward()" class="bg-neonCyan hover:bg-white hover:text-obsidian text-obsidian px-5 rounded-lg font-bold transition-all shadow-lg"><i data-lucide="check" class="w-5 h-5"></i></button></div></div>`;
                 }
 
                 main.innerHTML = `
-                <div class="space-y-6 animate-[fadeIn_0.4s_ease-out] pt-4">
+                <div class="space-y-6 animate-[fadeIn_0.4s_ease-out] pt-4 pb-20">
                     ${financeSection}
+
+                    <!-- Tombol Reset Darurat (Jika masih minus karena data lama) -->
+                    ${isMinus ? `<div class="text-center mb-2"><button onclick="App.controller.resetRedeemedRewards()" class="text-[10px] bg-neonRed text-obsidian font-bold px-3 py-1 rounded hover:bg-white transition-colors">⚠️ RESET DATA BELANJA (FIX MINUS)</button></div>` : ''}
 
                     <div class="space-y-2"><h3 class="text-xs font-bold text-white uppercase tracking-widest pl-2 border-l-2 border-neonCyan">Target Baru</h3><div class="glass-card p-4 rounded-xl space-y-3">${rewardForm}</div></div>
                     
                     <div class="space-y-3">
                         <h3 class="text-xs font-bold text-white uppercase tracking-widest pl-2 border-l-2 border-neonPurple">Wishlist (Shop)</h3>
                         ${active.length===0?'<div class="text-center py-8 text-xs text-slate-600 border border-dashed border-slate-800 rounded-xl">KOSONG</div>' : active.map(r=>{
-                            // LOGIKA BARU: Cek saldo wallet vs harga
                             const canClaim = walletBalance >= r.cost;
-                            const progress = Math.min((walletBalance/r.cost)*100, 100);
+                            const progress = r.cost > 0 ? Math.min((walletBalance/r.cost)*100, 100) : 0;
+                            const visualProgress = Math.max(0, progress); // Cegah bar minus
                             
                             return `
                             <div class="glass-card p-4 rounded-xl relative overflow-hidden group border ${canClaim ? 'border-neonGreen/50' : 'border-white/5'}">
                                 <div class="flex justify-between items-start relative z-10">
-                                    <div class="flex-1">
+                                    <div class="flex-1 pr-4">
                                         <p class="text-white text-sm font-bold">${r.name}</p>
                                         ${r.price ? `<p class="text-[10px] text-neonGold font-mono mb-1">Rp ${Utils.formatCurrency(r.price)}</p>` : ''}
                                         <div class="flex items-center gap-2 mt-2">
                                             <div class="h-1.5 w-24 bg-slate-700 rounded-full overflow-hidden">
-                                                <div class="h-full ${canClaim ? 'bg-neonGreen' : 'bg-slate-500'} transition-all" style="width:${progress}%"></div>
+                                                <div class="h-full ${canClaim ? 'bg-neonGreen' : 'bg-slate-500'} transition-all" style="width:${visualProgress}%"></div>
                                             </div>
                                             <span class="text-[9px] font-mono ${canClaim ? 'text-neonGreen' : 'text-slate-500'}">${r.cost} PTS</span>
                                         </div>
                                     </div>
-                                    
-                                    <div class="flex flex-col gap-2">
+                                    <div class="flex flex-col gap-2 items-end">
                                         ${canClaim ? 
-                                        `<button onclick="App.controller.claimReward('${r.id}')" class="bg-neonGreen text-obsidian text-[10px] font-bold px-3 py-1.5 rounded shadow-[0_0_10px_rgba(16,185,129,0.4)] hover:bg-white transition-all animate-pulse">KLAIM</button>` 
-                                        : 
+                                        `<button onclick="App.controller.claimReward('${r.id}')" class="bg-neonGreen text-obsidian text-[10px] font-bold px-3 py-1.5 rounded shadow-[0_0_10px_rgba(16,185,129,0.4)] hover:bg-white transition-all animate-pulse">KLAIM</button>` : 
                                         `<div class="text-[9px] text-slate-600 font-bold border border-slate-700 px-2 py-1 rounded bg-black/20"><i data-lucide="lock" class="w-3 h-3 inline"></i></div>`
                                         }
-                                        <button onclick="App.controller.delReward('${r.id}')" class="text-slate-600 hover:text-neonRed transition-colors self-end"><i data-lucide="trash-2" class="w-3 h-3"></i></button>
+                                        <button onclick="App.controller.delReward('${r.id}')" class="text-slate-600 hover:text-neonRed transition-colors p-1"><i data-lucide="trash-2" class="w-3 h-3"></i></button>
                                     </div>
                                 </div>
                             </div>`
                         }).join('')}
                     </div>
                     
-                    <!-- Claim History Section (Sudah dibatasi 2 tahun via Store.prune) -->
                     <div class="pt-4 border-t border-white/5 space-y-4">
                         <div>
-                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest pl-2 border-l-2 border-slate-600 mb-2">Riwayat Klaim</h3>
+                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest pl-2 border-l-2 border-slate-600 mb-2">Riwayat Klaim (Bulan Ini)</h3>
                             ${redeemedThisMonth.length === 0 ? '<div class="text-center py-4 text-xs text-slate-700">Belum ada klaim bulan ini.</div>' : redeemedThisMonth.map(r=>`<div class="glass-card p-3 rounded-lg flex items-center justify-between opacity-70 mb-2"><div><p class="text-white text-xs font-bold">${r.name}</p><p class="text-[9px] text-slate-500">${Utils.formatDate(r.redeemedDate)}</p></div><div class="text-neonRed text-[10px] font-mono font-bold">- ${r.cost} PTS</div></div>`).join('')}
                         </div>
                     </div>
                 </div>`;
             }
                 // --- GANTI SELURUH BLOK VIEW 'HISTORY' DENGAN INI ---
+        // --- GANTI TOTAL BAGIAN VIEW HISTORY ---
             else if (this.state.view === 'history') {
                 const [hy, hm] = this.state.histMonth.split('-');
                 const dim = new Date(hy, hm, 0).getDate();
@@ -2446,14 +2474,18 @@
                 const sRef = sd ? reflections.find(r=>r.date===sd) : null;
                 const histRank = Engine.calcRank(this.state.histMonth, tasks, financeData);
                 
-                // --- LOGIKA BARU: HITUNG TOTAL POIN BULAN SEJARAH ITU ---
+                // Hitung Total Poin Bulan Sejarah
                 const histTasksAll = tasks.filter(t => t.date.startsWith(this.state.histMonth) && t.status === 'completed');
                 const histTotalPoints = histTasksAll.reduce((acc, t) => acc + (Config.DIFFICULTY[t.difficulty]?.pts || 0), 0);
                 
-                // Filter rewards (Store.prune sudah membatasi 2 tahun, jadi aman)
+                // Filter rewards (Store.prune sudah membatasi data 2 tahun)
                 const histRewards = rewards.filter(r => r.status === 'redeemed' && r.redeemedDate && r.redeemedDate.startsWith(this.state.histMonth)).sort((a,b) => new Date(b.redeemedDate) - new Date(a.redeemedDate));
-                const totalHistExpense = histRewards.reduce((acc, r) => acc + (r.price || 0), 0);
+                
+                // Hitung Pengeluaran Poin
                 const totalHistPointsSpent = histRewards.reduce((acc, r) => acc + (r.cost || 0), 0);
+                
+                // [NEW] Hitung Pengeluaran Rupiah
+                const totalHistRupiah = histRewards.reduce((acc, r) => acc + (r.price || 0), 0);
 
                 let grid = '';
                 for(let i=0;i<offset;i++) grid+=`<div class="aspect-square"></div>`;
@@ -2482,21 +2514,26 @@
                         </button>
                     </div>
 
-                    <!-- Monthly Stats Summary (NEW) -->
-                    <div class="glass-card p-4 rounded-xl border border-white/5 mb-6 flex justify-between items-center bg-white/5">
-                        <div class="text-center">
-                            <div class="text-[9px] text-slate-400 uppercase tracking-widest mb-1">Total Poin</div>
-                            <div class="text-xl font-mono font-bold text-neonCyan">${histTotalPoints}</div>
+                    <!-- [NEW] Monthly Stats Summary -->
+                    <div class="glass-card p-4 rounded-xl border border-white/5 mb-6 bg-gradient-to-r from-slate-800/50 to-transparent">
+                        <div class="flex justify-between items-center mb-4">
+                            <div class="text-center flex-1">
+                                <div class="text-[8px] text-slate-400 uppercase tracking-widest mb-1">Pendapatan</div>
+                                <div class="text-lg font-mono font-bold text-neonCyan">+${histTotalPoints} Pts</div>
+                            </div>
+                            <div class="w-px h-8 bg-white/10"></div>
+                            <div class="text-center flex-1">
+                                <div class="text-[8px] text-slate-400 uppercase tracking-widest mb-1">Tukar Poin</div>
+                                <div class="text-lg font-mono font-bold text-neonRed">-${totalHistPointsSpent} Pts</div>
+                            </div>
                         </div>
-                        <div class="w-px h-8 bg-white/10"></div>
-                        <div class="text-center">
-                            <div class="text-[9px] text-slate-400 uppercase tracking-widest mb-1">Dibelanjakan</div>
-                            <div class="text-xl font-mono font-bold text-neonRed">-${totalHistPointsSpent}</div>
-                        </div>
-                        <div class="w-px h-8 bg-white/10"></div>
-                        <div class="text-center">
-                            <div class="text-[9px] text-slate-400 uppercase tracking-widest mb-1">Sisa (Net)</div>
-                            <div class="text-xl font-mono font-bold text-white">${histTotalPoints - totalHistPointsSpent}</div>
+                        
+                        <!-- Total Pengeluaran Rupiah -->
+                        <div class="pt-3 border-t border-white/10 flex justify-between items-center">
+                            <span class="text-[10px] text-slate-300 font-bold uppercase tracking-wider flex items-center gap-2">
+                                <i data-lucide="banknote" class="w-3 h-3 text-neonGold"></i> Pengeluaran Uang
+                            </span>
+                            <span class="text-sm font-mono font-bold text-neonGold">Rp ${Utils.formatCurrency(totalHistRupiah)}</span>
                         </div>
                     </div>
 
@@ -2512,17 +2549,17 @@
                     
                     <!-- Rewards Log -->
                     <div class="mb-6 border-b border-white/5 pb-4">
-                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2"><i data-lucide="shopping-cart" class="w-3 h-3 text-neonRed"></i> Belanja Bulan Ini</h3>
+                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2"><i data-lucide="shopping-cart" class="w-3 h-3 text-neonRed"></i> Log Belanja Bulan Ini</h3>
                         ${histRewards.length === 0 ? '<div class="text-center py-4 text-xs text-slate-700 italic">Tidak ada pengeluaran.</div>' : 
                         histRewards.map(r => `
-                            <div class="flex justify-between items-center py-2 border-b border-white/5 last:border-0">
+                            <div class="flex justify-between items-center py-2 border-b border-white/5 last:border-0 hover:bg-white/5 px-2 rounded transition-colors">
                                 <div>
                                     <span class="text-xs text-white font-bold block">${r.name}</span>
                                     <span class="text-[9px] text-slate-500 font-mono">${Utils.formatDate(r.redeemedDate)}</span>
                                 </div>
                                 <div class="text-right">
                                     <span class="text-[10px] text-neonRed font-mono font-bold block">- ${r.cost} PTS</span>
-                                    <span class="text-[9px] text-slate-600 font-mono">Rp ${Utils.formatCurrency(r.price)}</span>
+                                    <span class="text-[9px] text-neonGold font-mono">Rp ${Utils.formatCurrency(r.price || 0)}</span>
                                 </div>
                             </div>
                         `).join('')}

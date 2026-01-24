@@ -899,9 +899,7 @@
                     <div class="font-display w-8 text-center text-lg ${t.class}">${t.code}</div>
                     <div class="flex-1">
                         <div class="text-[10px] font-bold text-white uppercase tracking-wider">${t.name}</div>
-                        <div class="flex justify-between mt-1">
-                             <span class="text-[8px] text-neonGold bg-black/20 px-1 rounded border border-white/10">Bonus: +${Utils.formatCurrency(t.bonus)}</span>
-                        </div>
+                        <!-- Baris tampilan bonus dihapus di sini -->
                     </div>
                 </div>`).join('');
             }
@@ -1072,6 +1070,7 @@
                 this.render();
             },
 
+           // --- CARI BAGIAN INI DI DALAM Controller ---
             updateTask(id, status) {
                 const tasks = Store.get('tasks');
                 const t = tasks.find(x => x.id === id);
@@ -1081,29 +1080,13 @@
                     
                     if (status === 'completed') {
                         this.sound.play('success');
-                        const { mon } = Engine.calcPoints(tasks);
-                        const rewards = Store.get('rewards');
-                        rewards.forEach(r => {
-                            if (r.status === 'active' && mon >= r.cost) {
-                                setTimeout(() => {
-                                    if(confirm(`Hadiah "${r.name}" tercapai! Klaim?`)) {
-                                        r.status = 'redeemed';
-                                        r.redeemedDate = Utils.getISO();
-                                        Store.set('rewards', rewards);
-                                        this.sound.play('success');
-                                        this.toast(`Hadiah "${r.name}" diklaim!`, 'success');
-                                        this.render();
-                                    }
-                                }, 500);
-                            }
-                        });
+                        // BAGIAN AUTO-CLAIM YANG LAMA DIHAPUS, DIGANTI JADI SIMPEL SAJA
                     } else {
                         this.sound.play('error');
                     }
                     this.render();
                 }
             },
-
             deleteTask(id) {
                 if(confirm('Hapus misi ini?')) {
                     const tasks = Store.get('tasks').filter(t => t.id !== id);
@@ -1777,6 +1760,40 @@
                 }
             },
 
+            // --- TAMBAHKAN FUNGSI INI DI DALAM Controller ---
+            claimReward(id) {
+                const rewards = Store.get('rewards');
+                const reward = rewards.find(r => r.id === id);
+                if (!reward) return;
+
+                const financeData = Store.get('finance');
+                const monthKey = Utils.getMonthKey(Utils.getISO());
+                
+                // Hitung Poin Bulan Ini
+                const tasks = Store.get('tasks');
+                const { mon } = Engine.calcPoints(tasks); // Poin kotor bulan ini
+                
+                // Hitung Pengeluaran Bulan Ini
+                const expenseCurrent = Engine.calcExpense(monthKey, rewards);
+                
+                // Sisa Poin yang bisa dibelanjakan (Wallet)
+                const availablePoints = mon - expenseCurrent;
+
+                if (availablePoints >= reward.cost) {
+                    if(confirm(`Klaim hadiah "${reward.name}" seharga ${reward.cost} Poin?\nSisa Poin Anda akan berkurang.`)) {
+                        reward.status = 'redeemed';
+                        reward.redeemedDate = Utils.getISO(); // Simpan tanggal klaim
+                        Store.set('rewards', rewards);
+                        this.sound.play('success');
+                        this.toast(`Berhasil klaim: ${reward.name}`, 'success');
+                        this.render();
+                    }
+                } else {
+                    this.toast('Poin bulan ini tidak cukup!', 'error');
+                    this.sound.play('error');
+                }
+            },
+
             navMonth(offset) {
                 const [y, m] = this.state.histMonth.split('-');
                 const targetDate = new Date(y, parseInt(m) - 1 + offset);
@@ -2302,224 +2319,224 @@
                         <div class="pt-4 border-t border-white/5"><h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2"><i data-lucide="list" class="w-3 h-3"></i> Codex Pangkat</h3><div class="bg-charcoal/50 p-2 rounded-xl border border-white/5 h-64 overflow-y-auto custom-scroll">${ComponentFactory.rankLegend()}</div></div>
                     </div>`;
                 }
-                else if (this.state.view === 'rewards') {
-                    // ... (Reward View logic)
-                    const { mon } = pts;
-                    const active = rewards.filter(r => r.status === 'active');
-                    
-                    const curMonthKey = Utils.getMonthKey(Utils.getISO());
-                    const prevMonthKey = Utils.getISO(new Date(new Date().setMonth(new Date().getMonth() - 1))).slice(0, 7);
-                    
-                    const redeemed = rewards.filter(r => r.status === 'redeemed').sort((a,b)=>new Date(b.redeemedDate)-new Date(a.redeemedDate));
-                    const redeemedThisMonth = redeemed.filter(r => r.redeemedDate.startsWith(curMonthKey));
-                    const redeemedLastMonth = redeemed.filter(r => r.redeemedDate.startsWith(prevMonthKey));
-                    
-                    const myFinance = financeData.find(f => f.month === curMonthKey);
+              // --- GANTI SELURUH BLOK VIEW 'REWARDS' DENGAN INI ---
+            else if (this.state.view === 'rewards') {
+                const { mon } = pts; // Total Poin yang didapat bulan ini (Pendapatan)
+                const active = rewards.filter(r => r.status === 'active');
+                
+                const curMonthKey = Utils.getMonthKey(Utils.getISO());
+                const prevMonthKey = Utils.getISO(new Date(new Date().setMonth(new Date().getMonth() - 1))).slice(0, 7);
+                
+                // Hitung Poin yang sudah terpakai bulan ini
+                const expenseCurrent = Engine.calcExpense(curMonthKey, rewards);
+                
+                // Poin Tersedia (WALLET) = Pendapatan Bulan Ini - Pengeluaran Bulan Ini
+                const walletBalance = mon - expenseCurrent;
 
-                    // NEW: Calculate Expenditure for finance tracking
-                    const expenseCurrent = Engine.calcExpense(curMonthKey, rewards);
-                    const expenseLast = Engine.calcExpense(prevMonthKey, rewards);
-                    const budgetCurrent = myFinance ? (myFinance.amount * myFinance.allocation) : 0;
+                // Riwayat Klaim (Filter 2 Tahun Terakhir otomatis karena Store.prune)
+                const redeemed = rewards.filter(r => r.status === 'redeemed').sort((a,b)=>new Date(b.redeemedDate)-new Date(a.redeemedDate));
+                const redeemedThisMonth = redeemed.filter(r => r.redeemedDate && r.redeemedDate.startsWith(curMonthKey));
+                const redeemedLastMonth = redeemed.filter(r => r.redeemedDate && r.redeemedDate.startsWith(prevMonthKey));
+
+                // --- FINANCE CARD DISPLAY ---
+                // (Bagian ini sama dengan sebelumnya, hanya variabel budget yang menyesuaikan)
+                const myFinance = financeData.find(f => f.month === curMonthKey);
+                let financeSection = '';
+                
+                if (!myFinance) {
+                     financeSection = `<div class="glass-card p-4 rounded-xl border border-neonGold/30 bg-neonGold/5 mb-4"><p class="text-xs text-white text-center">⚠️ Harap kalibrasi data finansial di menu <strong>PETA</strong>.</p></div>`;
+                } else {
+                    const budgetCurrent = (myFinance.amount * myFinance.allocation);
                     const budgetPercent = budgetCurrent > 0 ? Math.min((expenseCurrent / budgetCurrent) * 100, 100) : 0;
                     
-                    let financeSection = '';
-                    if (!myFinance) {
-                         financeSection = `<div class="glass-card p-4 rounded-xl border border-neonGold/30 bg-neonGold/5 mb-4"><p class="text-xs text-white text-center">⚠️ Harap kalibrasi data finansial di menu <strong>PETA</strong> untuk membuka fitur kalkulasi otomatis.</p></div>`;
-                    } else {
-                        const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
-                        const allocation = myFinance.allocation || 0.2;
-                        const dailyBudget = (myFinance.amount * allocation) / daysInMonth;
-                        
-                        const dailyTarget = myFinance.targetPts || 10;
-                        const valPerPoint = Math.max(1, Math.round(dailyBudget / dailyTarget));
-                        
-                        const mode = Config.PRODUCTIVITY_MODES.find(m => m.id === myFinance.modeId) || { label: 'Custom', color: 'text-white' };
-                        
-                        financeSection = `
-                        <div class="glass-card p-4 rounded-xl border border-white/10 mb-4 bg-gradient-to-br from-slate-800 to-transparent">
-                            <h3 class="text-xs font-bold text-white uppercase tracking-widest mb-3 flex items-center gap-2"><i data-lucide="pie-chart" class="w-4 h-4 text-neonCyan"></i> Neraca Reward</h3>
-                            
-                            <div class="space-y-3">
-                                <div>
-                                    <div class="flex justify-between text-[10px] text-slate-400 mb-1">
-                                        <span>Terpakai Bulan Ini</span>
-                                        <span>${expenseCurrent > budgetCurrent ? '<span class="text-neonRed font-bold">OVER</span>' : Math.round(budgetPercent) + '%'}</span>
-                                    </div>
-                                    <div class="h-2 w-full bg-black/30 rounded-full overflow-hidden border border-white/5">
-                                        <div class="h-full ${expenseCurrent > budgetCurrent ? 'bg-neonRed' : 'bg-neonCyan'} transition-all duration-1000" style="width: ${budgetPercent}%"></div>
-                                    </div>
-                                    <div class="flex justify-between text-[10px] font-mono mt-1">
-                                        <span class="${expenseCurrent > budgetCurrent ? 'text-neonRed' : 'text-white'} font-bold">Rp ${Utils.formatCurrency(expenseCurrent)}</span>
-                                        <span class="text-slate-500">/ Rp ${Utils.formatCurrency(budgetCurrent)}</span>
-                                    </div>
-                                </div>
-                                
-                                <div class="flex justify-between pt-2 border-t border-white/5 text-[10px]">
-                                    <span class="text-slate-500">Bulan Lalu:</span>
-                                    <span class="text-slate-300 font-mono">Rp ${Utils.formatCurrency(expenseLast)}</span>
-                                </div>
-                            </div>
+                    financeSection = `
+                    <div class="glass-card p-4 rounded-xl border border-white/10 mb-4 bg-gradient-to-br from-slate-800 to-transparent">
+                        <div class="flex justify-between items-center mb-2">
+                             <h3 class="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-2"><i data-lucide="wallet" class="w-4 h-4 text-neonGreen"></i> WALLET BULAN INI</h3>
+                             <span class="text-neonGreen font-mono font-bold text-sm">${Utils.formatCurrency(walletBalance)} PTS</span>
                         </div>
+                        <div class="h-1.5 w-full bg-black/30 rounded-full overflow-hidden mb-1">
+                            <div class="h-full bg-neonGreen transition-all duration-1000" style="width: ${Math.min((walletBalance/ (myFinance.targetPts * 30)) * 100, 100)}%"></div>
+                        </div>
+                        <p class="text-[9px] text-slate-400 text-right">Total Pendapatan: ${mon} Pts | Terpakai: ${expenseCurrent} Pts</p>
 
-                        <div class="mb-4 flex justify-between items-center text-[10px] text-slate-500 font-mono border-b border-white/5 pb-2">
-                            <span>MODE: <span class="${mode.color} font-bold">${mode.label.toUpperCase()}</span></span>
-                            <span title="Berdasarkan Alokasi ${allocation*100}%">1 PTS ≈ Rp ${Utils.formatCurrency(valPerPoint)}</span>
-                        </div>`;
-                    }
-
-                    // Reward Form Logic
-                    let rewardForm = '';
-                    if (this.state.rewardStep === 0) {
-                        rewardForm = `
-                        <div class="flex gap-2">
-                            <input id="rew-name" type="text" placeholder="Nama hadiah..." class="w-full bg-charcoal text-white rounded-lg px-4 py-3 text-sm border border-slate-700 focus:border-neonCyan outline-none">
-                            <button onclick="App.controller.initReward()" class="bg-neonCyan hover:bg-white hover:text-obsidian text-obsidian px-5 rounded-lg font-bold transition-all shadow-lg"><i data-lucide="arrow-right" class="w-5 h-5"></i></button>
-                        </div>`;
-                    } else if (this.state.rewardStep === 1) {
-                        rewardForm = `
-                        <div class="text-center py-2 animate-[fadeIn_0.3s]">
-                            <p class="text-white text-xs font-bold mb-3">Apakah hadiah ini memiliki harga nominal (Rp)?</p>
-                            <div class="flex gap-3 justify-center">
-                                <button onclick="App.controller.setRewardHasPrice(false)" class="px-4 py-2 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-700 text-xs">Tidak</button>
-                                <button onclick="App.controller.setRewardHasPrice(true)" class="px-4 py-2 rounded-lg bg-neonPurple text-white hover:bg-neonPurple/80 shadow-lg text-xs font-bold">Ya, Ada</button>
+                        <div class="mt-3 pt-3 border-t border-white/5">
+                            <div class="flex justify-between text-[10px] text-slate-400 mb-1">
+                                <span>Budget Rupiah (Reward)</span>
+                                <span class="${expenseCurrent > budgetCurrent ? 'text-neonRed font-bold' : 'text-neonCyan'}">Rp ${Utils.formatCurrency(expenseCurrent)} / ${Utils.formatCurrency(budgetCurrent)}</span>
                             </div>
-                        </div>`;
-                    } else if (this.state.rewardStep === 2) {
-                        const showPriceInput = this.state.tempReward.hasPrice;
-                        rewardForm = `
-                        <div class="space-y-3 animate-[fadeIn_0.3s]">
-                            <div class="flex items-center justify-between text-xs text-slate-400 px-1"><span>Item: <strong class="text-white">${this.state.tempReward.name}</strong></span><button onclick="App.controller.resetRewardForm()" class="text-neonRed hover:underline">Batal</button></div>
-                            ${showPriceInput ? `<input id="rew-price" type="number" onkeyup="App.controller.calcRewardRecs()" placeholder="Masukkan Harga (Rp)..." class="w-full bg-charcoal text-white rounded-lg px-4 py-3 text-sm border border-slate-700 focus:border-neonPurple outline-none">` : ''}
-                            
-                            <div id="rec-container"></div>
-
-                            <div class="flex gap-2">
-                                <input id="rew-cost" type="number" placeholder="Target Poin (Contoh: 50)" class="flex-1 bg-charcoal text-white rounded-lg px-4 py-3 text-sm border border-slate-700 focus:border-neonCyan outline-none">
-                                <button onclick="App.controller.saveReward()" class="bg-neonCyan hover:bg-white hover:text-obsidian text-obsidian px-5 rounded-lg font-bold transition-all shadow-lg"><i data-lucide="check" class="w-5 h-5"></i></button>
-                            </div>
-                        </div>`;
-                    }
-
-                    main.innerHTML = `
-                    <div class="space-y-6 animate-[fadeIn_0.4s_ease-out] pt-4">
-                        <div class="glass-card p-8 rounded-2xl text-center relative overflow-hidden"><div class="absolute inset-0 bg-gradient-to-br from-neonCyan/10 to-transparent"></div><p class="text-neonCyan mb-2 text-[10px] uppercase tracking-[0.3em] font-bold relative z-10">SALDO POIN</p><p class="text-6xl font-black text-white drop-shadow-[0_0_20px_rgba(6,182,212,0.5)] font-mono relative z-10">${Utils.formatCurrency(mon)}</p></div>
-                        
-                        ${financeSection}
-
-                        <div class="space-y-2"><h3 class="text-xs font-bold text-white uppercase tracking-widest pl-2 border-l-2 border-neonCyan">Target Baru</h3><div class="glass-card p-4 rounded-xl space-y-3">${rewardForm}</div></div>
-                        <div class="space-y-3"><h3 class="text-xs font-bold text-white uppercase tracking-widest pl-2 border-l-2 border-neonPurple">Wishlist</h3>${active.length===0?'<div class="text-center py-8 text-xs text-slate-600 border border-dashed border-slate-800 rounded-xl">KOSONG</div>':active.map(r=>{const p=Math.min((mon/r.cost)*100,100); const col=mon>=r.cost?'bg-neonGreen':'bg-gradient-to-r from-neonCyan to-neonPurple'; return `
-                        <div class="glass-card p-4 rounded-xl relative overflow-hidden group">
-                            <div class="absolute bottom-0 left-0 h-1 ${col} transition-all duration-1000 shadow-[0_0_10px_currentColor]" style="width:${p}%"></div>
-                            <div class="flex justify-between items-center relative z-10">
-                                <div>
-                                    <p class="text-white text-sm font-bold group-hover:text-neonCyan transition-colors">${r.name}</p>
-                                    ${r.price ? `<p class="text-[10px] text-neonGold font-mono mb-0.5">Rp ${Utils.formatCurrency(r.price)}</p>` : ''}
-                                    <p class="text-[10px] text-slate-400 mt-0.5 font-mono tracking-wide">Progress: ${Utils.formatCurrency(mon)} / <span class="text-white">${Utils.formatCurrency(r.cost)} PTS</span></p>
-                                </div>
-                                <button onclick="App.controller.delReward('${r.id}')" class="text-slate-600 hover:text-neonRed transition-colors p-2"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
-                            </div>
-                        </div>`}).join('')}</div>
-                        
-                        <!-- Claim History Section -->
-                        <div class="pt-4 border-t border-white/5 space-y-4">
-                            <div>
-                                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest pl-2 border-l-2 border-slate-600 mb-2">Klaim Bulan Ini</h3>
-                                ${redeemedThisMonth.length === 0 ? '<div class="text-center py-4 text-xs text-slate-700">Belum ada.</div>' : redeemedThisMonth.map(r=>`<div class="glass-card p-3 rounded-lg flex items-center justify-between opacity-70 mb-2"><div><p class="text-white text-xs font-bold">${r.name}</p><p class="text-[9px] text-slate-500">${Utils.formatDate(r.redeemedDate)}</p></div><div class="text-neonGreen text-[10px] font-mono flex items-center gap-1"><i data-lucide="check-circle" class="w-3 h-3"></i> TUKAR</div></div>`).join('')}
-                            </div>
-                            
-                            <div>
-                                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest pl-2 border-l-2 border-slate-700 mb-2">Klaim Bulan Lalu</h3>
-                                ${redeemedLastMonth.length === 0 ? '<div class="text-center py-4 text-xs text-slate-700">Belum ada.</div>' : redeemedLastMonth.map(r=>`<div class="glass-card p-3 rounded-lg flex items-center justify-between opacity-50 mb-2"><div><p class="text-white text-xs font-bold">${r.name}</p><p class="text-[9px] text-slate-500">${Utils.formatDate(r.redeemedDate)}</p></div><div class="text-slate-500 text-[10px] font-mono flex items-center gap-1"><i data-lucide="history" class="w-3 h-3"></i> ARSIP</div></div>`).join('')}
+                            <div class="h-1.5 w-full bg-black/30 rounded-full overflow-hidden">
+                                <div class="h-full ${expenseCurrent > budgetCurrent ? 'bg-neonRed' : 'bg-neonCyan'} transition-all duration-1000" style="width: ${budgetPercent}%"></div>
                             </div>
                         </div>
                     </div>`;
                 }
-                else if (this.state.view === 'history') {
-                    // ... (History View logic)
-                    const [hy, hm] = this.state.histMonth.split('-');
-                    const dim = new Date(hy, hm, 0).getDate();
-                    const fDay = new Date(hy, parseInt(hm)-1, 1).getDay();
-                    const offset = fDay===0?6:fDay-1;
-                    const days = Array.from({length:dim},(_,i)=>`${this.state.histMonth}-${String(i+1).padStart(2,'0')}`);
-                    const sd = this.state.histDate;
+
+                // --- REWARD FORM (SAMA) ---
+                let rewardForm = ''; 
+                // ... (Biarkan kode form reward input sama seperti sebelumnya / copy dari kode lama jika perlu, tapi fokus kita di List Active di bawah ini)
+                if (this.state.rewardStep === 0) {
+                     rewardForm = `<div class="flex gap-2"><input id="rew-name" type="text" placeholder="Nama hadiah..." class="w-full bg-charcoal text-white rounded-lg px-4 py-3 text-sm border border-slate-700 focus:border-neonCyan outline-none"><button onclick="App.controller.initReward()" class="bg-neonCyan hover:bg-white hover:text-obsidian text-obsidian px-5 rounded-lg font-bold transition-all shadow-lg"><i data-lucide="arrow-right" class="w-5 h-5"></i></button></div>`;
+                } else if (this.state.rewardStep === 1) {
+                    rewardForm = `<div class="text-center py-2 animate-[fadeIn_0.3s]"><p class="text-white text-xs font-bold mb-3">Ada harga nominal (Rp)?</p><div class="flex gap-3 justify-center"><button onclick="App.controller.setRewardHasPrice(false)" class="px-4 py-2 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-700 text-xs">Tidak</button><button onclick="App.controller.setRewardHasPrice(true)" class="px-4 py-2 rounded-lg bg-neonPurple text-white hover:bg-neonPurple/80 shadow-lg text-xs font-bold">Ya</button></div></div>`;
+                } else if (this.state.rewardStep === 2) {
+                     const showPriceInput = this.state.tempReward.hasPrice;
+                     rewardForm = `<div class="space-y-3 animate-[fadeIn_0.3s]"><div class="flex items-center justify-between text-xs text-slate-400 px-1"><span>Item: <strong class="text-white">${this.state.tempReward.name}</strong></span><button onclick="App.controller.resetRewardForm()" class="text-neonRed hover:underline">Batal</button></div>${showPriceInput ? `<input id="rew-price" type="number" onkeyup="App.controller.calcRewardRecs()" placeholder="Harga (Rp)..." class="w-full bg-charcoal text-white rounded-lg px-4 py-3 text-sm border border-slate-700 focus:border-neonPurple outline-none">` : ''}<div id="rec-container"></div><div class="flex gap-2"><input id="rew-cost" type="number" placeholder="Target Poin..." class="flex-1 bg-charcoal text-white rounded-lg px-4 py-3 text-sm border border-slate-700 focus:border-neonCyan outline-none"><button onclick="App.controller.saveReward()" class="bg-neonCyan hover:bg-white hover:text-obsidian text-obsidian px-5 rounded-lg font-bold transition-all shadow-lg"><i data-lucide="check" class="w-5 h-5"></i></button></div></div>`;
+                }
+
+                main.innerHTML = `
+                <div class="space-y-6 animate-[fadeIn_0.4s_ease-out] pt-4">
+                    ${financeSection}
+
+                    <div class="space-y-2"><h3 class="text-xs font-bold text-white uppercase tracking-widest pl-2 border-l-2 border-neonCyan">Target Baru</h3><div class="glass-card p-4 rounded-xl space-y-3">${rewardForm}</div></div>
                     
-                    const sTasks = sd ? Engine.sortTasks(tasks.filter(t=>t.date===sd)) : [];
-                    const sRef = sd ? reflections.find(r=>r.date===sd) : null;
-                    const histRank = Engine.calcRank(this.state.histMonth, tasks, financeData);
-                    
-                    // Filter rewards redeemed in the selected history month
-                    const histRewards = rewards.filter(r => r.status === 'redeemed' && r.redeemedDate && r.redeemedDate.startsWith(this.state.histMonth)).sort((a,b) => new Date(b.redeemedDate) - new Date(a.redeemedDate));
-                    const totalHistExpense = histRewards.reduce((acc, r) => acc + (r.price || 0), 0);
-
-                    let grid = '';
-                    for(let i=0;i<offset;i++) grid+=`<div class="aspect-square"></div>`;
-                    days.forEach(d => {
-                        const dayTasks = tasks.filter(t=>t.date===d);
-                        const has = dayTasks.length>0;
-                        const all = has && dayTasks.every(t=>t.status==='completed');
-                        const fail = dayTasks.some(t=>t.status==='failed');
-                        let bg='bg-slate-800/30 text-slate-500', br='border-transparent';
-                        if(has) { if(all){bg='bg-neonGreen/20 text-white';br='border-neonGreen/50'} else if(fail){bg='bg-neonRed/20 text-white';br='border-neonRed/50'} else {bg='bg-neonPurple/20 text-white';br='border-neonPurple/50'} }
-                        if(sd===d) { bg='bg-neonCyan text-obsidian font-bold shadow-[0_0_10px_rgba(6,182,212,0.5)]'; br='border-white'; }
-                        grid+=`<button onclick="App.controller.setDate('${d}')" class="cal-cell ${sd===d?'active':''} aspect-square rounded-lg flex items-center justify-center text-xs border ${br} ${bg} transition-all hover:scale-105 active:scale-95">${new Date(d).getDate()}</button>`;
-                    });
-
-                    main.innerHTML = `
-                    <div class="pt-2 animate-[fadeIn_0.4s_ease-out] pb-24">
-                        
-                        <!-- Month Nav -->
-                        <div class="flex items-center justify-between glass-card p-2 rounded-xl mb-4">
-                            <button onclick="App.controller.navMonth(-1)" class="p-2 hover:bg-white/10 rounded-lg text-slate-400 group">
-                                <i data-lucide="chevron-left" class="w-5 h-5 group-active:-translate-x-1 transition-transform"></i>
-                            </button>
-                            <span class="text-white font-black text-sm tracking-[0.2em]">${Utils.formatMonth(this.state.histMonth)}</span>
-                            <button onclick="App.controller.navMonth(1)" class="p-2 hover:bg-white/10 rounded-lg text-slate-400 group">
-                                <i data-lucide="chevron-right" class="w-5 h-5 group-active:translate-x-1 transition-transform"></i>
-                            </button>
-                        </div>
-
-                        <!-- Monthly Rank History Display -->
-                        <div class="flex gap-3 mb-6 relative">
-                            ${ComponentFactory.rankCard('EXECUTION', histRank.exec, 'swords')}
-                            ${ComponentFactory.rankCard('CONSISTENCY', histRank.cons, 'zap')}
+                    <div class="space-y-3">
+                        <h3 class="text-xs font-bold text-white uppercase tracking-widest pl-2 border-l-2 border-neonPurple">Wishlist (Shop)</h3>
+                        ${active.length===0?'<div class="text-center py-8 text-xs text-slate-600 border border-dashed border-slate-800 rounded-xl">KOSONG</div>' : active.map(r=>{
+                            // LOGIKA BARU: Cek saldo wallet vs harga
+                            const canClaim = walletBalance >= r.cost;
+                            const progress = Math.min((walletBalance/r.cost)*100, 100);
                             
-                            <!-- Monthly Expense Badge for History -->
-                            <div class="absolute top-[-10px] right-2 bg-neonRed/20 border border-neonRed/40 text-neonRed text-[9px] px-2 py-0.5 rounded-full font-bold shadow-lg">
-                                Pengeluaran: Rp ${Utils.formatCurrency(totalHistExpense)}
-                            </div>
-                        </div>
-
-                        <!-- Calendar Grid -->
-                        <div class="grid grid-cols-7 gap-1 text-center mb-2">${['SEN','SEL','RAB','KAM','JUM','SAB','MIN'].map(d=>`<div class="text-[8px] font-bold text-slate-500 tracking-wider">${d}</div>`).join('')}</div>
-                        <div class="grid grid-cols-7 gap-1.5 mb-6">${grid}</div>
-                        
-                        <!-- NEW: Log Pengeluaran (Reward) -->
-                        <div class="mb-6 border-b border-white/5 pb-4">
-                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2"><i data-lucide="shopping-bag" class="w-3 h-3 text-neonGold"></i> Log Pengeluaran (${Utils.formatMonth(this.state.histMonth)})</h3>
-                            ${histRewards.length === 0 ? '<div class="text-center py-4 text-xs text-slate-700 italic">Tidak ada pengeluaran reward bulan ini.</div>' : 
-                            histRewards.map(r => `
-                                <div class="flex justify-between items-center py-2 border-b border-white/5 last:border-0">
-                                    <div>
-                                        <span class="text-xs text-white font-bold block">${r.name}</span>
-                                        <span class="text-[9px] text-slate-500 font-mono">${Utils.formatDate(r.redeemedDate)}</span>
+                            return `
+                            <div class="glass-card p-4 rounded-xl relative overflow-hidden group border ${canClaim ? 'border-neonGreen/50' : 'border-white/5'}">
+                                <div class="flex justify-between items-start relative z-10">
+                                    <div class="flex-1">
+                                        <p class="text-white text-sm font-bold">${r.name}</p>
+                                        ${r.price ? `<p class="text-[10px] text-neonGold font-mono mb-1">Rp ${Utils.formatCurrency(r.price)}</p>` : ''}
+                                        <div class="flex items-center gap-2 mt-2">
+                                            <div class="h-1.5 w-24 bg-slate-700 rounded-full overflow-hidden">
+                                                <div class="h-full ${canClaim ? 'bg-neonGreen' : 'bg-slate-500'} transition-all" style="width:${progress}%"></div>
+                                            </div>
+                                            <span class="text-[9px] font-mono ${canClaim ? 'text-neonGreen' : 'text-slate-500'}">${r.cost} PTS</span>
+                                        </div>
                                     </div>
-                                    <div class="text-right">
-                                        <span class="text-[10px] text-neonRed font-mono font-bold block">- Rp ${Utils.formatCurrency(r.price)}</span>
-                                        <span class="text-[9px] text-slate-600 font-mono">Cost: ${r.cost} Pts</span>
+                                    
+                                    <div class="flex flex-col gap-2">
+                                        ${canClaim ? 
+                                        `<button onclick="App.controller.claimReward('${r.id}')" class="bg-neonGreen text-obsidian text-[10px] font-bold px-3 py-1.5 rounded shadow-[0_0_10px_rgba(16,185,129,0.4)] hover:bg-white transition-all animate-pulse">KLAIM</button>` 
+                                        : 
+                                        `<div class="text-[9px] text-slate-600 font-bold border border-slate-700 px-2 py-1 rounded bg-black/20"><i data-lucide="lock" class="w-3 h-3 inline"></i></div>`
+                                        }
+                                        <button onclick="App.controller.delReward('${r.id}')" class="text-slate-600 hover:text-neonRed transition-colors self-end"><i data-lucide="trash-2" class="w-3 h-3"></i></button>
                                     </div>
                                 </div>
-                            `).join('')}
+                            </div>`
+                        }).join('')}
+                    </div>
+                    
+                    <!-- Claim History Section (Sudah dibatasi 2 tahun via Store.prune) -->
+                    <div class="pt-4 border-t border-white/5 space-y-4">
+                        <div>
+                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest pl-2 border-l-2 border-slate-600 mb-2">Riwayat Klaim</h3>
+                            ${redeemedThisMonth.length === 0 ? '<div class="text-center py-4 text-xs text-slate-700">Belum ada klaim bulan ini.</div>' : redeemedThisMonth.map(r=>`<div class="glass-card p-3 rounded-lg flex items-center justify-between opacity-70 mb-2"><div><p class="text-white text-xs font-bold">${r.name}</p><p class="text-[9px] text-slate-500">${Utils.formatDate(r.redeemedDate)}</p></div><div class="text-neonRed text-[10px] font-mono font-bold">- ${r.cost} PTS</div></div>`).join('')}
                         </div>
+                    </div>
+                </div>`;
+            }
+                // --- GANTI SELURUH BLOK VIEW 'HISTORY' DENGAN INI ---
+            else if (this.state.view === 'history') {
+                const [hy, hm] = this.state.histMonth.split('-');
+                const dim = new Date(hy, hm, 0).getDate();
+                const fDay = new Date(hy, parseInt(hm)-1, 1).getDay();
+                const offset = fDay===0?6:fDay-1;
+                const days = Array.from({length:dim},(_,i)=>`${this.state.histMonth}-${String(i+1).padStart(2,'0')}`);
+                const sd = this.state.histDate;
+                
+                const sTasks = sd ? Engine.sortTasks(tasks.filter(t=>t.date===sd)) : [];
+                const sRef = sd ? reflections.find(r=>r.date===sd) : null;
+                const histRank = Engine.calcRank(this.state.histMonth, tasks, financeData);
+                
+                // --- LOGIKA BARU: HITUNG TOTAL POIN BULAN SEJARAH ITU ---
+                const histTasksAll = tasks.filter(t => t.date.startsWith(this.state.histMonth) && t.status === 'completed');
+                const histTotalPoints = histTasksAll.reduce((acc, t) => acc + (Config.DIFFICULTY[t.difficulty]?.pts || 0), 0);
+                
+                // Filter rewards (Store.prune sudah membatasi 2 tahun, jadi aman)
+                const histRewards = rewards.filter(r => r.status === 'redeemed' && r.redeemedDate && r.redeemedDate.startsWith(this.state.histMonth)).sort((a,b) => new Date(b.redeemedDate) - new Date(a.redeemedDate));
+                const totalHistExpense = histRewards.reduce((acc, r) => acc + (r.price || 0), 0);
+                const totalHistPointsSpent = histRewards.reduce((acc, r) => acc + (r.cost || 0), 0);
 
-                        <!-- Selected Date Details -->
-                        <div class="space-y-4 border-t border-white/5 pt-4">
-                            ${!sd ? `<div class="text-center text-slate-600 text-xs font-mono pt-4 flex flex-col items-center gap-2"><i data-lucide="touchpad" class="w-8 h-8 opacity-50"></i>PILIH TANGGAL</div>` : 
-                            `<div class="flex justify-between items-center mb-2"><h3 class="text-neonCyan font-bold text-lg">${Utils.formatDate(sd)}</h3><span class="text-[10px] bg-slate px-2 py-1 rounded text-slate-400 font-mono border border-slate-700">LOG</span></div>
-                            <div class="glass-card p-4 rounded-xl mb-4 relative overflow-hidden"><div class="absolute top-0 right-0 p-3 opacity-10"><i data-lucide="brain-circuit" class="w-12 h-12 text-white"></i></div><div class="text-[9px] text-neonPurple font-bold uppercase mb-2 tracking-wider">Refleksi</div><p class="text-slate-300 text-sm italic relative z-10">"${sRef ? sRef.text : 'Tidak ada catatan.'}"</p></div>
-                            <div class="space-y-0">${sTasks.length === 0 ? '<p class="text-center text-xs text-slate-600 py-8">Tidak ada misi.</p>' : sTasks.map(t => ComponentFactory.taskItem(t, 'view')).join('')}</div>`}
+                let grid = '';
+                for(let i=0;i<offset;i++) grid+=`<div class="aspect-square"></div>`;
+                days.forEach(d => {
+                    const dayTasks = tasks.filter(t=>t.date===d);
+                    const has = dayTasks.length>0;
+                    const all = has && dayTasks.every(t=>t.status==='completed');
+                    const fail = dayTasks.some(t=>t.status==='failed');
+                    let bg='bg-slate-800/30 text-slate-500', br='border-transparent';
+                    if(has) { if(all){bg='bg-neonGreen/20 text-white';br='border-neonGreen/50'} else if(fail){bg='bg-neonRed/20 text-white';br='border-neonRed/50'} else {bg='bg-neonPurple/20 text-white';br='border-neonPurple/50'} }
+                    if(sd===d) { bg='bg-neonCyan text-obsidian font-bold shadow-[0_0_10px_rgba(6,182,212,0.5)]'; br='border-white'; }
+                    grid+=`<button onclick="App.controller.setDate('${d}')" class="cal-cell ${sd===d?'active':''} aspect-square rounded-lg flex items-center justify-center text-xs border ${br} ${bg} transition-all hover:scale-105 active:scale-95">${new Date(d).getDate()}</button>`;
+                });
+
+                main.innerHTML = `
+                <div class="pt-2 animate-[fadeIn_0.4s_ease-out] pb-24">
+                    
+                    <!-- Month Nav -->
+                    <div class="flex items-center justify-between glass-card p-2 rounded-xl mb-4">
+                        <button onclick="App.controller.navMonth(-1)" class="p-2 hover:bg-white/10 rounded-lg text-slate-400 group">
+                            <i data-lucide="chevron-left" class="w-5 h-5 group-active:-translate-x-1 transition-transform"></i>
+                        </button>
+                        <span class="text-white font-black text-sm tracking-[0.2em]">${Utils.formatMonth(this.state.histMonth)}</span>
+                        <button onclick="App.controller.navMonth(1)" class="p-2 hover:bg-white/10 rounded-lg text-slate-400 group">
+                            <i data-lucide="chevron-right" class="w-5 h-5 group-active:translate-x-1 transition-transform"></i>
+                        </button>
+                    </div>
+
+                    <!-- Monthly Stats Summary (NEW) -->
+                    <div class="glass-card p-4 rounded-xl border border-white/5 mb-6 flex justify-between items-center bg-white/5">
+                        <div class="text-center">
+                            <div class="text-[9px] text-slate-400 uppercase tracking-widest mb-1">Total Poin</div>
+                            <div class="text-xl font-mono font-bold text-neonCyan">${histTotalPoints}</div>
                         </div>
-                    </div>`;
-                }
+                        <div class="w-px h-8 bg-white/10"></div>
+                        <div class="text-center">
+                            <div class="text-[9px] text-slate-400 uppercase tracking-widest mb-1">Dibelanjakan</div>
+                            <div class="text-xl font-mono font-bold text-neonRed">-${totalHistPointsSpent}</div>
+                        </div>
+                        <div class="w-px h-8 bg-white/10"></div>
+                        <div class="text-center">
+                            <div class="text-[9px] text-slate-400 uppercase tracking-widest mb-1">Sisa (Net)</div>
+                            <div class="text-xl font-mono font-bold text-white">${histTotalPoints - totalHistPointsSpent}</div>
+                        </div>
+                    </div>
+
+                    <!-- Rank History -->
+                    <div class="flex gap-3 mb-6">
+                        ${ComponentFactory.rankCard('EXECUTION', histRank.exec, 'swords')}
+                        ${ComponentFactory.rankCard('CONSISTENCY', histRank.cons, 'zap')}
+                    </div>
+
+                    <!-- Calendar -->
+                    <div class="grid grid-cols-7 gap-1 text-center mb-2">${['SEN','SEL','RAB','KAM','JUM','SAB','MIN'].map(d=>`<div class="text-[8px] font-bold text-slate-500 tracking-wider">${d}</div>`).join('')}</div>
+                    <div class="grid grid-cols-7 gap-1.5 mb-6">${grid}</div>
+                    
+                    <!-- Rewards Log -->
+                    <div class="mb-6 border-b border-white/5 pb-4">
+                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2"><i data-lucide="shopping-cart" class="w-3 h-3 text-neonRed"></i> Belanja Bulan Ini</h3>
+                        ${histRewards.length === 0 ? '<div class="text-center py-4 text-xs text-slate-700 italic">Tidak ada pengeluaran.</div>' : 
+                        histRewards.map(r => `
+                            <div class="flex justify-between items-center py-2 border-b border-white/5 last:border-0">
+                                <div>
+                                    <span class="text-xs text-white font-bold block">${r.name}</span>
+                                    <span class="text-[9px] text-slate-500 font-mono">${Utils.formatDate(r.redeemedDate)}</span>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-[10px] text-neonRed font-mono font-bold block">- ${r.cost} PTS</span>
+                                    <span class="text-[9px] text-slate-600 font-mono">Rp ${Utils.formatCurrency(r.price)}</span>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+
+                    <!-- Selected Date Details -->
+                    <div class="space-y-4 border-t border-white/5 pt-4">
+                        ${!sd ? `<div class="text-center text-slate-600 text-xs font-mono pt-4 flex flex-col items-center gap-2"><i data-lucide="touchpad" class="w-8 h-8 opacity-50"></i>PILIH TANGGAL</div>` : 
+                        `<div class="flex justify-between items-center mb-2"><h3 class="text-neonCyan font-bold text-lg">${Utils.formatDate(sd)}</h3><span class="text-[10px] bg-slate px-2 py-1 rounded text-slate-400 font-mono border border-slate-700">LOG</span></div>
+                        <div class="glass-card p-4 rounded-xl mb-4 relative overflow-hidden"><div class="absolute top-0 right-0 p-3 opacity-10"><i data-lucide="brain-circuit" class="w-12 h-12 text-white"></i></div><div class="text-[9px] text-neonPurple font-bold uppercase mb-2 tracking-wider">Refleksi</div><p class="text-slate-300 text-sm italic relative z-10">"${sRef ? sRef.text : 'Tidak ada catatan.'}"</p></div>
+                        <div class="space-y-0">${sTasks.length === 0 ? '<p class="text-center text-xs text-slate-600 py-8">Tidak ada misi.</p>' : sTasks.map(t => ComponentFactory.taskItem(t, 'view')).join('')}</div>`}
+                    </div>
+                </div>`;
+            }
 
                 lucide.createIcons();
             }

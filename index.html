@@ -1020,53 +1020,81 @@
                 Store.set('settings', { ...settings, theme: themeId });
             },
 
-            // --- NOTIFICATION SYSTEM ---
+           // --- UPDATED NOTIFICATION SYSTEM ---
             requestPermission() {
                 if (!("Notification" in window)) {
-                    this.toast("Browser tidak mendukung notifikasi", "error");
+                    this.toast("Browser ini tidak support notifikasi sistem.", "error");
                     return;
                 }
+
+                // Minta izin
                 Notification.requestPermission().then(permission => {
                     if (permission === "granted") {
-                        this.toast("Notifikasi diaktifkan!", "success");
+                        this.toast("Sistem Notifikasi Diaktifkan!", "success");
                         this.sound.play('success');
-                        this.openSettings(); 
-                        new Notification("Wake Map Active", { body: "Sistem notifikasi siap.", icon: "https://placehold.co/192x192/020617/06b6d4.png?text=WM" });
+                        
+                        // Tes notifikasi langsung
+                        this.showNotification("Wake Map Connected", "Sistem siap memantau misi Anda.");
+                        
+                        this.render(); // Refresh tampilan tombol settings
+                    } else {
+                        this.toast("Izin notifikasi ditolak oleh browser.", "error");
                     }
                 });
             },
 
-            checkNotifications(tasks) {
+           checkNotifications(tasks) {
+                // 1. Cek dukungan & izin
                 if (!("Notification" in window) || Notification.permission !== "granted") return;
 
+                // 2. Cek waktu (Throttle) agar tidak bunyi terus menerus setiap 10 detik
+                // Kita buat agar notifikasi hanya muncul sekali per 15 menit
                 const now = new Date();
-                if (now.getTime() - this.state.lastNotifTime < 900000) return;
+                if (now.getTime() - this.state.lastNotifTime < 900000) return; 
 
                 const currentSlot = Utils.getCurrentSlot();
                 const today = Utils.getISO();
                 
+                // 3. Filter Task Aktif
                 const activeTasks = tasks.filter(t => 
                     t.date === today && 
                     t.status === 'pending' && 
                     (t.timeSlot === currentSlot.id || t.timeSlot === 'all')
                 );
 
+                // 4. Trigger Notifikasi jika ada misi
                 if (activeTasks.length > 0) {
-                    const title = `⚠️ ${currentSlot.label} PHASE: ${activeTasks.length} Misi Aktif`;
-                    const body = activeTasks.map(t => t.text).join(", ");
+                    const title = `⚡ FASE ${currentSlot.label}: ${activeTasks.length} Misi Menunggu`;
+                    const body = activeTasks.map(t => "• " + t.text).join("\n");
                     
-                    const notif = new Notification(title, {
-                        body: body,
-                        icon: "https://placehold.co/192x192/020617/06b6d4.png?text=WM",
-                        tag: "wakemap-alert",
-                        vibrate: [200, 100, 200]
-                    });
+                    this.showNotification(title, body);
 
+                    // Update waktu terakhir notifikasi
                     this.state.lastNotifTime = now.getTime();
-                    setTimeout(() => notif.close(), 10000); 
                 }
             },
 
+            // Fungsi Helper Baru untuk Memunculkan Notif (Support Service Worker jika ada)
+            showNotification(title, body) {
+                const options = {
+                    body: body,
+                    icon: "https://placehold.co/192x192/020617/06b6d4.png?text=WM",
+                    badge: "https://placehold.co/96x96/020617/ffffff.png?text=W", // Icon kecil di status bar android
+                    vibrate: [200, 100, 200],
+                    tag: "wakemap-alert", // Agar notifikasi tidak menumpuk
+                    renotify: true // Agar HP getar lagi walaupun notif lama belum ditutup
+                };
+
+                // Coba pakai Service Worker (Lebih kuat di Android)
+                if (navigator.serviceWorker && navigator.serviceWorker.ready) {
+                    navigator.serviceWorker.ready.then(registration => {
+                        registration.showNotification(title, options);
+                    });
+                } else {
+                    // Fallback ke notifikasi biasa
+                    new Notification(title, options);
+                }
+            },
             navigate(view) { 
                 this.state.view = view; 
                 this.sound.play('nav');

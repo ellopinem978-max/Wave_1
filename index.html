@@ -469,32 +469,51 @@
                     osc.type = 'sine';
                     osc.frequency.setValueAtTime(800, now);
                     osc.frequency.exponentialRampToValueAtTime(300, now + 0.1);
-                    gain.gain.setValueAtTime(0.1, now);
+                    
+                    // --- PERBAIKAN DI SINI ---
+                    // Tadinya 0.1 (10%), ganti jadi 0.5 (50%) supaya "tek" nya kedengeran mantap
+                    gain.gain.setValueAtTime(0.5, now); 
                     gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                    
                     osc.start(now);
                     osc.stop(now + 0.1);
+
                 } else if (type === 'success') {
                     osc.type = 'triangle';
                     osc.frequency.setValueAtTime(440, now); 
                     osc.frequency.setValueAtTime(554, now + 0.1); 
                     osc.frequency.setValueAtTime(659, now + 0.2); 
-                    gain.gain.setValueAtTime(0.1, now);
+                    
+                    // --- PERBAIKAN DI SINI ---
+                    // Tadinya 0.1, naikkan jadi 0.4 supaya bunyi "ting!" jelas
+                    gain.gain.setValueAtTime(0.4, now);
                     gain.gain.linearRampToValueAtTime(0, now + 0.4);
+                    
                     osc.start(now);
                     osc.stop(now + 0.4);
+
                 } else if (type === 'error') {
                     osc.type = 'sawtooth';
                     osc.frequency.setValueAtTime(150, now);
                     osc.frequency.linearRampToValueAtTime(50, now + 0.3);
-                    gain.gain.setValueAtTime(0.1, now);
+                    
+                    // --- PERBAIKAN DI SINI ---
+                    // Tadinya 0.1, naikkan jadi 0.4 supaya bunyi "tetot" jelas
+                    gain.gain.setValueAtTime(0.4, now);
                     gain.gain.linearRampToValueAtTime(0, now + 0.3);
+                    
                     osc.start(now);
                     osc.stop(now + 0.3);
+
                 } else if (type === 'nav') {
                       osc.type = 'sine';
                       osc.frequency.setValueAtTime(600, now);
-                      gain.gain.setValueAtTime(0.05, now);
+                      
+                      // --- PERBAIKAN DI SINI ---
+                      // Tadinya 0.05 (kecil banget), naikkan jadi 0.2
+                      gain.gain.setValueAtTime(0.2, now);
                       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+                      
                       osc.start(now);
                       osc.stop(now + 0.05);
                 }

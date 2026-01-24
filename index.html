@@ -1817,9 +1817,12 @@
                 const { total } = Engine.calcPoints(tasks); // Total Poin Seumur Hidup
                 
                 const allRedeemed = rewards.filter(r => r.status === 'redeemed');
-                const totalSpent = allRedeemed.reduce((acc, r) => acc + (r.cost || 0), 0);
-                
-                const walletBalance = total - totalSpent; // Saldo Saat Ini
+               // Tambahkan archivedSpent juga disini
+                const settings = Store.get('settings');
+                const archivedSpent = settings.archivedSpent || 0;
+
+                const totalSpent = allRedeemed.reduce((acc, r) => acc + (r.cost || 0), 0) + archivedSpent;
+                const walletBalance = total - totalSpent;
 
                 if (walletBalance >= reward.cost) {
                     if(confirm(`Klaim hadiah "${reward.name}" seharga ${reward.cost} Poin?\nSisa Poin Anda akan berkurang.`)) {
@@ -2384,9 +2387,13 @@
                     // Ambil semua yang sudah diklaim
                     const allRedeemed = rewards.filter(r => r.status === 'redeemed');
                     
-                    // [FIX CRITICAL] Menghitung Total Pengeluaran Poin (Cost), BUKAN Harga (Price)
-                    const totalSpent = allRedeemed.reduce((acc, r) => acc + (r.cost || 0), 0);
-                    
+                    // Ambil data arsip pengeluaran
+                    const settings = Store.get('settings');
+                    const archivedSpent = settings.archivedSpent || 0;
+
+                    // Total Spent = Belanjaan Aktif + Belanjaan Arsip
+                    const totalSpent = allRedeemed.reduce((acc, r) => acc + (r.cost || 0), 0) + archivedSpent;
+                                        
                     // Hitung Saldo Wallet
                     const walletBalance = total - totalSpent;
                     const isMinus = walletBalance < 0;
@@ -2543,26 +2550,45 @@
                             </button>
                         </div>
 
-                        <!-- [NEW] Monthly Stats Summary -->
-                        <div class="glass-card p-4 rounded-xl border border-white/5 mb-6 bg-gradient-to-r from-slate-800/50 to-transparent">
-                            <div class="flex justify-between items-center mb-4">
-                                <div class="text-center flex-1">
-                                    <div class="text-[8px] text-slate-400 uppercase tracking-widest mb-1">Pendapatan</div>
-                                    <div class="text-lg font-mono font-bold text-neonCyan">+${histTotalPoints} Pts</div>
+                       <!-- [NEW] Monthly Stats Summary (Re-Design) -->
+                        <div class="mb-6">
+                            <!-- Grid 2 Kartu -->
+                            <div class="grid grid-cols-2 gap-3 mb-3">
+                                <!-- Kartu Masuk -->
+                                <div class="glass-card p-3 rounded-xl border-l-2 border-neonGreen bg-gradient-to-br from-green-900/20 to-transparent relative overflow-hidden group">
+                                    <div class="absolute right-[-10px] top-[-10px] bg-neonGreen/10 w-16 h-16 rounded-full blur-xl group-hover:bg-neonGreen/20 transition-all"></div>
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <div class="p-1.5 rounded-lg bg-neonGreen/10 text-neonGreen"><i data-lucide="trending-up" class="w-4 h-4"></i></div>
+                                        <span class="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Masuk</span>
+                                    </div>
+                                    <div class="text-xl font-mono font-bold text-white tracking-tight">${histTotalPoints} <span class="text-[10px] text-slate-500 font-sans">Pts</span></div>
                                 </div>
-                                <div class="w-px h-8 bg-white/10"></div>
-                                <div class="text-center flex-1">
-                                    <div class="text-[8px] text-slate-400 uppercase tracking-widest mb-1">Tukar Poin</div>
-                                    <div class="text-lg font-mono font-bold text-neonRed">-${totalHistPointsSpent} Pts</div>
+
+                                <!-- Kartu Keluar -->
+                                <div class="glass-card p-3 rounded-xl border-l-2 border-neonRed bg-gradient-to-br from-red-900/20 to-transparent relative overflow-hidden group">
+                                    <div class="absolute right-[-10px] top-[-10px] bg-neonRed/10 w-16 h-16 rounded-full blur-xl group-hover:bg-neonRed/20 transition-all"></div>
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <div class="p-1.5 rounded-lg bg-neonRed/10 text-neonRed"><i data-lucide="trending-down" class="w-4 h-4"></i></div>
+                                        <span class="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Terpakai</span>
+                                    </div>
+                                    <div class="text-xl font-mono font-bold text-white tracking-tight">${totalHistPointsSpent} <span class="text-[10px] text-slate-500 font-sans">Pts</span></div>
                                 </div>
                             </div>
-                            
-                            <!-- Total Pengeluaran Rupiah -->
-                            <div class="pt-3 border-t border-white/10 flex justify-between items-center">
-                                <span class="text-[10px] text-slate-300 font-bold uppercase tracking-wider flex items-center gap-2">
-                                    <i data-lucide="banknote" class="w-3 h-3 text-neonGold"></i> Pengeluaran Uang
-                                </span>
-                                <span class="text-sm font-mono font-bold text-neonGold">Rp ${Utils.formatCurrency(totalHistRupiah)}</span>
+
+                            <!-- Info Rupiah & Bar Visual -->
+                            <div class="glass-card px-4 py-3 rounded-xl border border-white/5">
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="text-[10px] text-slate-400 font-bold uppercase tracking-widest flex items-center gap-2">
+                                        <i data-lucide="banknote" class="w-3 h-3 text-neonGold"></i> Konversi Uang
+                                    </span>
+                                    <span class="text-sm font-mono font-bold text-neonGold">Rp ${Utils.formatCurrency(totalHistRupiah)}</span>
+                                </div>
+                                
+                                <!-- Visual Bar Ratio -->
+                                <div class="h-1.5 w-full bg-slate-800 rounded-full flex overflow-hidden">
+                                    <div class="h-full bg-neonGreen" style="width: ${histTotalPoints > 0 ? (histTotalPoints / (histTotalPoints + totalHistPointsSpent + 0.1) * 100) : 0}%"></div>
+                                    <div class="h-full bg-neonRed" style="width: ${totalHistPointsSpent > 0 ? (totalHistPointsSpent / (histTotalPoints + totalHistPointsSpent + 0.1) * 100) : 0}%"></div>
+                                </div>
                             </div>
                         </div>
 

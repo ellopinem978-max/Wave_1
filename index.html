@@ -971,7 +971,13 @@
                 tempGoal: { id: null, title: '', target: '', category: 'lainnya', type: 'progressive', rankIndex: 0 },
                 tempSnapshot: { goalId: null, milestone: '', isFinal: false, nextTarget: '', tierIndex: 0 },
                 lastNotifTime: 0,
-                tempBlueprintDiff: 'easy'
+                tempBlueprintDiff: 'easy',
+                
+                // [TAMBAHAN BARU] Tracker agar notif hanya muncul 1x per slot/hari
+                notifiedTracker: { 
+                    slot: null, // Menyimpan slot terakhir yg sudah dinotif (misal: "2023-10-27-core")
+                    rewards: [] // Menyimpan ID hadiah yang sudah diberitahu bisa diklaim
+                }
             },
 
             init() {
@@ -1043,37 +1049,98 @@
                 });
             },
 
-           checkNotifications(tasks) {
+          checkNotifications(tasks) {
                 // 1. Cek dukungan & izin
                 if (!("Notification" in window) || Notification.permission !== "granted") return;
 
-                // 2. Cek waktu (Throttle) agar tidak bunyi terus menerus setiap 10 detik
-                // Kita buat agar notifikasi hanya muncul sekali per 15 menit
                 const now = new Date();
-                if (now.getTime() - this.state.lastNotifTime < 900000) return; 
-
-                const currentSlot = Utils.getCurrentSlot();
                 const today = Utils.getISO();
+                const currentSlot = Utils.getCurrentSlot();
                 
-                // 3. Filter Task Aktif
-                const activeTasks = tasks.filter(t => 
-                    t.date === today && 
-                    t.status === 'pending' && 
-                    (t.timeSlot === currentSlot.id || t.timeSlot === 'all')
-                );
+                // Buat ID unik untuk slot saat ini (Contoh: "2024-05-20-core")
+                const currentSlotKey = `${today}-${currentSlot.id}`;
 
-                // 4. Trigger Notifikasi jika ada misi
-                if (activeTasks.length > 0) {
-                    const title = `⚡ FASE ${currentSlot.label}: ${activeTasks.length} Misi Menunggu`;
-                    const body = activeTasks.map(t => "• " + t.text).join("\n");
+                // --- LOGIKA 1: NOTIFIKASI MISI (TIME BASED) ---
+                // Hanya jalankan jika slot ini BELUM dinotifikasi hari ini
+                if (this.state.notifiedTracker.slot !== currentSlotKey) {
                     
-                    this.showNotification(title, body);
+                    // A. Cari Misi Sesuai Slot Waktu (Jam 8, 10, dll)
+                    const slotTasks = tasks.filter(t => 
+                        t.date === today && 
+                        t.status === 'pending' && 
+                        t.timeSlot === currentSlot.id
+                    );
 
-                    // Update waktu terakhir notifikasi
-                    this.state.lastNotifTime = now.getTime();
+                    // B. Cari Misi "All Day" (Hanya muncul sekali di awal hari/saat buka app pertama kali)
+                    // Kita anggap "awal hari" adalah saat slotKey belum tercatat sama sekali hari ini
+                    const allDayTasks = tasks.filter(t => 
+                        t.date === today && 
+                        t.status === 'pending' && 
+                        t.timeSlot === 'all'
+                    );
+
+                    let notifBody = [];
+                    let notifTitle = "";
+
+                    // Jika ada misi spesifik di jam ini
+                    if (slotTasks.length > 0) {
+                        notifTitle = `⚡ FASE ${currentSlot.label} DIMULAI!`;
+                        slotTasks.forEach(t => notifBody.push(`• ${t.text}`));
+                    }
+
+                    // Jika ada misi All Day dan ini notifikasi pertama di sesi ini (atau jam 00-02)
+                    // Kita gabungkan infonya jika pengguna baru buka app jam 8 pagi
+                    if (allDayTasks.length > 0 && !this.state.notifiedTracker.slot?.startsWith(today)) {
+                        if (!notifTitle) notifTitle = "📅 MISI HARIAN (ALL DAY)";
+                        allDayTasks.forEach(t => notifBody.push(`• [ALL] ${t.text}`));
+                    }
+
+                    // Eksekusi Notif Misi
+                    if (notifBody.length > 0) {
+                        this.showNotification(notifTitle, notifBody.join("\n"));
+                        this.sound.play('nav'); // Bunyi notif
+                    }
+
+                    // Tandai slot ini sudah dinotifikasi agar tidak spam
+                    this.state.notifiedTracker.slot = currentSlotKey;
+                }
+
+                // --- LOGIKA 2: NOTIFIKASI HADIAH (WALLET CHECK) ---
+                // Cek setiap 1 menit saja biar ringan, tidak setiap 10 detik
+                if (now.getSeconds() < 15) { 
+                    const rewards = Store.get('rewards');
+                    
+                    // Hitung Saldo
+                    const { total } = Engine.calcPoints(tasks);
+                    const settings = Store.get('settings');
+                    const archivedSpent = settings.archivedSpent || 0;
+                    const allRedeemed = rewards.filter(r => r.status === 'redeemed');
+                    const totalSpent = allRedeemed.reduce((acc, r) => acc + (r.cost || 0), 0) + archivedSpent;
+                    const walletBalance = total - totalSpent;
+
+                    // Cari hadiah yang: 
+                    // 1. Status Active
+                    // 2. Poin Cukup
+                    // 3. Belum pernah dikasih tau (biar ga spam)
+                    const claimableRewards = rewards.filter(r => 
+                        r.status === 'active' && 
+                        walletBalance >= r.cost &&
+                        !this.state.notifiedTracker.rewards.includes(r.id)
+                    );
+
+                    if (claimableRewards.length > 0) {
+                        const rNames = claimableRewards.map(r => r.name).join(", ");
+                        this.showNotification(
+                            "🎁 HADIAH TERPENUHI!", 
+                            `Saldo Anda (${walletBalance} Pts) cukup untuk klaim: ${rNames}`
+                        );
+                        this.sound.play('success');
+
+                        // Masukkan ke tracker agar tidak notif lagi untuk item ini
+                        claimableRewards.forEach(r => this.state.notifiedTracker.rewards.push(r.id));
+                    }
                 }
             },
-
             // Fungsi Helper Baru untuk Memunculkan Notif (Support Service Worker jika ada)
             showNotification(title, body) {
                 const options = {

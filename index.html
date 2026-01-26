@@ -162,7 +162,7 @@
         .tier-c { color: #1F8A8A; font-weight: 700; }
         
         /* B - Balanced: True Blue */
-        .tier-b { color: #2563EB; font-weight: 700; }
+        .tier-b { color: #2563EB; font-weight: 700; }   
         
         /* A - Advanced: Indigo */
         .tier-a { color: #3F2EFF; font-weight: 800; }
@@ -2856,13 +2856,17 @@
                         </div>
                     </div>`;
                 }
-                else if (this.state.view === 'history') {
+               else if (this.state.view === 'history') {
                     const [hy, hm] = this.state.histMonth.split('-');
                     const dim = new Date(hy, hm, 0).getDate();
                     const fDay = new Date(hy, parseInt(hm)-1, 1).getDay();
-                    const offset = fDay===0?6:fDay-1;
+                    
+                    // Logika Offset (Senin = hari pertama)
+                    const offset = fDay === 0 ? 6 : fDay - 1; 
+                    
                     const days = Array.from({length:dim},(_,i)=>`${this.state.histMonth}-${String(i+1).padStart(2,'0')}`);
                     const sd = this.state.histDate;
+                    const today = Utils.getISO(); // Ambil tanggal hari ini
                     
                     const sTasks = sd ? Engine.sortTasks(tasks.filter(t=>t.date===sd)) : [];
                     const sRef = sd ? reflections.find(r=>r.date===sd) : null;
@@ -2875,17 +2879,51 @@
                     const totalHistPointsSpent = histRewards.reduce((acc, r) => acc + (r.cost || 0), 0);
                     const totalHistRupiah = histRewards.reduce((acc, r) => acc + (r.price || 0), 0);
 
+                    // --- GENERATE KALENDER ---
                     let grid = '';
-                    for(let i=0;i<offset;i++) grid+=`<div class="aspect-square"></div>`;
+                    
+                    // 1. Header Hari (SEN - MIN)
+                    const weekDays = ['SEN', 'SEL', 'RAB', 'KAM', 'JUM', 'SAB', 'MIN'];
+                    weekDays.forEach(day => {
+                        grid += `<div class="text-[8px] font-bold text-slate-600 text-center py-1">${day}</div>`;
+                    });
+
+                    // 2. Kotak Kosong (Offset)
+                    for(let i=0; i<offset; i++) grid += `<div class="aspect-square"></div>`;
+                    
+                    // 3. Tanggal
                     days.forEach(d => {
+                        const isToday = (d === today);
                         const dayTasks = tasks.filter(t=>t.date===d);
                         const has = dayTasks.length>0;
                         const all = has && dayTasks.every(t=>t.status==='completed');
                         const fail = dayTasks.some(t=>t.status==='failed');
+                        
                         let bg='bg-slate-800/30 text-slate-500', br='border-transparent';
-                        if(has) { if(all){bg='bg-neonGreen/20 text-white';br='border-neonGreen/50'} else if(fail){bg='bg-neonRed/20 text-white';br='border-neonRed/50'} else {bg='bg-neonPurple/20 text-white';br='border-neonPurple/50'} }
-                        if(sd===d) { bg='bg-neonCyan text-obsidian font-bold shadow-[0_0_10px_rgba(6,182,212,0.5)]'; br='border-white'; }
-                        grid+=`<button onclick="App.controller.setDate('${d}')" class="cal-cell ${sd===d?'active':''} aspect-square rounded-lg flex items-center justify-center text-xs border ${br} ${bg} transition-all hover:scale-105 active:scale-95">${new Date(d).getDate()}</button>`;
+                        
+                        // Warna status misi
+                        if(has) { 
+                            if(all){ bg='bg-neonGreen/20 text-white'; br='border-neonGreen/30' } 
+                            else if(fail){ bg='bg-neonRed/20 text-white'; br='border-neonRed/30' } 
+                            else { bg='bg-neonPurple/20 text-white'; br='border-neonPurple/30' } 
+                        }
+                        
+                        // Style jika "Hari Ini" (Border Cyan Terang)
+                        if (isToday) {
+                            br = 'border-neonCyan shadow-[0_0_10px_rgba(6,182,212,0.3)]';
+                            if(!has) bg = 'bg-slate-700 text-white'; 
+                        }
+
+                        // Style jika "Diklik/Dipilih" (Solid Block)
+                        if(sd===d) { 
+                            bg='bg-neonCyan text-obsidian font-bold shadow-[0_0_15px_rgba(6,182,212,0.6)]'; 
+                            br='border-white'; 
+                        }
+
+                        grid += `<button onclick="App.controller.setDate('${d}')" class="cal-cell aspect-square rounded-lg flex flex-col items-center justify-center text-xs border ${br} ${bg} transition-all hover:scale-105 active:scale-95 relative overflow-hidden">
+                            ${new Date(d).getDate()}
+                            ${isToday ? '<div class="absolute bottom-0.5 w-1 h-1 bg-white rounded-full"></div>' : ''}
+                        </button>`;
                     });
 
                     main.innerHTML = `
@@ -2924,23 +2962,18 @@
                                 </div>
                             </div>
 
-                            <!-- [FIX] MONEY BURN -->
-                            <div class="glass-card px-4 py-3 rounded-xl border border-white/5">
-                                <div class="flex justify-between items-center mb-2">
+                            <!-- [FIX] MONEY BURN SIMPLE -->
+                            <div class="glass-card px-4 py-3 rounded-xl border border-white/5 bg-slate-800/30">
+                                <div class="flex justify-between items-center">
                                     <span class="text-[10px] text-slate-400 font-bold uppercase tracking-widest flex items-center gap-2">
-                                        <i data-lucide="flame" class="w-3 h-3 text-neonRed"></i> MONEY BURN (REALITY)
+                                        <i data-lucide="flame" class="w-3 h-3 text-neonRed"></i> MONEY BURN
                                     </span>
                                     <span class="text-sm font-mono font-bold text-neonRed">Rp ${Utils.formatCurrency(totalHistRupiah)}</span>
-                                </div>
-                                
-                                <div class="h-1.5 w-full bg-slate-800 rounded-full flex overflow-hidden">
-                                    <div class="h-full bg-neonGreen" style="width: ${histTotalPoints > 0 ? (histTotalPoints / (histTotalPoints + totalHistPointsSpent + 0.1) * 100) : 0}%"></div>
-                                    <div class="h-full bg-neonRed" style="width: ${totalHistPointsSpent > 0 ? (totalHistPointsSpent / (histTotalPoints + totalHistPointsSpent + 0.1) * 100) : 0}%"></div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- [FIX] COMPACT RANK CARDS (Sesuai Request) -->
+                        <!-- COMPACT RANK CARDS -->
                         <div class="grid grid-cols-2 gap-3 mb-6">
                             <!-- Execution Rank Kecil -->
                             <div class="glass-card p-4 flex flex-col items-center border-t-2 border-slate-600 bg-white/5">
@@ -2954,6 +2987,7 @@
                             </div>
                         </div>
 
+                        <!-- [FIX] CALENDAR GRID WITH HEADERS -->
                         <div class="cal-grid mb-6">
                             ${grid}
                         </div>

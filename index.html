@@ -349,21 +349,25 @@
                 { id: 'lainnya', label: 'Lainnya', color: 'text-slate-400', border: 'border-slate-500' }
             ],
 
-            // Time Protocol
+            
+            // Time Protocol (HOURLY PRECISION)
             TIME_SLOTS: [
-                { id: 'halt', label: 'HALT', range: '00:00 - 02:00', start: 0, end: 2, desc: 'Deep Rest & Recovery' },
-                { id: 'void', label: 'VOID', range: '02:00 - 04:00', start: 2, end: 4, desc: 'Subconscious Processing' },
-                { id: 'boot', label: 'BOOT', range: '04:00 - 06:00', start: 4, end: 6, desc: 'System Initialization' },
-                { id: 'prim', label: 'PRIM', range: '06:00 - 08:00', start: 6, end: 8, desc: 'Prime Mental State' },
-                { id: 'core', label: 'CORE', range: '08:00 - 10:00', start: 8, end: 10, desc: 'Deep Focus Work' },
-                { id: 'flow', label: 'FLOW', range: '10:00 - 12:00', start: 10, end: 12, desc: 'High Performance Flow' },
-                { id: 'idle', label: 'IDLE', range: '12:00 - 14:00', start: 12, end: 14, desc: 'System Recharge' },
-                { id: 'sync', label: 'SYNC', range: '14:00 - 16:00', start: 14, end: 16, desc: 'Strategic Alignment' },
-                { id: 'exec', label: 'EXEC', range: '16:00 - 18:00', start: 16, end: 18, desc: 'Tactical Execution' },
-                { id: 'wind', label: 'WIND', range: '18:00 - 20:00', start: 18, end: 20, desc: 'Evening Decompression' },
-                { id: 'rest', label: 'REST', range: '20:00 - 22:00', start: 20, end: 22, desc: 'Recovery Mode' },
-                { id: 'fade', label: 'FADE', range: '22:00 - 24:00', start: 22, end: 24, desc: 'System Shutdown' },
-                { id: 'all',  label: 'ALL',  range: '00:00 - 24:00', start: 0, end: 24, desc: 'Full Day Cycle' }
+                // Generate jam 00 - 23 secara otomatis
+                ...Array.from({length: 24}, (_, i) => {
+                    const next = (i + 1) % 24;
+                    const label = `${String(i).padStart(2, '0')}:00`;
+                    const range = `${String(i).padStart(2, '0')}:00 - ${String(next).padStart(2, '0')}:00`;
+                    return { 
+                        id: `h${i}`, 
+                        label: label, 
+                        range: range, 
+                        start: i, 
+                        end: i + 1, 
+                        desc: 'Hourly Focus' 
+                    };
+                }),
+                // Slot All Day tetap ada
+                { id: 'all',  label: 'ALL DAY',  range: '00:00 - 24:00', start: 0, end: 24, desc: 'Full Day Cycle' }
             ],
 
            // Rank Definitions (FINAL SPECTRUM)
@@ -684,7 +688,7 @@
                 };
             }
 
-            static checkAutoFail(tasks) {
+           static checkAutoFail(tasks) {
                 const now = new Date();
                 const today = Utils.getISO(now);
                 const h = now.getHours();
@@ -699,8 +703,20 @@
                             hasChange = true;
                         } 
                         else if (task.date === today) {
-                            const slot = Config.TIME_SLOTS.find(s => s.id === (task.timeSlot||'all'));
-                            if(slot && slot.id !== 'all' && h >= slot.end) {
+                            // --- LOGIKA BARU UNTUK RANGE ---
+                            let endTime = 24; // Default (All Day)
+
+                            if (task.customEnd !== undefined) {
+                                // Jika pakai Range Manual (06-09), ambil end-nya (9)
+                                endTime = task.customEnd;
+                            } else {
+                                // Jika pakai sistem lama (Compatibility)
+                                const slot = Config.TIME_SLOTS.find(s => s.id === (task.timeSlot||'all'));
+                                if(slot && slot.id !== 'all') endTime = slot.end;
+                            }
+
+                            // Jika jam sekarang >= jam berakhir, GAGAL.
+                            if (h >= endTime) {
                                 task.status = 'failed';
                                 hasChange = true;
                             }
@@ -952,7 +968,16 @@
             },
 
             taskItem(t, mode) { 
-                const slot = Config.TIME_SLOTS.find(s=>s.id === (t.timeSlot||'all'));
+                
+                // Cek apakah ini misi Custom Range atau Biasa
+                let timeLabel = "ALL DAY";
+                
+                if (t.customLabel) {
+                    timeLabel = t.customLabel; // Pakai label custom (06:00 - 09:00)
+                } else {
+                    const slot = Config.TIME_SLOTS.find(s=>s.id === (t.timeSlot||'all'));
+                    if (slot) timeLabel = slot.label; // Fallback
+                }
                 const diff = Config.DIFFICULTY[t.difficulty] || {label:'BONUS', color:'text-neonGold', border:'border-neonGold'};
                 
                 if (t.type === 'bonus' && mode !== 'view') return ''; 
@@ -1000,7 +1025,7 @@
                 <div class="p-4 rounded-xl flex items-center justify-between border mb-3 transition-all ${cardClass}">
                     <div class="flex-1 pr-3">
                         <div class="flex items-center gap-2 mb-1.5">
-                            <span class="text-[8px] font-mono font-bold text-slate-300 bg-surface px-1.5 py-0.5 rounded border border-white/5">${slot.label}</span>
+                            <span class="text-[8px] font-mono font-bold text-slate-300 bg-surface px-1.5 py-0.5 rounded border border-white/5">${timeLabel}</span>
                             ${t.type !== 'bonus' ? `<span class="text-[8px] font-bold border px-1.5 py-0.5 rounded uppercase ${diff.color} ${diff.border} bg-white/5">${diff.label}</span>` : ''}
                         </div>
                         <p class="text-sm ${textClass} leading-snug">${t.text}</p>
@@ -1025,12 +1050,14 @@
          * MODULE 8: MAIN CONTROLLER
          */
         const Controller = {
-            // --- LOOP PROTOCOL (MISI BERKALA) ---
+           // --- LOOP PROTOCOL (MISI BERKALA + KALKULATOR) ---
             openPeriodicModal() {
                 this.sound.play('click');
                 const m = document.getElementById('modal-layer');
                 
-                // Form HTML untuk Loop Protocol
+                // Helper untuk opsi jam 00-23
+                const hourOptions = Array.from({length: 24}, (_, i) => `<option value="${i}">${String(i).padStart(2,'0')}:00</option>`).join('');
+
                 m.innerHTML = `
                 <div class="bg-charcoal border-t sm:border border-slate-700 rounded-t-3xl sm:rounded-2xl w-full max-w-sm p-6 shadow-2xl pointer-events-auto animate-[slideIn_0.3s_ease-out]">
                     <div class="flex justify-between items-start mb-4">
@@ -1048,43 +1075,65 @@
                             <input id="loop-text" type="text" placeholder="Contoh: Lari Pagi..." class="w-full bg-surface text-white rounded-lg px-4 py-2.5 text-sm border border-slate-700 focus:border-neonPurple outline-none">
                         </div>
 
-                        <!-- Pilih Hari (Checkbox) -->
+                        <!-- Pilih Hari -->
                         <div>
                             <label class="text-[9px] text-slate-500 uppercase font-bold mb-2 block">Aktif Pada Hari:</label>
                             <div class="flex justify-between gap-1">
                                 ${['M','S','S','R','K','J','S'].map((d, i) => `
                                     <label class="cursor-pointer relative group">
-                                        <input type="checkbox" name="loopDay" value="${i}" class="peer hidden" ${(i===1)?'checked':''}>
+                                        <input type="checkbox" name="loopDay" value="${i}" class="peer hidden" ${(i===1)?'checked':''} onchange="App.controller.calcLoopTotal()">
                                         <div class="w-8 h-8 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center text-xs font-bold text-slate-500 peer-checked:bg-neonPurple peer-checked:text-white peer-checked:border-neonPurple transition-all active:scale-90">
                                             ${d}
                                         </div>
                                     </label>
                                 `).join('')}
                             </div>
-                            <p class="text-[8px] text-slate-600 mt-1 text-center">Minggu (M) s/d Sabtu (S)</p>
                         </div>
 
                         <!-- Konfigurasi -->
                         <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label class="text-[9px] text-slate-500 uppercase font-bold mb-1 block">Total Muncul (Kali)</label>
-                                <input id="loop-total" type="number" value="7" min="1" max="100" class="w-full bg-surface text-white rounded-lg px-3 py-2.5 text-sm border border-slate-700 focus:border-neonPurple outline-none text-center font-mono">
+                                <input id="loop-total" type="number" value="0" min="1" max="100" oninput="App.controller.calcLoopTotal()" class="w-full bg-surface text-white rounded-lg px-3 py-2.5 text-sm border border-slate-700 focus:border-neonPurple outline-none text-center font-mono">
                             </div>
                             <div>
                                 <label class="text-[9px] text-slate-500 uppercase font-bold mb-1 block">Kesulitan</label>
-                                <select id="loop-diff" class="w-full bg-surface text-white rounded-lg px-3 py-2.5 text-xs border border-slate-700 outline-none">
-                                    <option value="easy">Mudah</option>
-                                    <option value="medium">Sedang</option>
-                                    <option value="hard">Sulit</option>
+                                <select id="loop-diff" onchange="App.controller.calcLoopTotal()" class="w-full bg-surface text-white rounded-lg px-3 py-2.5 text-xs border border-slate-700 outline-none">
+                                    <option value="easy">Mudah (2 Pts)</option>
+                                    <option value="medium">Sedang (4 Pts)</option>
+                                    <option value="hard">Sulit (6 Pts)</option>
                                 </select>
                             </div>
                         </div>
 
-                        <div>
-                            <label class="text-[9px] text-slate-500 uppercase font-bold mb-1 block">Waktu Eksekusi</label>
-                            <select id="loop-slot" class="w-full bg-surface text-white rounded-lg px-3 py-2.5 text-xs border border-slate-700 outline-none font-mono">
-                                ${Config.TIME_SLOTS.map(s => `<option value="${s.id}">${s.label} (${s.range})</option>`).join('')}
-                            </select>
+                        <!-- [REVISI] Waktu Eksekusi Range -->
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="text-[9px] text-slate-500 uppercase font-bold mb-1 block">Mulai Jam</label>
+                                <select id="loop-start" class="w-full bg-surface text-white rounded-lg px-3 py-2.5 text-xs border border-slate-700 outline-none font-mono">
+                                    ${hourOptions}
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-[9px] text-slate-500 uppercase font-bold mb-1 block">Selesai Jam</label>
+                                <select id="loop-end" class="w-full bg-surface text-white rounded-lg px-3 py-2.5 text-xs border border-slate-700 outline-none font-mono">
+                                    ${Array.from({length: 24}, (_, i) => `<option value="${i+1}" ${i===0?'selected':''}>${String(i+1).padStart(2,'0')}:00</option>`).join('')}
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Input Bonus Jackpot -->
+                        <div class="bg-neonGold/5 p-3 rounded-xl border border-neonGold/20">
+                            <label class="text-[9px] text-neonGold uppercase font-bold mb-1 block flex justify-between">
+                                <span>Bonus Selesai (Jackpot)</span>
+                                <i data-lucide="gift" class="w-3 h-3"></i>
+                            </label>
+                            <input id="loop-bonus" type="number" placeholder="0" value="0" oninput="App.controller.calcLoopTotal()" class="w-full bg-charcoal text-neonGold font-bold rounded-lg px-4 py-2 text-sm border border-slate-700 focus:border-neonGold outline-none placeholder:text-slate-600">
+                        </div>
+
+                        <div class="flex justify-between items-center px-2 py-2 border-t border-white/5">
+                            <span class="text-[9px] text-slate-400">Total Nilai Loop:</span>
+                            <span id="loop-calc-res" class="text-sm font-mono font-bold text-white">0 Pts</span>
                         </div>
 
                         <button onclick="App.controller.generateLoopTasks()" class="w-full bg-neonPurple text-white py-3 rounded-lg font-bold shadow-[0_0_15px_rgba(139,92,246,0.4)] hover:bg-white hover:text-neonPurple transition-all flex items-center justify-center gap-2">
@@ -1095,55 +1144,77 @@
                 
                 m.classList.remove('opacity-0', 'invisible', 'pointer-events-none');
                 lucide.createIcons();
+                this.calcLoopTotal();
             },
-            generateLoopTasks() {
+          generateLoopTasks() {
                 const text = document.getElementById('loop-text').value.trim();
                 const total = parseInt(document.getElementById('loop-total').value);
                 const diff = document.getElementById('loop-diff').value;
-                const slot = document.getElementById('loop-slot').value;
                 
-                // Ambil hari yang dipilih (Checkbox)
+                // [BARU] Ambil Waktu Range
+                const start = parseInt(document.getElementById('loop-start').value);
+                const end = parseInt(document.getElementById('loop-end').value);
+                
+                const bonusInput = document.getElementById('loop-bonus').value;
+                const bonusPts = bonusInput ? parseInt(bonusInput) : 0;
                 const selectedDays = Array.from(document.querySelectorAll('input[name="loopDay"]:checked')).map(cb => parseInt(cb.value));
 
-                // Validasi
                 if (!text) { this.toast("Nama misi wajib diisi!", "error"); return; }
                 if (isNaN(total) || total <= 0) { this.toast("Total repetisi tidak valid!", "error"); return; }
                 if (selectedDays.length === 0) { this.toast("Pilih minimal satu hari!", "error"); return; }
+                
+                // [BARU] Validasi Waktu (Sama seperti Blueprint)
+                if (end <= start) { this.toast("Jam selesai harus lebih besar dari mulai", "error"); return; }
 
                 const tasks = Store.get('tasks');
                 let createdCount = 0;
                 let d = new Date(); 
-                
-                // Mulai dari BESOK (sesuai logika perencanaan)
-                d.setDate(d.getDate() + 1);
+                d.setDate(d.getDate() + 1); 
 
-                // Loop Generate
-                // Loop akan berhenti jika jumlah misi tercapai ATAU sudah scan sampai 365 hari ke depan (Safety break biar ga hang)
+                const basePts = Config.DIFFICULTY[diff].pts;
+                
+                // Label Waktu Otomatis
+                const timeLabel = `${String(start).padStart(2,'0')}:00 - ${String(end).padStart(2,'0')}:00`;
+
                 for (let i = 0; i < 365; i++) {
                     if (createdCount >= total) break;
 
-                    const currentDayIndex = d.getDay(); // 0 = Minggu, 1 = Senin, dst.
+                    const currentDayIndex = d.getDay();
 
                     if (selectedDays.includes(currentDayIndex)) {
+                        const isLast = (createdCount === total - 1);
+                        let finalPts = undefined; 
+                        let finalText = `${text} (Loop ${createdCount + 1}/${total})`;
+
+                        if (isLast && bonusPts > 0) {
+                            finalPts = basePts + bonusPts;
+                            finalText = `👑 ${text} (FINAL: +${bonusPts} PTS)`; 
+                        }
+
                         tasks.push({
                             id: Utils.generateId(),
-                            text: `${text} (Loop ${createdCount + 1}/${total})`, // Penanda urutan
+                            text: finalText,
                             difficulty: diff,
-                            timeSlot: slot,
-                            date: Utils.getISO(d), // Konversi tanggal iterator ke YYYY-MM-DD
+                            
+                            // [PENTING] Set ke Custom & Masukkan Data Range
+                            timeSlot: 'custom',
+                            customStart: start,
+                            customEnd: end,
+                            customLabel: timeLabel,
+                            
+                            date: Utils.getISO(d),
                             status: 'pending',
-                            createdAt: new Date().toISOString()
+                            createdAt: new Date().toISOString(),
+                            pts: finalPts 
                         });
                         createdCount++;
                     }
-
-                    // Lanjut ke hari berikutnya
                     d.setDate(d.getDate() + 1);
                 }
 
                 Store.set('tasks', tasks);
                 this.sound.play('success');
-                this.toast(`Berhasil menjadwalkan ${createdCount} misi berkala!`, 'success');
+                this.toast(`Protokol aktif! Jackpot ${bonusPts} Pts di akhir.`, 'success');
                 this.closeModal();
                 this.render();
             },
@@ -1164,6 +1235,7 @@
                 tempSnapshot: { goalId: null, milestone: '', isFinal: false, nextTarget: '', tierIndex: 0 },
                 lastNotifTime: 0,
                 tempBlueprintDiff: 'easy',
+                tempTimeRange: { start: null, end: null },
                 
                 // [TAMBAHAN BARU] Tracker agar notif hanya muncul 1x per slot/hari
                 notifiedTracker: { 
@@ -1447,11 +1519,15 @@
             },
 
             // --- BLUEPRINT SYSTEM ---
-            openBlueprintManager() {
+           openBlueprintManager() {
                 this.sound.play('click');
                 const blueprints = Store.get('blueprints'); 
                 
                 const m = document.getElementById('modal-layer');
+                
+                // Helper untuk generate opsi jam 00-23
+                const hourOptions = Array.from({length: 24}, (_, i) => `<option value="${i}">${String(i).padStart(2,'0')}:00</option>`).join('');
+
                 m.innerHTML = `
                 <div class="bg-charcoal border-t sm:border border-slate-700 rounded-t-3xl sm:rounded-2xl w-full max-w-md p-6 shadow-2xl pointer-events-auto animate-[slideIn_0.3s_ease-out] max-h-[85vh] flex flex-col">
                     <div class="flex justify-between items-start mb-6">
@@ -1475,12 +1551,20 @@
                                 <button type="button" onclick="App.controller.setTempBpDiff('hard')" id="bp-btn-hard" class="flex-1 py-2 rounded-lg text-[10px] font-bold border border-slate-700 text-slate-500 uppercase transition-all hover:bg-slate-700">Sulit</button>
                             </div>
                             
-                            <!-- Enhanced Time Slot Select -->
-                            <div class="relative">
-                                <select id="bp-slot" class="w-full bg-charcoal text-white rounded-lg px-4 py-3 text-xs border border-slate-700 focus:border-neonCyan outline-none appearance-none font-mono">
-                                    ${Config.TIME_SLOTS.map(s => `<option value="${s.id}">${s.label} (${s.range}) - ${s.desc}</option>`).join('')}
-                                </select>
-                                <div class="absolute right-4 top-3.5 pointer-events-none text-slate-500"><i data-lucide="clock" class="w-4 h-4"></i></div>
+                            <!-- [BARU] Time Range Selectors -->
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="text-[9px] text-slate-500 uppercase font-bold mb-1 block">Mulai Jam</label>
+                                    <select id="bp-start" class="w-full bg-charcoal text-white rounded-lg px-3 py-2.5 text-xs border border-slate-700 focus:border-neonCyan outline-none font-mono">
+                                        ${hourOptions}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="text-[9px] text-slate-500 uppercase font-bold mb-1 block">Selesai Jam</label>
+                                    <select id="bp-end" class="w-full bg-charcoal text-white rounded-lg px-3 py-2.5 text-xs border border-slate-700 focus:border-neonCyan outline-none font-mono">
+                                        ${Array.from({length: 24}, (_, i) => `<option value="${i+1}" ${i===0?'selected':''}>${String(i+1).padStart(2,'0')}:00</option>`).join('')}
+                                    </select>
+                                </div>
                             </div>
 
                             <button onclick="App.controller.saveBlueprint()" class="w-full bg-neonCyan hover:bg-white hover:text-obsidian text-obsidian py-3 rounded-lg text-xs font-bold uppercase tracking-widest shadow-lg transition-colors flex justify-center items-center gap-2">
@@ -1498,12 +1582,11 @@
                         ${blueprints.length === 0 ? '<div class="text-center py-8 text-xs text-slate-600 border border-dashed border-slate-800 rounded-xl">Belum ada blueprint tersimpan.</div>' : 
                         blueprints.map(bp => {
                             const d = Config.DIFFICULTY[bp.difficulty];
-                            const s = Config.TIME_SLOTS.find(slot => slot.id === bp.timeSlot) || {label:'ALL', range:'??:??'};
                             return `
                             <div class="p-4 rounded-xl flex items-center justify-between border border-slate-700 bg-slate-800/30 hover:border-slate-500 transition-all group">
                                 <div class="flex-1 pr-3">
                                     <div class="flex items-center gap-2 mb-1.5">
-                                        <span class="text-[8px] font-mono font-bold text-slate-300 bg-surface px-1.5 py-0.5 rounded border border-white/5">${s.label} (${s.range})</span>
+                                        <span class="text-[8px] font-mono font-bold text-slate-300 bg-surface px-1.5 py-0.5 rounded border border-white/5">${bp.customLabel || 'ALL DAY'}</span>
                                         <span class="text-[8px] font-bold border px-1.5 py-0.5 rounded uppercase ${d.color} ${d.border} bg-white/5">${d.label}</span>
                                     </div>
                                     <p class="text-sm text-white font-medium">${bp.text}</p>
@@ -1518,8 +1601,7 @@
                 </div>`;
                 m.classList.remove('opacity-0', 'invisible', 'pointer-events-none');
                 lucide.createIcons();
-
-                // Initialize Difficulty Button State
+                
                 this.state.tempBlueprintDiff = 'easy';
                 this.renderBlueprintDiffBtns();
             },
@@ -1546,19 +1628,27 @@
                 });
             },
 
-            saveBlueprint() {
+           saveBlueprint() {
                 const text = document.getElementById('bp-text').value.trim();
                 const diff = this.state.tempBlueprintDiff;
-                const slot = document.getElementById('bp-slot').value;
+                
+                const start = parseInt(document.getElementById('bp-start').value);
+                const end = parseInt(document.getElementById('bp-end').value);
 
                 if(!text) { this.toast('Nama blueprint wajib diisi', 'error'); return; }
+                if(end <= start) { this.toast('Jam selesai harus lebih besar dari mulai', 'error'); return; }
 
                 const bps = Store.get('blueprints');
+                const timeLabel = `${String(start).padStart(2,'0')}:00 - ${String(end).padStart(2,'0')}:00`;
+
                 bps.push({
                     id: Utils.generateId(),
                     text: text,
                     difficulty: diff,
-                    timeSlot: slot
+                    timeSlot: 'custom', // Tandai sebagai custom
+                    customStart: start,
+                    customEnd: end,
+                    customLabel: timeLabel
                 });
                 Store.set('blueprints', bps);
                 this.sound.play('success');
@@ -1575,7 +1665,7 @@
                 }
             },
 
-            useBlueprint(id) {
+          useBlueprint(id) {
                 const bps = Store.get('blueprints');
                 const bp = bps.find(b => b.id === id);
                 if(bp) {
@@ -1584,7 +1674,13 @@
                         id: Utils.generateId(),
                         text: bp.text,
                         difficulty: bp.difficulty,
-                        timeSlot: bp.timeSlot,
+                        timeSlot: bp.timeSlot || 'custom',
+                        
+                        // [PENTING] Transfer data waktu custom
+                        customStart: bp.customStart,
+                        customEnd: bp.customEnd,
+                        customLabel: bp.customLabel,
+
                         date: Utils.getTomorrow(),
                         status: 'pending',
                         createdAt: new Date().toISOString()
@@ -2341,24 +2437,203 @@
                 setTimeout(() => { div.style.animation = 'toastExit 0.4s forwards'; setTimeout(()=>div.remove(), 400); }, 3000);
             },
 
-            openModal() {
+         openModal() {
                 this.sound.play('click');
+                this.state.tempTimeRange = { start: null, end: null };
+
                 const m = document.getElementById('modal-layer');
+                
+                // GENERATE 25 TOMBOL (00 - 24)
+                let gridHtml = '';
+                for (let i = 0; i <= 24; i++) {
+                    const label = i === 24 ? "24:00" : String(i).padStart(2,'0') + ":00";
+                    // Tombol 24 kita bedakan sedikit warnanya
+                    const isLast = i === 24;
+                    
+                    gridHtml += `
+                        <button id="slot-btn-${i}" onclick="App.controller.selectTimeSlot(${i})" class="glass-card p-1 rounded-lg border ${isLast ? 'border-neonRed/30' : 'border-slate-700'} hover:bg-slate-700 text-center transition-all flex flex-col items-center justify-center min-h-[40px] ${isLast ? 'col-span-4 mt-2 bg-slate-800' : ''}">
+                            <span class="${isLast ? 'text-neonRed' : 'text-slate-400'} font-mono font-bold text-xs pointer-events-none">${label}</span>
+                            ${isLast ? '<span class="text-[8px] text-slate-500 uppercase">Batas Akhir (Midnight)</span>' : ''}
+                        </button>
+                    `;
+                }
+
                 m.innerHTML = `
                 <div class="bg-charcoal border-t sm:border border-slate-700 rounded-t-3xl sm:rounded-2xl w-full max-w-sm p-6 shadow-2xl pointer-events-auto animate-[slideIn_0.3s_ease-out]">
-                    <div class="flex justify-between items-center mb-6">
+                    <div class="flex justify-between items-center mb-4">
                         <div>
                             <h3 class="text-xl font-bold text-white mb-1">Time Protocol</h3>
-                            <p class="text-slate-400 text-xs font-mono">Pilih slot waktu eksekusi:</p>
+                            <p id="time-selection-status" class="text-slate-400 text-xs font-mono">Pilih JAM MULAI...</p>
                         </div>
-                        <button onclick="App.controller.closeModal()" class="text-slate-500 hover:text-white bg-slate-800/50 p-2 rounded-full"><i data-lucide="x" class="w-5 h-5"></i></button>
+                        <div class="flex gap-2">
+                            <button onclick="App.controller.resetTimeSelection()" class="text-xs font-bold text-neonRed border border-neonRed/30 px-3 py-1 rounded-lg hover:bg-neonRed hover:text-white transition-colors">ULANG</button>
+                            <button onclick="App.controller.closeModal()" class="text-slate-500 hover:text-white bg-slate-800/50 p-2 rounded-full"><i data-lucide="x" class="w-5 h-5"></i></button>
+                        </div>
                     </div>
-                    <div class="grid grid-cols-2 gap-2 h-64 overflow-y-auto custom-scroll pr-1">
-                        ${Config.TIME_SLOTS.map(s => `<button onclick="App.controller.confirmTask('${s.id}')" class="glass-card p-3 rounded-xl hover:border-neonCyan hover:bg-slate-800 text-left group active:scale-95 transition-all"><span class="text-neonCyan font-mono font-bold text-sm block group-hover:text-white transition-colors">${s.label}</span><span class="text-slate-300 text-[10px] block opacity-70">${s.range}</span></button>`).join('')}
+                    
+                    <!-- GRID 00 - 24 -->
+                    <div class="grid grid-cols-4 gap-2 h-64 overflow-y-auto custom-scroll pr-1 pb-2 mb-4">
+                        ${gridHtml}
+                    </div>
+
+                    <!-- TOMBOL AKSI -->
+                    <div class="flex gap-2">
+                        <button onclick="App.controller.selectTimeSlot('all')" class="flex-1 border border-neonPurple/50 text-neonPurple p-3 rounded-xl font-bold text-xs hover:bg-neonPurple hover:text-white transition-all">
+                            ALL DAY
+                        </button>
+                        <button id="btn-confirm-time" onclick="App.controller.submitTimeRange()" disabled class="flex-[2] bg-slate-800 text-slate-500 p-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 cursor-not-allowed">
+                            PILIH WAKTU DULU
+                        </button>
                     </div>
                 </div>`;
                 m.classList.remove('opacity-0', 'invisible', 'pointer-events-none');
                 lucide.createIcons();
+            },
+          resetTimeSelection() {
+                this.sound.play('click');
+                this.state.tempTimeRange = { start: null, end: null };
+                this.updateTimeGridUI();
+            },
+           selectTimeSlot(val) {
+                this.sound.play('click');
+                
+                if (val === 'all') {
+                    this.state.tempTimeRange = { start: 0, end: 24, isAll: true };
+                    this.submitTimeRange();
+                    return;
+                }
+
+                let { start, end } = this.state.tempTimeRange;
+
+                // PROTEKSI: Angka 24 tidak boleh jadi START
+                if (start === null && val === 24) {
+                    this.toast("Jam 24:00 hanya untuk waktu selesai.", "error");
+                    return;
+                }
+
+                // SKENARIO 1: RESET (Jika klik tombol start yang sama)
+                if (start === val && end === null) {
+                    this.resetTimeSelection();
+                    return;
+                }
+
+                // SKENARIO 2: PILIH START
+                if (start === null || val < start) {
+                    this.state.tempTimeRange = { start: val, end: null }; 
+                } 
+                // SKENARIO 3: PILIH END
+                else if (val > start) {
+                    // Logic Normal: Start 00, Klik 01 -> End 01. Durasi 1 Jam.
+                    // Logic Akhir: Start 23, Klik 24 -> End 24. Durasi 1 Jam.
+                    this.state.tempTimeRange = { start: start, end: val, isAll: false };
+                }
+
+                this.updateTimeGridUI();
+            },
+
+          updateTimeGridUI() {
+                const range = this.state.tempTimeRange;
+                const statusEl = document.getElementById('time-selection-status');
+                const btnConfirm = document.getElementById('btn-confirm-time');
+
+                // Loop sampai 24 (Total 25 Tombol)
+                for (let i = 0; i <= 24; i++) {
+                    const btn = document.getElementById(`slot-btn-${i}`);
+                    if (!btn) continue;
+                    
+                    const isLast = i === 24;
+                    // Style Default
+                    let btnClass = `glass-card p-1 rounded-lg border ${isLast ? 'border-neonRed/30' : 'border-slate-700'} hover:bg-slate-700 text-center transition-all flex flex-col items-center justify-center min-h-[40px] ${isLast ? 'col-span-4 mt-2 bg-slate-800' : ''}`;
+                    let textClass = `${isLast ? 'text-neonRed' : 'text-slate-400'} font-mono font-bold text-xs pointer-events-none`;
+
+                    if (range.start !== null) {
+                        // TOMBOL START
+                        if (i === range.start) {
+                            if (range.end === null) {
+                                btnClass = "bg-neonGold text-obsidian shadow-[0_0_10px_rgba(245,158,11,0.5)] p-1 rounded-lg border border-neonGold text-center transition-all flex flex-col items-center justify-center min-h-[40px] animate-pulse";
+                                textClass = "text-obsidian font-mono font-bold text-xs pointer-events-none";
+                            } else {
+                                btnClass = "bg-neonCyan text-obsidian p-1 rounded-lg border border-neonCyan text-center transition-all flex flex-col items-center justify-center min-h-[40px]";
+                                textClass = "text-obsidian font-mono font-bold text-xs pointer-events-none";
+                            }
+                        }
+                        // RANGE TENGAH
+                        else if (range.end !== null && i > range.start && i < range.end) {
+                            btnClass = "bg-neonCyan/20 text-white p-1 rounded-lg border border-neonCyan/50 text-center transition-all flex flex-col items-center justify-center min-h-[40px]";
+                            textClass = "text-white font-mono font-bold text-xs pointer-events-none";
+                        }
+                        // TOMBOL END
+                        else if (range.end !== null && i === range.end) {
+                             btnClass = `glass-card p-1 rounded-lg border border-neonRed/50 text-center transition-all flex flex-col items-center justify-center min-h-[40px] ${isLast ? 'col-span-4 mt-2 bg-slate-800' : ''}`;
+                             textClass = "text-neonRed font-mono font-bold text-xs pointer-events-none";
+                        }
+                    }
+                    
+                    btn.className = btnClass;
+                    // Hati-hati menimpa innerHTML tombol 24 yg ada span tambahan
+                    const spanLabel = btn.querySelector('span:first-child');
+                    if(spanLabel) spanLabel.className = textClass;
+                }
+
+                // Update Status Text
+                if (range.start !== null && range.end === null) {
+                    statusEl.innerHTML = `Mulai: <span class="text-neonGold font-bold">${String(range.start).padStart(2,'0')}:00</span>... <span class="text-slate-500">(Klik angka lebih besar)</span>`;
+                    btnConfirm.innerHTML = `PILIH WAKTU SELESAI...`;
+                    btnConfirm.disabled = true;
+                    btnConfirm.className = "flex-[2] bg-slate-800 text-slate-600 p-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 cursor-not-allowed border border-slate-700";
+                } 
+                else if (range.start !== null && range.end !== null) {
+                    const duration = range.end - range.start;
+                    const endLabel = range.end === 24 ? "24" : String(range.end).padStart(2,'0'); // Label 24
+                    
+                    statusEl.innerHTML = `Jadwal: <span class="text-neonCyan">${String(range.start).padStart(2,'0')}:00 - ${endLabel}:00</span> (${duration} Jam)`;
+                    btnConfirm.innerHTML = `JADWALKAN SEKARANG`;
+                    btnConfirm.disabled = false;
+                    btnConfirm.className = "flex-[2] bg-neonCyan text-obsidian p-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(6,182,212,0.4)] hover:bg-white cursor-pointer active:scale-95";
+                } 
+                else {
+                    statusEl.innerText = "Pilih JAM MULAI...";
+                    btnConfirm.innerHTML = "PILIH WAKTU...";
+                    btnConfirm.disabled = true;
+                    btnConfirm.className = "flex-[2] bg-slate-800 text-slate-500 p-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 cursor-not-allowed";
+                }
+            },
+
+            // Simpan Misi
+            submitTimeRange() {
+                if (!this.state.tempTask) return;
+                const range = this.state.tempTimeRange;
+                const tasks = Store.get('tasks');
+                
+                // Label Otomatis
+                let timeLabel = "ALL DAY";
+                let slotId = "all";
+                
+                if (!range.isAll) {
+                    timeLabel = `${String(range.start).padStart(2,'0')}:00 - ${String(range.end).padStart(2,'0')}:00`;
+                    slotId = `custom`; 
+                }
+
+                tasks.push({
+                    id: Utils.generateId(),
+                    text: this.state.tempTask.text,
+                    difficulty: this.state.tempTask.difficulty,
+                    timeSlot: slotId,
+                    // SIMPAN DATA RANGE SPESIFIK
+                    customStart: range.start,
+                    customEnd: range.end,
+                    customLabel: timeLabel,
+                    
+                    date: Utils.getTomorrow(), 
+                    status: 'pending',
+                    createdAt: new Date().toISOString()
+                });
+
+                Store.set('tasks', tasks);
+                this.closeModal();
+                this.sound.play('success');
+                this.toast('Misi terjadwal rapi!', 'success');
+                this.render();
             },
 
             closeModal() {

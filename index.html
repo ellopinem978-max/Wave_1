@@ -146,23 +146,93 @@
         .btn-action:hover::after { left: 100%; }
         .btn-action:active { transform: scale(0.96); }
 
-        /* TIER VISUAL SYSTEM */
-        .tier-f { color: #4B5563; filter: grayscale(1); }
-        .tier-e { color: #6B7280; filter: none; }
-        .tier-d { color: #7C5C3B; }
-        .tier-c { color: #4B7F52; text-shadow: 0 1px 2px rgba(75,127,82,0.3); }
-        .tier-b { color: #3B82F6; text-shadow: 0 0 8px rgba(59,130,246,0.4); }
-        .tier-a { color: #2563EB; text-shadow: 0 0 12px rgba(37,99,235,0.6); }
-        .tier-s { color: #7C3AED; text-shadow: 0 0 15px rgba(124,58,237,0.6); }
-        .tier-ss { background: linear-gradient(to bottom, #9333EA, #D946EF); -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 0 8px rgba(147,51,234,0.6)); }
-        .tier-ex { background: linear-gradient(135deg, #FEF08A 20%, #FACC15 50%, #A16207 80%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 1px 2px rgba(234,179,8,0.5)); }
-        .tier-mr { background: linear-gradient(45deg, #CA8A04 0%, #FDE047 50%, #CA8A04 100%); background-size: 200% auto; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: shimmer 4s linear infinite; filter: drop-shadow(0 0 5px rgba(202,138,4,0.6)); }
-        .tier-ur { color: #22D3EE; text-shadow: 0 0 5px #fff, 0 0 15px #22D3EE, 0 0 25px #0891B2; animation: glow-pulse 3s infinite; }
-        .tier-exr { color: #DC2626; text-shadow: 0 0 10px #EF4444, 0 0 20px #7F1D1D; filter: contrast(1.2); }
-        .tier-hs { background: linear-gradient(to right, #B91C1C, #F59E0B, #B91C1C); background-size: 200% auto; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: shimmer 6s linear infinite; filter: drop-shadow(0 0 8px rgba(245,158,11,0.4)); }
-        .tier-ps { color: #F9FAFB; text-shadow: 0 0 10px rgba(255,255,255,0.8), 0 0 30px rgba(255,255,255,0.4); }
-        .tier-max { background: linear-gradient(to bottom, #FFFFFF 30%, #FDE68A 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 0 0 15px #FDE68A, 0 0 40px #F59E0B; position: relative; animation: float 4s ease-in-out infinite; }
+      /* TIER VISUAL SYSTEM (HIERARCHY UPDATE) */
+        
+        /* --- TIER LOW (NO GLOW) --- */
+        /* F - Failing: Asphalt Gray */
+        .tier-f { color: #3A3A3A; font-weight: 600; } 
+        
+        /* E - Elementary: Mud Brown */
+        .tier-e { color: #6B4F3F; font-weight: 600; }
+        
+        /* D - Developing: Army Green */
+        .tier-d { color: #4F6F52; font-weight: 600; }
+        
+        /* C - Capable: Teal Blue */
+        .tier-c { color: #1F8A8A; font-weight: 700; }
+        
+        /* B - Balanced: True Blue */
+        .tier-b { color: #2563EB; font-weight: 700; }
+        
+        /* A - Advanced: Indigo */
+        .tier-a { color: #3F2EFF; font-weight: 800; }
 
+        /* --- TIER ELITE (SOFT GLOW/OUTLINE) --- */
+        /* S - Superior: Royal Violet */
+        .tier-s { 
+            color: #7C3AED; 
+            text-shadow: 0 0 10px rgba(124, 58, 237, 0.4); 
+        }
+        
+        /* SS - Supremely Skilled: Fuchsia Core */
+        .tier-ss { 
+            color: #D946EF; 
+            text-shadow: 0 0 12px rgba(217, 70, 239, 0.5); 
+        }
+        
+        /* EX - Exceptional: Metallic Gold */
+        .tier-ex { 
+            background: linear-gradient(135deg, #D4AF37 30%, #F3E5AB 50%, #D4AF37 70%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5));
+        }
+
+        /* --- TIER GOD/ANOMALY (SPECIAL EFFECTS) --- */
+        /* MR - Master Rank: Amber Orange (Solid Control) */
+        .tier-mr { 
+            color: #FF8C00; 
+            text-shadow: 0 0 10px rgba(255, 140, 0, 0.4);
+            filter: contrast(1.2);
+        }
+        
+        /* UR - Ultra Rare: Electric Cyan (Anomaly) */
+        .tier-ur { 
+            color: #00E5FF; 
+            text-shadow: 0 0 8px #00E5FF, 0 0 20px rgba(0, 229, 255, 0.4); 
+            animation: pulse-slow 4s infinite; 
+        }
+        
+        /* EXR - Extreme Rank: Blood Red (Threat) */
+        .tier-exr { 
+            color: #B11226; 
+            text-shadow: 0 0 15px rgba(177, 18, 38, 0.8); 
+            letter-spacing: 1px;
+        }
+        
+        /* HS - High Spec: Magma (Overclocked) */
+        .tier-hs { 
+            background: linear-gradient(to bottom, #FF4500, #FF8C00); 
+            -webkit-background-clip: text; 
+            -webkit-text-fill-color: transparent; 
+            filter: drop-shadow(0 0 10px rgba(255, 69, 0, 0.6));
+            animation: glow 3s infinite alternate;
+        }
+        
+        /* PS - Peak State: Absolute White (Perfection) */
+        .tier-ps { 
+            color: #FFFFFF; 
+            text-shadow: 0 0 10px rgba(255,255,255,0.8); 
+            -webkit-text-stroke: 1px #111; /* Outline Gelap Wajib */
+        }
+        
+        /* MA - MAXIMUM: Void Black (Final Form) */
+        .tier-max { 
+            color: #000000; 
+            -webkit-text-stroke: 1px rgba(255,255,255,0.6); 
+            text-shadow: 0 0 20px #7C3AED, 0 0 40px #B11226; /* Cosmic Glow: Ungu & Merah Tipis */
+            animation: float 6s ease-in-out infinite; 
+        }
         /* Navigation Dock */
         .nav-dock {
             background: var(--bg-panel);
@@ -296,23 +366,23 @@
                 { id: 'all',  label: 'ALL',  range: '00:00 - 24:00', start: 0, end: 24, desc: 'Full Day Cycle' }
             ],
 
-            // Rank Definitions (CODEX PANGKAT)
+           // Rank Definitions (FINAL SPECTRUM)
             TIERS: [
-                { id:0, code:'F', name:'Failing', class:'tier-f', barColor:'#4B5563', bonus: 0 },
-                { id:1, code:'E', name:'Elementary', class:'tier-e', barColor:'#6B7280', bonus: 25 },
-                { id:2, code:'D', name:'Developing', class:'tier-d', barColor:'#7C5C3B', bonus: 50 },
-                { id:3, code:'C', name:'Capable', class:'tier-c', barColor:'#4B7F52', bonus: 100 },
-                { id:4, code:'B', name:'Balanced', class:'tier-b', barColor:'#3B82F6', bonus: 200 },
-                { id:5, code:'A', name:'Advanced', class:'tier-a', barColor:'#2563EB', bonus: 350 },
-                { id:6, code:'S', name:'Superior', class:'tier-s', barColor:'#7C3AED', bonus: 500 },
-                { id:7, code:'SS', name:'Supremely Skilled', class:'tier-ss', barColor:'#9333EA', bonus: 750 },
-                { id:8, code:'EX', name:'Exceptional', class:'tier-ex', barColor:'#FACC15', bonus: 1000 },
-                { id:9, code:'MR', name:'Master Rank', class:'tier-mr', barColor:'#EAB308', bonus: 1500 },
-                { id:10, code:'UR', name:'Ultra Rare', class:'tier-ur', barColor:'#22D3EE', bonus: 2000 },
-                { id:11, code:'EXR', name:'Extreme Rank', class:'tier-exr', barColor:'#DC2626', bonus: 3000 },
-                { id:12, code:'HS', name:'High Spec', class:'tier-hs', barColor:'#F59E0B', bonus: 5000 },
-                { id:13, code:'PS', name:'Peak State', class:'tier-ps', barColor:'#F8FAFB', bonus: 7500 },
-                { id:14, code:'MAX', name:'Maximum', class:'tier-max', barColor:'#FDE68A', bonus: 10000 }
+                { id:0, code:'F', name:'FAILING', class:'tier-f', barColor:'#3A3A3A', bonus: 0 },
+                { id:1, code:'E', name:'ELEMENTARY', class:'tier-e', barColor:'#6B4F3F', bonus: 25 },
+                { id:2, code:'D', name:'DEVELOPING', class:'tier-d', barColor:'#4F6F52', bonus: 50 },
+                { id:3, code:'C', name:'CAPABLE', class:'tier-c', barColor:'#1F8A8A', bonus: 100 },
+                { id:4, code:'B', name:'BALANCED', class:'tier-b', barColor:'#2563EB', bonus: 200 },
+                { id:5, code:'A', name:'ADVANCED', class:'tier-a', barColor:'#3F2EFF', bonus: 350 },
+                { id:6, code:'S', name:'SUPERIOR', class:'tier-s', barColor:'#7C3AED', bonus: 500 },
+                { id:7, code:'SS', name:'SUPREMELY SKILLED', class:'tier-ss', barColor:'#D946EF', bonus: 750 },
+                { id:8, code:'EX', name:'EXCEPTIONAL', class:'tier-ex', barColor:'#D4AF37', bonus: 1000 },
+                { id:9, code:'MR', name:'MASTER RANK', class:'tier-mr', barColor:'#FF8C00', bonus: 1500 },
+                { id:10, code:'UR', name:'ULTRA RARE', class:'tier-ur', barColor:'#00E5FF', bonus: 2000 },
+                { id:11, code:'EXR', name:'EXTREME RANK', class:'tier-exr', barColor:'#B11226', bonus: 3000 },
+                { id:12, code:'HS', name:'HIGH SPEC', class:'tier-hs', barColor:'#FF4500', bonus: 5000 },
+                { id:13, code:'PS', name:'PEAK STATE', class:'tier-ps', barColor:'#FFFFFF', bonus: 7500 },
+                { id:14, code:'MA', name:'MAXIMUM', class:'tier-max', barColor:'#000000', bonus: 10000 }
             ],
 
             // Difficulty Settings
@@ -955,6 +1025,128 @@
          * MODULE 8: MAIN CONTROLLER
          */
         const Controller = {
+            // --- LOOP PROTOCOL (MISI BERKALA) ---
+            openPeriodicModal() {
+                this.sound.play('click');
+                const m = document.getElementById('modal-layer');
+                
+                // Form HTML untuk Loop Protocol
+                m.innerHTML = `
+                <div class="bg-charcoal border-t sm:border border-slate-700 rounded-t-3xl sm:rounded-2xl w-full max-w-sm p-6 shadow-2xl pointer-events-auto animate-[slideIn_0.3s_ease-out]">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <h3 class="text-xl font-bold text-white mb-1 flex items-center gap-2"><i data-lucide="repeat" class="w-5 h-5 text-neonPurple"></i> Loop Protocol</h3>
+                            <p class="text-slate-400 text-xs font-mono">Penjadwalan Misi Otomatis.</p>
+                        </div>
+                        <button onclick="App.controller.closeModal()" class="text-slate-500 hover:text-white bg-slate-800/50 p-2 rounded-full"><i data-lucide="x" class="w-5 h-5"></i></button>
+                    </div>
+
+                    <div class="space-y-4 max-h-[70vh] overflow-y-auto custom-scroll pr-1">
+                        <!-- Nama Misi -->
+                        <div>
+                            <label class="text-[9px] text-slate-500 uppercase font-bold mb-1 block">Nama Misi</label>
+                            <input id="loop-text" type="text" placeholder="Contoh: Lari Pagi..." class="w-full bg-surface text-white rounded-lg px-4 py-2.5 text-sm border border-slate-700 focus:border-neonPurple outline-none">
+                        </div>
+
+                        <!-- Pilih Hari (Checkbox) -->
+                        <div>
+                            <label class="text-[9px] text-slate-500 uppercase font-bold mb-2 block">Aktif Pada Hari:</label>
+                            <div class="flex justify-between gap-1">
+                                ${['M','S','S','R','K','J','S'].map((d, i) => `
+                                    <label class="cursor-pointer relative group">
+                                        <input type="checkbox" name="loopDay" value="${i}" class="peer hidden" ${(i===1)?'checked':''}>
+                                        <div class="w-8 h-8 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center text-xs font-bold text-slate-500 peer-checked:bg-neonPurple peer-checked:text-white peer-checked:border-neonPurple transition-all active:scale-90">
+                                            ${d}
+                                        </div>
+                                    </label>
+                                `).join('')}
+                            </div>
+                            <p class="text-[8px] text-slate-600 mt-1 text-center">Minggu (M) s/d Sabtu (S)</p>
+                        </div>
+
+                        <!-- Konfigurasi -->
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="text-[9px] text-slate-500 uppercase font-bold mb-1 block">Total Muncul (Kali)</label>
+                                <input id="loop-total" type="number" value="7" min="1" max="100" class="w-full bg-surface text-white rounded-lg px-3 py-2.5 text-sm border border-slate-700 focus:border-neonPurple outline-none text-center font-mono">
+                            </div>
+                            <div>
+                                <label class="text-[9px] text-slate-500 uppercase font-bold mb-1 block">Kesulitan</label>
+                                <select id="loop-diff" class="w-full bg-surface text-white rounded-lg px-3 py-2.5 text-xs border border-slate-700 outline-none">
+                                    <option value="easy">Mudah</option>
+                                    <option value="medium">Sedang</option>
+                                    <option value="hard">Sulit</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="text-[9px] text-slate-500 uppercase font-bold mb-1 block">Waktu Eksekusi</label>
+                            <select id="loop-slot" class="w-full bg-surface text-white rounded-lg px-3 py-2.5 text-xs border border-slate-700 outline-none font-mono">
+                                ${Config.TIME_SLOTS.map(s => `<option value="${s.id}">${s.label} (${s.range})</option>`).join('')}
+                            </select>
+                        </div>
+
+                        <button onclick="App.controller.generateLoopTasks()" class="w-full bg-neonPurple text-white py-3 rounded-lg font-bold shadow-[0_0_15px_rgba(139,92,246,0.4)] hover:bg-white hover:text-neonPurple transition-all flex items-center justify-center gap-2">
+                            <i data-lucide="cpu" class="w-4 h-4"></i> GENERATE PROTOCOL
+                        </button>
+                    </div>
+                </div>`;
+                
+                m.classList.remove('opacity-0', 'invisible', 'pointer-events-none');
+                lucide.createIcons();
+            },
+            generateLoopTasks() {
+                const text = document.getElementById('loop-text').value.trim();
+                const total = parseInt(document.getElementById('loop-total').value);
+                const diff = document.getElementById('loop-diff').value;
+                const slot = document.getElementById('loop-slot').value;
+                
+                // Ambil hari yang dipilih (Checkbox)
+                const selectedDays = Array.from(document.querySelectorAll('input[name="loopDay"]:checked')).map(cb => parseInt(cb.value));
+
+                // Validasi
+                if (!text) { this.toast("Nama misi wajib diisi!", "error"); return; }
+                if (isNaN(total) || total <= 0) { this.toast("Total repetisi tidak valid!", "error"); return; }
+                if (selectedDays.length === 0) { this.toast("Pilih minimal satu hari!", "error"); return; }
+
+                const tasks = Store.get('tasks');
+                let createdCount = 0;
+                let d = new Date(); 
+                
+                // Mulai dari BESOK (sesuai logika perencanaan)
+                d.setDate(d.getDate() + 1);
+
+                // Loop Generate
+                // Loop akan berhenti jika jumlah misi tercapai ATAU sudah scan sampai 365 hari ke depan (Safety break biar ga hang)
+                for (let i = 0; i < 365; i++) {
+                    if (createdCount >= total) break;
+
+                    const currentDayIndex = d.getDay(); // 0 = Minggu, 1 = Senin, dst.
+
+                    if (selectedDays.includes(currentDayIndex)) {
+                        tasks.push({
+                            id: Utils.generateId(),
+                            text: `${text} (Loop ${createdCount + 1}/${total})`, // Penanda urutan
+                            difficulty: diff,
+                            timeSlot: slot,
+                            date: Utils.getISO(d), // Konversi tanggal iterator ke YYYY-MM-DD
+                            status: 'pending',
+                            createdAt: new Date().toISOString()
+                        });
+                        createdCount++;
+                    }
+
+                    // Lanjut ke hari berikutnya
+                    d.setDate(d.getDate() + 1);
+                }
+
+                Store.set('tasks', tasks);
+                this.sound.play('success');
+                this.toast(`Berhasil menjadwalkan ${createdCount} misi berkala!`, 'success');
+                this.closeModal();
+                this.render();
+            },
             state: {
                 view: 'home',
                 difficulty: 'easy',
@@ -2385,10 +2577,24 @@
                                 <span class="text-[10px] font-mono text-neonGold border border-neonGold/30 px-2 py-1 rounded bg-neonGold/10">POTENSI: +${tTomPoints} PTS</span>
                             </div>
                             <div class="glass-card p-5 rounded-xl space-y-4 mb-4 relative group">
-                                <!-- Blueprint Button -->
-                                <button onclick="App.controller.openBlueprintManager()" class="absolute top-5 right-5 text-neonCyan hover:text-white bg-neonCyan/10 p-1.5 rounded-lg border border-neonCyan/20 transition-all active:scale-95" title="Blueprint System">
-                                    <i data-lucide="folder-open" class="w-4 h-4"></i>
-                                </button>
+                               <!-- Tombol Besar Blueprint & Loop -->
+                                <div class="grid grid-cols-2 gap-3 mb-2">
+                                    <button onclick="App.controller.openBlueprintManager()" class="glass-card p-3 rounded-xl border-t-2 border-neonCyan hover:bg-neonCyan/10 transition-all flex flex-col items-center gap-1 group active:scale-95">
+                                        <div class="p-1.5 rounded-full bg-neonCyan/10 text-neonCyan group-hover:scale-110 transition-transform mb-1">
+                                            <i data-lucide="folder-open" class="w-4 h-4"></i>
+                                        </div>
+                                        <span class="text-[10px] font-bold text-white uppercase tracking-widest">Blueprint</span>
+                                        <span class="text-[8px] text-slate-500 font-mono">Load Template</span>
+                                    </button>
+
+                                    <button onclick="App.controller.openPeriodicModal()" class="glass-card p-3 rounded-xl border-t-2 border-neonPurple hover:bg-neonPurple/10 transition-all flex flex-col items-center gap-1 group active:scale-95">
+                                        <div class="p-1.5 rounded-full bg-neonPurple/10 text-neonPurple group-hover:scale-110 transition-transform mb-1">
+                                            <i data-lucide="repeat" class="w-4 h-4"></i>
+                                        </div>
+                                        <span class="text-[10px] font-bold text-white uppercase tracking-widest">Loop Misi</span>
+                                        <span class="text-[8px] text-slate-500 font-mono">Auto Schedule</span>
+                                    </button>
+                                </div>
 
                                 <input id="task-in" type="text" placeholder="Input nama misi..." value="${this.state.tempTaskInput || ''}" class="w-full bg-charcoal text-white rounded-lg px-4 py-3 text-sm border border-slate-700 focus:border-neonCyan outline-none pr-12">
                                 <div class="flex gap-2">${['easy','medium','hard'].map(diffBtn).join('')}</div>
@@ -2476,29 +2682,23 @@
                     </div>`;
                 }
                 else if (this.state.view === 'rewards') {
-                    const { total } = pts; // Total Poin Global (Seumur Hidup)
+                    const { total } = pts; // Total Poin Global
                     const active = rewards.filter(r => r.status === 'active');
-                    
-                    // Ambil semua yang sudah diklaim
                     const allRedeemed = rewards.filter(r => r.status === 'redeemed');
                     
-                    // Ambil data arsip pengeluaran
                     const settings = Store.get('settings');
                     const archivedSpent = settings.archivedSpent || 0;
 
-                    // Total Spent = Belanjaan Aktif + Belanjaan Arsip
+                    // Total Spent
                     const totalSpent = allRedeemed.reduce((acc, r) => acc + (r.cost || 0), 0) + archivedSpent;
-                                        
-                    // Hitung Saldo Wallet
                     const walletBalance = total - totalSpent;
                     const isMinus = walletBalance < 0;
 
-                    // Hitung Pengeluaran Rupiah Bulan Ini (Hanya untuk Info Visual)
+                    // Data Rupiah Bulan Ini
                     const curMonthKey = Utils.getMonthKey(Utils.getISO());
                     const redeemedThisMonth = allRedeemed.filter(r => r.redeemedDate && r.redeemedDate.startsWith(curMonthKey));
                     const expenseRupiahCurrent = redeemedThisMonth.reduce((acc, r) => acc + (r.price || 0), 0);
 
-                    // Finance Config
                     const myFinance = financeData.find(f => f.month === curMonthKey);
                     let financeSection = '';
                     
@@ -2507,36 +2707,66 @@
                     } else {
                         const budgetRupiah = (myFinance.amount * myFinance.allocation);
                         const budgetPercent = budgetRupiah > 0 ? Math.min((expenseRupiahCurrent / budgetRupiah) * 100, 100) : 0;
+                        const isOverBudget = expenseRupiahCurrent > budgetRupiah;
                         
                         financeSection = `
-                        <div class="glass-card p-4 rounded-xl border border-white/10 mb-4 bg-gradient-to-br from-slate-800 to-transparent">
-                            <!-- BAGIAN ATAS: SALDO POIN (WALLET) -->
-                            <div class="flex justify-between items-center mb-2 pb-2 border-b border-white/5">
-                                 <h3 class="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-2"><i data-lucide="wallet" class="w-4 h-4 text-neonGreen"></i> SALDO DOMPET</h3>
-                                 <span class="${isMinus ? 'text-neonRed' : 'text-neonGreen'} font-mono font-bold text-lg">${Utils.formatCurrency(walletBalance)} PTS</span>
-                            </div>
-                            <div class="flex justify-between text-[9px] text-slate-400 mb-3">
-                                <span>Total Pendapatan: ${Utils.formatCurrency(total)}</span>
-                                <span>Total Poin Terpakai: ${Utils.formatCurrency(totalSpent)}</span>
+                        <div class="glass-card p-5 rounded-2xl border border-slate-700 bg-gradient-to-b from-slate-800 to-obsidian mb-6 relative overflow-hidden">
+                            <!-- Header Label -->
+                            <div class="flex justify-between items-center mb-4 border-b border-white/5 pb-2">
+                                <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                                    <i data-lucide="cpu" class="w-3 h-3 text-neonCyan"></i> NEURAL ASSETS
+                                </h3>
+                                <div class="px-2 py-0.5 rounded bg-slate-700 border border-slate-600">
+                                    <span class="text-[8px] text-white font-mono">WALLET_V1</span>
+                                </div>
                             </div>
 
-                            <!-- BAGIAN BAWAH: TRACKER RUPIAH BULAN INI -->
-                            <div class="pt-2">
-                                <div class="flex justify-between text-[10px] text-slate-400 mb-1">
-                                    <span>Budget Rupiah (Bulan Ini)</span>
-                                    <span class="${expenseRupiahCurrent > budgetRupiah ? 'text-neonRed font-bold' : 'text-neonCyan'}">Rp ${Utils.formatCurrency(expenseRupiahCurrent)} / ${Utils.formatCurrency(budgetRupiah)}</span>
+                            <!-- MAIN BALANCE (Desain Baru: Font Mono, Gradasi, Tidak Silau) -->
+                            <div class="mb-5">
+                                <span class="block text-[9px] text-slate-500 mb-1">SALDO SAAT INI</span>
+                                <div class="flex items-baseline gap-1">
+                                    <span class="${isMinus ? 'text-neonRed' : 'text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-400'} font-mono font-black text-4xl tracking-tighter">
+                                        ${Utils.formatCurrency(walletBalance)}
+                                    </span>
+                                    <span class="text-xs text-neonCyan font-bold">PTS</span>
                                 </div>
-                                <div class="h-1.5 w-full bg-black/30 rounded-full overflow-hidden">
-                                    <div class="h-full ${expenseRupiahCurrent > budgetRupiah ? 'bg-neonRed' : 'bg-neonCyan'} transition-all duration-1000" style="width: ${budgetPercent}%"></div>
+                            </div>
+
+                            <!-- STATS GRID (Lifetime & Spent) -->
+                            <div class="grid grid-cols-2 gap-4 pt-2">
+                                <div>
+                                    <div class="text-[8px] text-slate-500 uppercase tracking-widest mb-1">Lifetime Earned</div>
+                                    <div class="text-xs font-mono text-white flex items-center gap-1">
+                                        <i data-lucide="arrow-up-right" class="w-3 h-3 text-neonGreen"></i> ${Utils.formatCurrency(total)}
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-[8px] text-slate-500 uppercase tracking-widest mb-1">Total Burned</div>
+                                    <div class="text-xs font-mono text-white flex items-center justify-end gap-1">
+                                        ${Utils.formatCurrency(totalSpent)} <i data-lucide="flame" class="w-3 h-3 text-neonRed"></i>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- MONEY TRACKER -->
+                            <div class="relative z-10 pt-4 mt-2 border-t border-white/5">
+                                <div class="flex justify-between text-[10px] mb-1.5">
+                                    <span class="text-slate-400">Money Burn (Bulan Ini)</span>
+                                    <span class="${isOverBudget ? 'text-neonRed font-bold animate-pulse' : 'text-slate-300'} font-mono">
+                                        Rp ${Utils.formatCurrency(expenseRupiahCurrent)}
+                                    </span>
+                                </div>
+                                <div class="h-1.5 w-full bg-slate-900 rounded-full overflow-hidden border border-slate-700">
+                                    <div class="h-full ${isOverBudget ? 'bg-neonRed' : 'bg-neonCyan'} transition-all duration-1000" style="width: ${budgetPercent}%"></div>
                                 </div>
                             </div>
                         </div>`;
                     }
 
-                    // Form Input Reward (Sama seperti sebelumnya)
+                    // Form Input Reward (Tetap sama)
                     let rewardForm = ''; 
                     if (this.state.rewardStep === 0) {
-                          rewardForm = `<div class="flex gap-2"><input id="rew-name" type="text" placeholder="Nama hadiah..." class="w-full bg-charcoal text-white rounded-lg px-4 py-3 text-sm border border-slate-700 focus:border-neonCyan outline-none"><button onclick="App.controller.initReward()" class="bg-neonCyan hover:bg-white hover:text-obsidian text-obsidian px-5 rounded-lg font-bold transition-all shadow-lg"><i data-lucide="arrow-right" class="w-5 h-5"></i></button></div>`;
+                          rewardForm = `<div class="flex gap-2"><input id="rew-name" type="text" placeholder="Ketik barang impian..." class="w-full bg-charcoal text-white rounded-xl px-4 py-3 text-sm border border-slate-700 focus:border-neonCyan outline-none shadow-inner"><button onclick="App.controller.initReward()" class="bg-neonCyan hover:bg-white hover:text-obsidian text-obsidian px-5 rounded-xl font-bold transition-all shadow-lg active:scale-95"><i data-lucide="plus" class="w-5 h-5"></i></button></div>`;
                     } else if (this.state.rewardStep === 1) {
                         rewardForm = `<div class="text-center py-2 animate-[fadeIn_0.3s]"><p class="text-white text-xs font-bold mb-3">Ada harga nominal (Rp)?</p><div class="flex gap-3 justify-center"><button onclick="App.controller.setRewardHasPrice(false)" class="px-4 py-2 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-700 text-xs">Tidak</button><button onclick="App.controller.setRewardHasPrice(true)" class="px-4 py-2 rounded-lg bg-neonPurple text-white hover:bg-neonPurple/80 shadow-lg text-xs font-bold">Ya</button></div></div>`;
                     } else if (this.state.rewardStep === 2) {
@@ -2545,51 +2775,84 @@
                     }
 
                     main.innerHTML = `
-                    <div class="space-y-6 animate-[fadeIn_0.4s_ease-out] pt-4 pb-20">
+                    <div class="space-y-6 animate-[fadeIn_0.4s_ease-out] pt-4 pb-24">
                         ${financeSection}
 
-                        <!-- Tombol Reset Darurat (Jika masih minus karena data lama) -->
                         ${isMinus ? `<div class="text-center mb-2"><button onclick="App.controller.resetRedeemedRewards()" class="text-[10px] bg-neonRed text-obsidian font-bold px-3 py-1 rounded hover:bg-white transition-colors">⚠️ RESET DATA BELANJA (FIX MINUS)</button></div>` : ''}
 
-                        <div class="space-y-2"><h3 class="text-xs font-bold text-white uppercase tracking-widest pl-2 border-l-2 border-neonCyan">Target Baru</h3><div class="glass-card p-4 rounded-xl space-y-3">${rewardForm}</div></div>
+                        <div class="space-y-2">
+                            <div class="glass-card p-4 rounded-xl space-y-3 border border-white/5 bg-slate-800/30">${rewardForm}</div>
+                        </div>
                         
-                        <div class="space-y-3">
-                            <h3 class="text-xs font-bold text-white uppercase tracking-widest pl-2 border-l-2 border-neonPurple">Wishlist (Shop)</h3>
-                            ${active.length===0?'<div class="text-center py-8 text-xs text-slate-600 border border-dashed border-slate-800 rounded-xl">KOSONG</div>' : active.map(r=>{
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between px-1">
+                                <h3 class="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-2"><i data-lucide="shopping-bag" class="w-4 h-4 text-neonPurple"></i> Wishlist Market</h3>
+                                <span class="text-[9px] text-slate-500 bg-white/5 px-2 py-1 rounded-lg">${active.length} ITEM</span>
+                            </div>
+
+                            ${active.length===0 ? '<div class="text-center py-10 text-xs text-slate-600 border border-dashed border-slate-800 rounded-xl">BELUM ADA TARGET BELANJA</div>' : active.map(r => {
                                 const canClaim = walletBalance >= r.cost;
                                 const progress = r.cost > 0 ? Math.min((walletBalance/r.cost)*100, 100) : 0;
-                                const visualProgress = Math.max(0, progress); // Cegah bar minus
+                                const deficit = r.cost - walletBalance;
                                 
                                 return `
-                                <div class="glass-card p-4 rounded-xl relative overflow-hidden group border ${canClaim ? 'border-neonGreen/50' : 'border-white/5'}">
-                                    <div class="flex justify-between items-start relative z-10">
-                                        <div class="flex-1 pr-4">
-                                            <p class="text-white text-sm font-bold">${r.name}</p>
-                                            ${r.price ? `<p class="text-[10px] text-neonGold font-mono mb-1">Rp ${Utils.formatCurrency(r.price)}</p>` : ''}
-                                            <div class="flex items-center gap-2 mt-2">
-                                                <div class="h-1.5 w-24 bg-slate-700 rounded-full overflow-hidden">
-                                                    <div class="h-full ${canClaim ? 'bg-neonGreen' : 'bg-slate-500'} transition-all" style="width:${visualProgress}%"></div>
-                                                </div>
-                                                <span class="text-[9px] font-mono ${canClaim ? 'text-neonGreen' : 'text-slate-500'}">${r.cost} PTS</span>
-                                            </div>
+                                <div class="glass-card p-4 rounded-xl relative overflow-hidden group border transition-all duration-300 ${canClaim ? 'border-neonGreen/50' : 'border-white/5 hover:border-white/10'}">
+                                    <div class="flex justify-between items-start mb-2">
+                                        <div>
+                                            <h4 class="text-white font-bold text-sm tracking-wide group-hover:text-neonCyan transition-colors">${r.name}</h4>
+                                            ${r.price ? `<div class="text-[10px] text-slate-400 font-mono mt-0.5">Rp ${Utils.formatCurrency(r.price)}</div>` : ''}
                                         </div>
-                                        <div class="flex flex-col gap-2 items-end">
+                                        <div class="flex flex-col items-end gap-2">
+                                             <button onclick="App.controller.delReward('${r.id}')" class="p-1 text-slate-600 hover:text-neonRed transition-colors"><i data-lucide="trash-2" class="w-3 h-3"></i></button>
+                                        </div>
+                                    </div>
+
+                                    <!-- KOLAM ENERGI (PROGRESS BAR) -->
+                                    <div class="mt-3 mb-2">
+                                        <div class="flex justify-between text-[9px] mb-1">
+                                            <span class="text-slate-500 font-bold">PROGRESS</span>
+                                            <span class="font-mono ${canClaim ? 'text-neonGreen' : 'text-white'}">${Math.floor(progress)}%</span>
+                                        </div>
+                                        <!-- Wadah Kolam -->
+                                        <div class="w-full h-3 bg-slate-900/80 rounded border border-slate-700 relative overflow-hidden">
+                                            <!-- Isi Kolam -->
+                                            <div class="h-full ${canClaim ? 'bg-neonGreen shadow-[0_0_10px_#10b981]' : 'bg-neonPurple'} transition-all duration-1000" style="width:${progress}%"></div>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex justify-between items-center mt-3 pt-2 border-t border-white/5">
+                                        <div class="font-mono text-xs text-white">
+                                            ${r.cost} <span class="text-[8px] text-slate-500">PTS</span>
+                                        </div>
+                                        <div>
                                             ${canClaim ? 
-                                            `<button onclick="App.controller.claimReward('${r.id}')" class="bg-neonGreen text-obsidian text-[10px] font-bold px-3 py-1.5 rounded shadow-[0_0_10px_rgba(16,185,129,0.4)] hover:bg-white transition-all animate-pulse">KLAIM</button>` : 
-                                            `<div class="text-[9px] text-slate-600 font-bold border border-slate-700 px-2 py-1 rounded bg-black/20"><i data-lucide="lock" class="w-3 h-3 inline"></i></div>`
+                                                `<button onclick="App.controller.claimReward('${r.id}')" class="bg-neonGreen hover:bg-white text-obsidian text-[10px] font-bold px-4 py-1.5 rounded shadow-lg transition-transform active:scale-95 flex items-center gap-2"><i data-lucide="shopping-cart" class="w-3 h-3"></i> BELI</button>` 
+                                                : 
+                                                `<span class="text-[9px] font-mono text-neonRed flex items-center gap-1 bg-neonRed/10 px-2 py-1 rounded border border-neonRed/20"><i data-lucide="lock" class="w-3 h-3"></i> Kurang ${deficit}</span>`
                                             }
-                                            <button onclick="App.controller.delReward('${r.id}')" class="text-slate-600 hover:text-neonRed transition-colors p-1"><i data-lucide="trash-2" class="w-3 h-3"></i></button>
                                         </div>
                                     </div>
                                 </div>`
                             }).join('')}
                         </div>
                         
-                        <div class="pt-4 border-t border-white/5 space-y-4">
-                            <div>
-                                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest pl-2 border-l-2 border-slate-600 mb-2">Riwayat Klaim (Bulan Ini)</h3>
-                                ${redeemedThisMonth.length === 0 ? '<div class="text-center py-4 text-xs text-slate-700">Belum ada klaim bulan ini.</div>' : redeemedThisMonth.map(r=>`<div class="glass-card p-3 rounded-lg flex items-center justify-between opacity-70 mb-2"><div><p class="text-white text-xs font-bold">${r.name}</p><p class="text-[9px] text-slate-500">${Utils.formatDate(r.redeemedDate)}</p></div><div class="text-neonRed text-[10px] font-mono font-bold">- ${r.cost} PTS</div></div>`).join('')}
-                            </div>
+                        <!-- History Belanja -->
+                        <div class="pt-6 border-t border-white/5 space-y-4 opacity-80 hover:opacity-100 transition-opacity">
+                            <h3 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 flex items-center gap-2">
+                                <i data-lucide="history" class="w-3 h-3"></i> Riwayat Transaksi (Bulan Ini)
+                            </h3>
+                            ${redeemedThisMonth.length === 0 ? '<div class="text-center py-4 text-[10px] text-slate-700">Belum ada transaksi.</div>' : redeemedThisMonth.map(r=>`
+                                <div class="flex items-center justify-between p-3 rounded-lg border border-white/5 bg-white/[0.02]">
+                                    <div class="flex items-center gap-3">
+                                        <div class="p-1.5 rounded bg-white/5 text-slate-400"><i data-lucide="check" class="w-3 h-3"></i></div>
+                                        <div>
+                                            <p class="text-slate-300 text-xs font-bold">${r.name}</p>
+                                            <p class="text-[8px] text-slate-600">${Utils.formatDate(r.redeemedDate)}</p>
+                                        </div>
+                                    </div>
+                                    <div class="text-neonRed text-xs font-mono font-bold">-${r.cost}</div>
+                                </div>
+                            `).join('')}
                         </div>
                     </div>`;
                 }
@@ -2605,17 +2868,11 @@
                     const sRef = sd ? reflections.find(r=>r.date===sd) : null;
                     const histRank = Engine.calcRank(this.state.histMonth, tasks, financeData);
                     
-                    // Hitung Total Poin Bulan Sejarah
                     const histTasksAll = tasks.filter(t => t.date.startsWith(this.state.histMonth) && t.status === 'completed');
                     const histTotalPoints = histTasksAll.reduce((acc, t) => acc + (Config.DIFFICULTY[t.difficulty]?.pts || 0), 0);
                     
-                    // Filter rewards (Store.prune sudah membatasi data 2 tahun)
                     const histRewards = rewards.filter(r => r.status === 'redeemed' && r.redeemedDate && r.redeemedDate.startsWith(this.state.histMonth)).sort((a,b) => new Date(b.redeemedDate) - new Date(a.redeemedDate));
-                    
-                    // Hitung Pengeluaran Poin
                     const totalHistPointsSpent = histRewards.reduce((acc, r) => acc + (r.cost || 0), 0);
-                    
-                    // [NEW] Hitung Pengeluaran Rupiah
                     const totalHistRupiah = histRewards.reduce((acc, r) => acc + (r.price || 0), 0);
 
                     let grid = '';
@@ -2645,11 +2902,9 @@
                             </button>
                         </div>
 
-                       <!-- [NEW] Monthly Stats Summary (Re-Design) -->
+                        <!-- Stats Summary -->
                         <div class="mb-6">
-                            <!-- Grid 2 Kartu -->
                             <div class="grid grid-cols-2 gap-3 mb-3">
-                                <!-- Kartu Masuk -->
                                 <div class="glass-card p-3 rounded-xl border-l-2 border-neonGreen bg-gradient-to-br from-green-900/20 to-transparent relative overflow-hidden group">
                                     <div class="absolute right-[-10px] top-[-10px] bg-neonGreen/10 w-16 h-16 rounded-full blur-xl group-hover:bg-neonGreen/20 transition-all"></div>
                                     <div class="flex items-center gap-2 mb-2">
@@ -2659,27 +2914,25 @@
                                     <div class="text-xl font-mono font-bold text-white tracking-tight">${histTotalPoints} <span class="text-[10px] text-slate-500 font-sans">Pts</span></div>
                                 </div>
 
-                                <!-- Kartu Keluar -->
                                 <div class="glass-card p-3 rounded-xl border-l-2 border-neonRed bg-gradient-to-br from-red-900/20 to-transparent relative overflow-hidden group">
                                     <div class="absolute right-[-10px] top-[-10px] bg-neonRed/10 w-16 h-16 rounded-full blur-xl group-hover:bg-neonRed/20 transition-all"></div>
                                     <div class="flex items-center gap-2 mb-2">
                                         <div class="p-1.5 rounded-lg bg-neonRed/10 text-neonRed"><i data-lucide="trending-down" class="w-4 h-4"></i></div>
-                                        <span class="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Terpakai</span>
+                                        <span class="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Keluar</span>
                                     </div>
                                     <div class="text-xl font-mono font-bold text-white tracking-tight">${totalHistPointsSpent} <span class="text-[10px] text-slate-500 font-sans">Pts</span></div>
                                 </div>
                             </div>
 
-                            <!-- Info Rupiah & Bar Visual -->
+                            <!-- [FIX] MONEY BURN -->
                             <div class="glass-card px-4 py-3 rounded-xl border border-white/5">
                                 <div class="flex justify-between items-center mb-2">
                                     <span class="text-[10px] text-slate-400 font-bold uppercase tracking-widest flex items-center gap-2">
-                                        <i data-lucide="banknote" class="w-3 h-3 text-neonGold"></i> Konversi Uang
+                                        <i data-lucide="flame" class="w-3 h-3 text-neonRed"></i> MONEY BURN (REALITY)
                                     </span>
-                                    <span class="text-sm font-mono font-bold text-neonGold">Rp ${Utils.formatCurrency(totalHistRupiah)}</span>
+                                    <span class="text-sm font-mono font-bold text-neonRed">Rp ${Utils.formatCurrency(totalHistRupiah)}</span>
                                 </div>
                                 
-                                <!-- Visual Bar Ratio -->
                                 <div class="h-1.5 w-full bg-slate-800 rounded-full flex overflow-hidden">
                                     <div class="h-full bg-neonGreen" style="width: ${histTotalPoints > 0 ? (histTotalPoints / (histTotalPoints + totalHistPointsSpent + 0.1) * 100) : 0}%"></div>
                                     <div class="h-full bg-neonRed" style="width: ${totalHistPointsSpent > 0 ? (totalHistPointsSpent / (histTotalPoints + totalHistPointsSpent + 0.1) * 100) : 0}%"></div>
@@ -2687,18 +2940,24 @@
                             </div>
                         </div>
 
-                        <!-- Rank History -->
-                        <div class="flexgap-4 mb-6">
-                             ${ComponentFactory.rankCard('EXECUTION', histRank.exec, 'swords')}
-                            ${ComponentFactory.rankCard('CONSISTENCY', histRank.cons, 'zap')}
+                        <!-- [FIX] COMPACT RANK CARDS (Sesuai Request) -->
+                        <div class="grid grid-cols-2 gap-3 mb-6">
+                            <!-- Execution Rank Kecil -->
+                            <div class="glass-card p-4 flex flex-col items-center border-t-2 border-slate-600 bg-white/5">
+                                <span class="text-[8px] text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1"><i data-lucide="swords" class="w-3 h-3"></i> EXECUTION</span>
+                                <span class="text-3xl font-display ${histRank.exec.tier.class} drop-shadow-lg">${histRank.exec.tier.code}</span>
+                            </div>
+                            <!-- Consistency Rank Kecil -->
+                            <div class="glass-card p-4 flex flex-col items-center border-t-2 border-neonCyan bg-white/5">
+                                <span class="text-[8px] text-neonCyan uppercase tracking-widest mb-1 flex items-center gap-1"><i data-lucide="zap" class="w-3 h-3"></i> CONSISTENCY</span>
+                                <span class="text-3xl font-display ${histRank.cons.tier.class} drop-shadow-lg">${histRank.cons.tier.code}</span>
+                            </div>
                         </div>
 
-                        <!-- Calendar Grid -->
                         <div class="cal-grid mb-6">
                             ${grid}
                         </div>
 
-                        <!-- Selected Date Details -->
                         ${sd ? `
                         <div class="animate-[slideIn_0.3s_ease-out]">
                             <h3 class="text-xs font-bold text-white uppercase tracking-widest mb-4 pl-2 border-l-2 border-neonCyan flex items-center gap-2">

@@ -594,22 +594,48 @@
             }
         }
 
-        /**
+       /**
          * MODULE 5: GAME ENGINE (LOGIC)
          */
         class Engine {
+            // [UPDATE] Logika Sorting Cerdas (Chronological)
             static sortTasks(tasks) {
                 return tasks.sort((a, b) => {
-                    const slotA = Config.TIME_SLOTS.find(s => s.id === a.timeSlot) || { start: 99 };
-                    const slotB = Config.TIME_SLOTS.find(s => s.id === b.timeSlot) || { start: 99 };
-                    return slotA.start - slotB.start;
+                    // Helper untuk menentukan "Bobot Waktu"
+                    const getWeight = (t) => {
+                        // 1. ALL DAY selalu paling bawah (Bobot Besar)
+                        if (t.timeSlot === 'all') return 100;
+
+                        // 2. Cek apakah pakai Custom Range (Sistem Baru)
+                        if (t.customStart !== undefined && t.customStart !== null) {
+                            return t.customStart;
+                        }
+
+                        // 3. Cek Slot ID (h0, h1, ... h23)
+                        if (t.timeSlot && t.timeSlot.startsWith('h')) {
+                            return parseInt(t.timeSlot.replace('h', ''));
+                        }
+
+                        // 4. Fallback untuk data legacy (jika ada)
+                        const slot = Config.TIME_SLOTS.find(s => s.id === t.timeSlot);
+                        return slot ? slot.start : 99;
+                    };
+
+                    const wA = getWeight(a);
+                    const wB = getWeight(b);
+
+                    // Jika jamnya sama, urutkan berdasarkan waktu pembuatan (yang duluan dibuat di atas)
+                    if (wA === wB) {
+                        return new Date(a.createdAt) - new Date(b.createdAt);
+                    }
+
+                    return wA - wB; // Kecil (Pagi) ke Besar (Malam)
                 });
             }
 
             // Updated Calc Expense Logic
             static calcExpense(monthKey, rewards) {
                 if (!rewards || rewards.length === 0) return 0;
-                // [FIXED] Changed from r.price (Rupiah) to r.cost (Points)
                 return rewards.filter(r => r.status === 'redeemed' && r.redeemedDate && r.redeemedDate.startsWith(monthKey))
                               .reduce((acc, r) => acc + (r.cost || 0), 0);
             }
@@ -621,18 +647,16 @@
                 const d = new Date(); d.setMonth(d.getMonth() - 1);
                 const prevMonthKey = Utils.getISO(d).slice(0,7);
                 
-                // Ambil Poin Simpanan (Archived)
                 const settings = Store.get('settings');
                 const archived = settings.archivedPoints || 0;
 
                 let cur = 0, mon = 0, last = 0;
-                let total = archived; // Start Total dari Poin Simpanan
+                let total = archived; 
 
                 tasks.forEach(t => {
                     if (t.status === 'completed') {
                         const pts = t.pts !== undefined ? t.pts : (Config.DIFFICULTY[t.difficulty]?.pts || 0);
-                        
-                        total += pts; // Tambah poin dari task yang masih ada
+                        total += pts; 
 
                         if (t.date === today) cur += pts;
                         if (t.date.startsWith(monthKey)) mon += pts;
@@ -673,12 +697,13 @@
 
                 let eTierIndex = Math.floor(eWins / 4);
                 if (eTierIndex > maxTier) eTierIndex = maxTier;
-                let eBars = Math.floor((eWins % 4) / 2);
+                // [FIX] Pakai Ceil biar 1 hari langsung 1 bar
+                let eBars = Math.ceil((eWins % 4) / 2); 
                 if (eTierIndex === maxTier) eBars = 2;
 
                 let cTierIndex = Math.floor(cWins / 4);
                 if (cTierIndex > maxTier) cTierIndex = maxTier;
-                let cBars = Math.floor((cWins % 4) / 2);
+                let cBars = Math.ceil((cWins % 4) / 2);
                 if (cTierIndex === maxTier) cBars = 2;
 
                 return { 
@@ -688,7 +713,8 @@
                 };
             }
 
-           static checkAutoFail(tasks) {
+            // [UPDATE] Auto Fail Logic (Agar support Range Waktu Baru)
+            static checkAutoFail(tasks) {
                 const now = new Date();
                 const today = Utils.getISO(now);
                 const h = now.getHours();

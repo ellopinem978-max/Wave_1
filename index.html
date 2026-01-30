@@ -981,13 +981,30 @@
                 </div>`;
             },
 
-            goalCard(goal) {
+          goalCard(goal) {
                  const cat = Config.GOAL_CATEGORIES.find(c => c.id === goal.category) || {label:'Lainnya', color:'text-slate-400', border:'border-slate-500'};
+                 
+                 // [LOGIKA BARU] Hitung Tier Saat Ini (Real-time)
+                 let currentTierIdx = goal.rankIndex || 0;
+                 if (goal.type === 'progressive') {
+                     // Hitung berapa kali sudah checkpoint
+                     const achs = Store.get('achievements').filter(a => a.goalId === goal.id);
+                     currentTierIdx += achs.length;
+                 }
+                 // Mentok di Tier Terakhir (MA)
+                 if (currentTierIdx >= Config.TIERS.length) currentTierIdx = Config.TIERS.length - 1;
+                 
+                 const tier = Config.TIERS[currentTierIdx];
+
                  return `
-                 <div class="glass-card p-4 rounded-xl border ${cat.border} relative group min-w-[200px] flex flex-col justify-between">
-                     <div class="flex justify-between items-start mb-2">
+                 <div class="glass-card p-4 rounded-xl border relative group min-w-[200px] flex flex-col justify-between transition-all duration-500 hover:scale-[1.02]" 
+                      style="border-color: ${tier.barColor}; box-shadow: inset 0 0 20px ${tier.barColor}10, 0 0 10px ${tier.barColor}20;">
+                     
+                     <div class="absolute -right-2 -top-2 opacity-20 font-display text-4xl select-none pointer-events-none" style="color: ${tier.barColor}">${tier.code}</div>
+
+                     <div class="flex justify-between items-start mb-2 relative z-10">
                          <div class="flex items-center gap-2">
-                             <i data-lucide="target" class="w-4 h-4 ${cat.color}"></i>
+                             <i data-lucide="target" class="w-4 h-4" style="color: ${tier.barColor}"></i>
                              <span class="text-[10px] font-bold uppercase tracking-widest ${cat.color}">${cat.label}</span>
                          </div>
                          <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -995,11 +1012,15 @@
                              <button onclick="App.controller.deleteGoal('${goal.id}')" class="p-1 text-slate-400 hover:text-neonRed"><i data-lucide="trash" class="w-3 h-3"></i></button>
                          </div>
                      </div>
-                     <h3 class="text-sm font-bold text-white mb-1">${goal.title}</h3>
-                     <p class="text-xs text-slate-400 font-mono mb-4">
-                         ${goal.type === 'progressive' ? `Target: <span class="text-white">${goal.currentTarget}</span>` : `<span class="text-neonGold font-bold">RANK ${Config.TIERS[goal.rankIndex].code}</span>`}
+
+                     <h3 class="text-sm font-bold text-white mb-1 drop-shadow-md">${goal.title}</h3>
+                     
+                     <p class="text-xs text-slate-400 font-mono mb-4 flex items-center gap-2">
+                         ${goal.type === 'progressive' ? `Target: <span class="text-white font-bold">${goal.currentTarget}</span>` : `<span style="color:${tier.barColor}">RANK ${tier.code}</span>`}
                      </p>
-                     <button onclick="App.controller.openSnapshotModal('${goal.id}')" class="w-full bg-slate-800 hover:bg-neonCyan hover:text-obsidian text-slate-300 text-[10px] font-bold py-2 rounded-lg transition-colors flex items-center justify-center gap-1 border border-slate-700">
+                     
+                     <button onclick="App.controller.openSnapshotModal('${goal.id}')" class="w-full text-obsidian text-[10px] font-bold py-2 rounded-lg transition-colors flex items-center justify-center gap-1 shadow-lg active:scale-95"
+                        style="background-color: ${tier.barColor}; box-shadow: 0 0 10px ${tier.barColor}50;">
                          <i data-lucide="camera" class="w-3 h-3"></i> CHECKPOINT
                      </button>
                  </div>`;
@@ -1892,12 +1913,20 @@
                 this.render();
             },
 
-            deleteGoal(id) {
-                if(confirm('Hapus target ini? (Snapshot di Hall of Fame tidak akan hilang)')) {
+          deleteGoal(id) {
+                if(confirm('PERINGATAN KERAS:\nMenghapus target ini akan MENGHAPUS SEMUA riwayat Snapshot/Achievement yang terkait dengannya di Hall of Fame.\n\nLanjutkan penghapusan?')) {
+                    // 1. Hapus Goal
                     const goals = Store.get('goals') || [];
                     const newGoals = goals.filter(g => g.id !== id);
                     Store.set('goals', newGoals);
+
+                    // 2. [BARU] Hapus Achievements terkait
+                    const achs = Store.get('achievements') || [];
+                    const newAchs = achs.filter(a => a.goalId !== id);
+                    Store.set('achievements', newAchs);
+
                     this.sound.play('click');
+                    this.toast('Target dan seluruh riwayatnya dihapus.', 'info');
                     this.render();
                 }
             },
@@ -2003,7 +2032,6 @@
                 const goalType = goal.type || 'progressive';
                 let nextTarget = '';
                 
-                // Validasi input target selanjutnya
                 if (goalType === 'progressive' && action === 'continue') {
                     nextTarget = document.getElementById('snap-next').value.trim();
                     if (!nextTarget) {
@@ -2012,19 +2040,22 @@
                     }
                 }
 
-                // [PERBAIKAN BUG] Cek Duplikat Berdasarkan Tier Index (Level)
-                // Bukan berdasarkan judul. Jadi level 13 (PS) pasti beda dengan 12 (HS).
                 let achs = Store.get('achievements');
                 const tierIdx = this.state.tempSnapshot.tierIndex;
                 
+                // Cek Duplikat
                 const isDuplicate = achs.some(a => a.goalId === goalId && a.tierIndex === tierIdx); 
-                
                 if (isDuplicate) {
                     this.toast('Anda sudah mencapai Rank ini sebelumnya!', 'error');
                     return;
                 }
 
-                const isFinal = (action === 'final');
+                // Cek apakah ini Rank Terakhir (MA - Index 14)
+                // Jika user baru saja mencapai Tier 14 (MA), maka paksa isFinal = true
+                let isFinal = (action === 'final');
+                if (tierIdx >= 14) { // 14 adalah index untuk MA
+                    isFinal = true;
+                }
                 
                 // 1. SAVE ACHIEVEMENT
                 achs.push({
@@ -2039,21 +2070,19 @@
                 });
                 Store.set('achievements', achs);
 
-                // [FIX] TIDAK ADA PENAMBAHAN POIN SAMA SEKALI
-
                 // 2. UPDATE GOAL STATE
                 if (isFinal) {
-                    // Hapus goal dari daftar aktif jika sudah tamat
+                    // Hapus goal dari daftar aktif karena sudah Tamat/Max
                     goals = goals.filter(g => g.id !== goalId);
+                    this.toast('SELAMAT! Target telah mencapai puncaknya (MAX).', 'success');
                 } else if (nextTarget) {
-                    // Update target untuk level berikutnya
                     goals[goalIndex].currentTarget = nextTarget;
+                    this.toast(`Snapshot Rank ${Config.TIERS[tierIdx].code} tersimpan!`, 'success');
                 }
 
                 Store.set('goals', goals);
 
                 this.sound.play('success');
-                this.toast(`Snapshot Rank ${Config.TIERS[tierIdx].code} tersimpan!`, 'success');
                 this.closeModal();
                 this.render();
             },

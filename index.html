@@ -1001,17 +1001,15 @@
                 </div>`;
             },
 
-            taskItem(t, mode) { 
-                
-                // Cek apakah ini misi Custom Range atau Biasa
+           taskItem(t, mode) { 
                 let timeLabel = "ALL DAY";
-                
                 if (t.customLabel) {
-                    timeLabel = t.customLabel; // Pakai label custom (06:00 - 09:00)
+                    timeLabel = t.customLabel; 
                 } else {
                     const slot = Config.TIME_SLOTS.find(s=>s.id === (t.timeSlot||'all'));
-                    if (slot) timeLabel = slot.label; // Fallback
+                    if (slot) timeLabel = slot.label;
                 }
+                
                 const diff = Config.DIFFICULTY[t.difficulty] || {label:'BONUS', color:'text-neonGold', border:'border-neonGold'};
                 
                 if (t.type === 'bonus' && mode !== 'view') return ''; 
@@ -1019,24 +1017,43 @@
                 let action = '';
                 let cardClass = '';
                 let textClass = 'text-white font-medium';
+                let specialBadge = ''; // [BARU] Untuk badge loop
 
+                // --- LOGIKA VISUAL BARU UNTUK LOOP ---
+                if (t.isLoop) {
+                    // Cek apakah ini Jackpot (Misi Terakhir & Ada Bonus)
+                    if (t.isJackpot) {
+                        cardClass = 'border-neonGold/50 bg-gradient-to-r from-neonGold/10 to-transparent shadow-[0_0_15px_rgba(245,158,11,0.2)]';
+                        specialBadge = `<div class="flex items-center gap-1 bg-neonGold/20 px-2 py-0.5 rounded text-[8px] font-bold text-neonGold border border-neonGold/30 mb-1 w-max"><i data-lucide="crown" class="w-3 h-3"></i> FINAL JACKPOT (Step ${t.loopIndex}/${t.loopTotal})</div>`;
+                    } else {
+                        cardClass = 'border-neonPurple/40 bg-neonPurple/5'; // Warna Ungu khas Loop
+                        specialBadge = `<div class="flex items-center gap-1 bg-neonPurple/20 px-2 py-0.5 rounded text-[8px] font-bold text-neonPurple border border-neonPurple/30 mb-1 w-max"><i data-lucide="repeat" class="w-3 h-3"></i> PROTOCOL: ${t.loopIndex}/${t.loopTotal}</div>`;
+                    }
+                } else {
+                    // Misi Biasa (Polos/Glass)
+                    cardClass = 'glass-card opacity-70 border-white/5';
+                }
+
+                // Override class berdasarkan status (Menang/Kalah lebih prioritas dari Loop style)
                 if (t.type === 'bonus') {
                       cardClass = 'bg-neonGold/10 border-neonGold/30';
                       action = `<span class="text-xs font-bold text-neonGold">+${t.pts} PTS</span>`;
                       textClass = 'text-neonGold font-bold uppercase';
                 }
                 else if (t.status === 'completed') {
-                    cardClass = 'bg-green-900/20 border-green-500/30 shadow-[0_0_10px_rgba(16,185,129,0.1)]';
+                    cardClass = 'bg-green-900/20 border-green-500/30 shadow-[0_0_10px_rgba(16,185,129,0.1)] opacity-60'; // Opacity biar gak ganggu fokus
                     action = `<i data-lucide="check-circle" class="text-neonGreen w-5 h-5 drop-shadow-md"></i>`;
-                    textClass = 'text-neonGreen font-bold';
+                    textClass = 'text-neonGreen font-bold line-through decoration-neonGreen/50'; // Coret teks biar jelas selesai
                 } 
                 else if (t.status === 'failed') {
-                    cardClass = 'bg-red-900/20 border-red-500/30';
+                    cardClass = 'bg-red-900/20 border-red-500/30 opacity-60';
                     action = `<i data-lucide="x-circle" class="text-neonRed w-5 h-5 drop-shadow-md"></i>`;
                     textClass = 'text-neonRed font-bold';
                 }
                 else if (mode === 'active' && t.status === 'pending') {
-                    cardClass = 'border-dashed border-slate-600 bg-transparent';
+                    // Pertahankan style loop jika aktif, kalau bukan loop pakai style aktif biasa
+                    if(!t.isLoop) cardClass = 'border-dashed border-slate-600 bg-transparent';
+                    
                     action = `
                     <div class="flex gap-2">
                         <button onclick="App.controller.updateTask('${t.id}','failed')" class="w-9 h-9 rounded-xl bg-slate-800 border border-neonRed/30 text-neonRed flex items-center justify-center hover:bg-neonRed/20 active:scale-95 transition-all"><i data-lucide="x" class="w-4 h-4"></i></button>
@@ -1044,20 +1061,19 @@
                     </div>`;
                 }
                 else if (mode === 'locked' && t.status === 'pending') {
-                    cardClass = 'glass-card opacity-80 border-slate-700';
+                    cardClass = 'glass-card opacity-60 border-slate-700'; // Lebih redup
                     action = `<i data-lucide="lock" class="text-slate-600 w-4 h-4"></i>`;
                 }
                 else if (mode === 'edit') {
-                    cardClass = 'glass-card opacity-90';
+                    if(!t.isLoop) cardClass = 'glass-card opacity-90';
                     action = `<button onclick="App.controller.deleteTask('${t.id}')" class="text-slate-500 hover:text-neonRed p-2 transition-colors"><i data-lucide="trash-2" class="w-4 h-4"></i></button>`;
-                }
-                else {
-                    cardClass = 'glass-card opacity-70';
                 }
 
                 return `
-                <div class="p-4 rounded-xl flex items-center justify-between border mb-3 transition-all ${cardClass}">
+                <div class="p-4 rounded-xl flex items-center justify-between border mb-3 transition-all duration-300 ${cardClass}">
                     <div class="flex-1 pr-3">
+                        ${specialBadge} <!-- Badge Keren Disini -->
+                        
                         <div class="flex items-center gap-2 mb-1.5">
                             <span class="text-[8px] font-mono font-bold text-slate-300 bg-surface px-1.5 py-0.5 rounded border border-white/5">${timeLabel}</span>
                             ${t.type !== 'bonus' ? `<span class="text-[8px] font-bold border px-1.5 py-0.5 rounded uppercase ${diff.color} ${diff.border} bg-white/5">${diff.label}</span>` : ''}
@@ -1180,62 +1196,64 @@
                 lucide.createIcons();
                 this.calcLoopTotal();
             },
-          generateLoopTasks() {
+         generateLoopTasks() {
                 const text = document.getElementById('loop-text').value.trim();
                 const total = parseInt(document.getElementById('loop-total').value);
                 const diff = document.getElementById('loop-diff').value;
-                
-                // [BARU] Ambil Waktu Range
                 const start = parseInt(document.getElementById('loop-start').value);
                 const end = parseInt(document.getElementById('loop-end').value);
-                
                 const bonusInput = document.getElementById('loop-bonus').value;
                 const bonusPts = bonusInput ? parseInt(bonusInput) : 0;
                 const selectedDays = Array.from(document.querySelectorAll('input[name="loopDay"]:checked')).map(cb => parseInt(cb.value));
 
+                // Validasi (Sama seperti sebelumnya)
                 if (!text) { this.toast("Nama misi wajib diisi!", "error"); return; }
                 if (isNaN(total) || total <= 0) { this.toast("Total repetisi tidak valid!", "error"); return; }
                 if (selectedDays.length === 0) { this.toast("Pilih minimal satu hari!", "error"); return; }
-                
-                // [BARU] Validasi Waktu (Sama seperti Blueprint)
                 if (end <= start) { this.toast("Jam selesai harus lebih besar dari mulai", "error"); return; }
 
                 const tasks = Store.get('tasks');
                 let createdCount = 0;
                 let d = new Date(); 
+                // Mulai hari ini (tanpa d.setDate + 1 di awal)
                 
-
                 const basePts = Config.DIFFICULTY[diff].pts;
-                
-                // Label Waktu Otomatis
                 const timeLabel = `${String(start).padStart(2,'0')}:00 - ${String(end).padStart(2,'0')}:00`;
+                const seriesId = Utils.generateId(); // Satu ID untuk satu keluarga loop
 
                 for (let i = 0; i < 365; i++) {
                     if (createdCount >= total) break;
-
                     const currentDayIndex = d.getDay();
 
                     if (selectedDays.includes(currentDayIndex)) {
                         const isLast = (createdCount === total - 1);
                         let finalPts = undefined; 
-                        let finalText = `${text} (Loop ${createdCount + 1}/${total})`;
-
+                        
+                        // [PERUBAHAN PENTING] Jangan ubah variable 'text' jadi aneh-aneh.
+                        // Biarkan nama misinya murni, nanti kita hias di UI.
+                        
+                        let isJackpot = false;
                         if (isLast && bonusPts > 0) {
                             finalPts = basePts + bonusPts;
-                            finalText = `👑 ${text} (FINAL: +${bonusPts} PTS)`; 
+                            isJackpot = true;
                         }
 
                         tasks.push({
                             id: Utils.generateId(),
-                            text: finalText,
-                            difficulty: diff,
+                            loopSeriesId: seriesId, // ID Keluarga
                             
-                            // [PENTING] Set ke Custom & Masukkan Data Range
+                            // Data Tampilan Khusus
+                            isLoop: true,
+                            loopIndex: createdCount + 1,
+                            loopTotal: total,
+                            isJackpot: isJackpot,
+                            
+                            text: text, // Teks murni ("Lari Pagi")
+                            difficulty: diff,
                             timeSlot: 'custom',
                             customStart: start,
                             customEnd: end,
                             customLabel: timeLabel,
-                            
                             date: Utils.getISO(d),
                             status: 'pending',
                             createdAt: new Date().toISOString(),
@@ -1248,7 +1266,7 @@
 
                 Store.set('tasks', tasks);
                 this.sound.play('success');
-                this.toast(`Protokol aktif! Jackpot ${bonusPts} Pts di akhir.`, 'success');
+                this.toast(`Protokol ${total} tahap diaktifkan!`, 'success');
                 this.closeModal();
                 this.render();
             },
@@ -1537,15 +1555,47 @@
                     this.render();
                 }
             },
-            deleteTask(id) {
-                if(confirm('Hapus misi ini?')) {
-                    const tasks = Store.get('tasks').filter(t => t.id !== id);
-                    Store.set('tasks', tasks);
-                    this.sound.play('click');
-                    this.toast('Misi dihapus', 'info');
-                    this.render();
-                } else {
-                    this.render();
+           deleteTask(id) {
+                const tasks = Store.get('tasks');
+                const targetTask = tasks.find(t => t.id === id);
+                
+                if (!targetTask) return;
+
+                // LOGIKA LOOP PROTOCOL (Sistem Paket)
+                if (targetTask.loopSeriesId) {
+                    // Konfirmasi yang lebih jelas
+                    if (confirm('⚠️ ABORT PROTOCOL (BATALKAN RANGKAIAN)?\n\nIni akan menghapus semua misi MASA DEPAN dari rangkaian ini. Jackpot akan hangus.\n\nNamun, misi yang SUDAH SELESAI (History) akan tetap tersimpan dan poinnya aman.')) {
+                        
+                        // Filter Cerdas:
+                        // 1. Simpan misi yang BUKAN dari seri ini.
+                        // 2. ATAU, Simpan misi dari seri ini TAPI yang statusnya BUKAN 'pending'.
+                        const newTasks = tasks.filter(t => {
+                            const isDifferentSeries = t.loopSeriesId !== targetTask.loopSeriesId;
+                            const isHistory = t.status !== 'pending'; // Completed atau Failed
+                            
+                            return isDifferentSeries || isHistory;
+                        });
+
+                        Store.set('tasks', newTasks);
+                        this.sound.play('click');
+                        this.toast('Protocol dihentikan. Poin lama aman.', 'info');
+                        this.render();
+                    }
+                } 
+                // LOGIKA MISI BIASA (Single)
+                else {
+                    // Kalau misi biasa tapi statusnya completed, tanya dulu biar ga sayang poin
+                    if (targetTask.status === 'completed') {
+                        if(!confirm('Misi ini sudah selesai dan menghasilkan poin. Menghapusnya akan MENGURANGI total poin Anda. Lanjutkan?')) return;
+                    }
+
+                    if(confirm('Hapus misi ini?')) {
+                        const newTasks = tasks.filter(t => t.id !== id);
+                        Store.set('tasks', newTasks);
+                        this.sound.play('click');
+                        this.toast('Misi dihapus', 'info');
+                        this.render();
+                    }
                 }
             },
 

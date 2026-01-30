@@ -146,111 +146,79 @@
         .btn-action:hover::after { left: 100%; }
         .btn-action:active { transform: scale(0.96); }
 
-      /* TIER VISUAL SYSTEM (HIERARCHY UPDATE) */
+     /* TIER VISUAL SYSTEM (ULTIMATE PROGRESSION) */
         
-        /* --- TIER LOW (NO GLOW) --- */
-        /* F - Failing: Asphalt Gray */
-        .tier-f { color: #3A3A3A; font-weight: 600; } 
-        
-        /* E - Elementary: Mud Brown */
-        .tier-e { color: #6B4F3F; font-weight: 600; }
-        
-        /* D - Developing: Army Green */
-        .tier-d { color: #4F6F52; font-weight: 600; }
-        
-        /* C - Capable: Teal Blue */
-        .tier-c { color: #1F8A8A; font-weight: 700; }
-        
-        /* B - Balanced: True Blue */
-        .tier-b { color: #2563EB; font-weight: 700; }   
-        
-        /* A - Advanced: Indigo */
-        .tier-a { color: #3F2EFF; font-weight: 800; }
+        /* 1. TIER PEMULA (Flat / Matte) */
+        .tier-f { color: #525252; font-weight: 600; filter: grayscale(100%); }
+        .tier-e { color: #8D6E63; font-weight: 600; }
+        .tier-d { color: #558B2F; font-weight: 600; }
+        .tier-c { color: #00897B; font-weight: 700; }
 
-        /* --- TIER ELITE (SOFT GLOW/OUTLINE) --- */
-        /* S - Superior: Royal Violet */
-        .tier-s { 
-            color: #7C3AED; 
-            text-shadow: 0 0 10px rgba(124, 58, 237, 0.4); 
-        }
-        
-        /* SS - Supremely Skilled: Fuchsia Core */
+        /* 2. TIER MENENGAH (Sedikit Glow) */
+        .tier-b { color: #1E88E5; font-weight: 700; text-shadow: 0 0 5px rgba(30, 136, 229, 0.4); }
+        .tier-a { color: #3949AB; font-weight: 800; text-shadow: 0 0 8px rgba(57, 73, 171, 0.5); }
+        .tier-s { color: #7E57C2; font-weight: 800; text-shadow: 0 0 10px rgba(126, 87, 194, 0.6); }
+
+        /* 3. TIER ELITE (Radiant / Bersinar) */
         .tier-ss { 
-            color: #D946EF; 
-            text-shadow: 0 0 12px rgba(217, 70, 239, 0.5); 
+            color: #D81B60; 
+            text-shadow: 0 0 10px #D81B60, 0 0 20px rgba(216, 27, 96, 0.4); 
         }
-        
-        /* EX - Exceptional: Metallic Gold */
         .tier-ex { 
-            background: linear-gradient(135deg, #D4AF37 30%, #F3E5AB 50%, #D4AF37 70%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5));
+            background: linear-gradient(135deg, #FFD700 20%, #FDB931 50%, #FFD700 80%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 5px rgba(255, 215, 0, 0.6));
+        }
+        .tier-mr { 
+            color: #FF6D00; 
+            text-shadow: 0 0 10px #FF6D00, 0 0 20px rgba(255, 109, 0, 0.5);
+            animation: pulse-slow 3s infinite alternate;
         }
 
-        /* --- TIER GOD/ANOMALY (SPECIAL EFFECTS) --- */
-        /* MR - Master Rank: Amber Orange (Solid Control) */
-        .tier-mr { 
-            color: #FF8C00; 
-            text-shadow: 0 0 10px rgba(255, 140, 0, 0.4);
-            filter: contrast(1.2);
-        }
-        
-        /* UR - Ultra Rare: Electric Cyan (Anomaly) */
+        /* 4. TIER LEGENDARY (Electric / Anomaly) */
         .tier-ur { 
             color: #00E5FF; 
-            text-shadow: 0 0 8px #00E5FF, 0 0 20px rgba(0, 229, 255, 0.4); 
-            animation: pulse-slow 4s infinite; 
+            text-shadow: 0 0 5px #fff, 0 0 15px #00E5FF, 0 0 30px #00E5FF; 
+            animation: glow 2s infinite alternate;
         }
-        
-        /* EXR - Extreme Rank: Blood Red (Threat) */
         .tier-exr { 
-            color: #B11226; 
-            text-shadow: 0 0 15px rgba(177, 18, 38, 0.8); 
+            color: #FF1744; 
+            text-shadow: 0 0 5px #fff, 0 0 15px #FF1744, 0 0 30px #D50000;
             letter-spacing: 1px;
         }
-        
-        /* HS - High Spec: Magma (Overclocked) */
+
+        /* 5. TIER GOD (Animated / Living) */
         .tier-hs { 
-            background: linear-gradient(to bottom, #FF4500, #FF8C00); 
-            -webkit-background-clip: text; 
-            -webkit-text-fill-color: transparent; 
-            filter: drop-shadow(0 0 10px rgba(255, 69, 0, 0.6));
-            animation: glow 3s infinite alternate;
+            background: linear-gradient(to bottom, #FF3D00, #FFEA00); 
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 10px #FF3D00);
+            animation: shimmer 2s infinite linear;
         }
-        
-        /* PS - Peak State: Absolute White (Perfection) */
-        /* PS - Peak State: Clean & Holy (Putih Bersih Stabil) */
         .tier-ps { 
             color: #FFFFFF; 
-            text-shadow: 0 0 10px rgba(255,255,255,0.9); 
-            filter: drop-shadow(0 0 2px #000); /* Outline tipis */
+            text-shadow: 0 0 10px #FFFFFF, 0 0 20px #FFFFFF, 0 0 40px #B3E5FC;
+            animation: float 4s ease-in-out infinite;
         }
         
-        /* MA - MAXIMUM: GOD MODE (Holographic & Unstable) */
+        /* MA - MAXIMUM: RGB SHIFT / HOLOGRAM */
         .tier-max { 
-            /* Text Gradient Animasi */
-            background: linear-gradient(135deg, #FFFFFF 20%, #00E5FF 40%, #FFFFFF 50%, #FF00FF 60%, #FFFFFF 80%);
-            background-size: 300% auto;
-            -webkit-background-clip: text;
+            background: linear-gradient(135deg, #FFFFFF 0%, #00FFFF 25%, #FF00FF 50%, #FFFF00 75%, #FFFFFF 100%);
+            background-size: 200% auto;
+            -webkit-background-clip: text; 
             -webkit-text-fill-color: transparent;
             
-            /* Glow Berlapis (Cyan & Magenta) */
-            filter: drop-shadow(0 0 2px rgba(255,255,255,1))
-                    drop-shadow(0 0 10px rgba(0, 229, 255, 0.6))
-                    drop-shadow(0 0 20px rgba(255, 0, 255, 0.4));
+            /* Outline tebal + Glow */
+            filter: drop-shadow(0 0 2px rgba(255,255,255,0.8)) 
+                    drop-shadow(0 0 15px rgba(0, 255, 255, 0.5));
             
-            /* Animasi Gerak */
-            animation: holo-shift 3s linear infinite, float 4s ease-in-out infinite;
+            animation: holo-shift 2s linear infinite;
             font-weight: 900;
             letter-spacing: 2px;
         }
 
-        /* Keyframes untuk efek MA */
         @keyframes holo-shift {
             0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
+            100% { background-position: 200% 50%; }
         }
         /* Navigation Dock */
         .nav-dock {
@@ -909,31 +877,31 @@
                 </div>`;
             },
 
-            // [REMASTERED] KARTU ACHIEVEMENT MEWAH (SINGLE)
-          // [REMASTERED V2] KARTU MEWAH & LEBIH CERAH
+      // [FINAL FIX] KARTU ACHIEVEMENT DENGAN EFEK CSS
             achievementBadge(ach) {
                 const tier = Config.TIERS[ach.tierIndex] || Config.TIERS[0];
                 const cat = Config.GOAL_CATEGORIES.find(c => c.id === ach.category) || {color:'text-white', label:''};
                 
+                // Tentukan background khusus untuk Tier Dewa (MA/PS/HS)
+                let bgEffect = '';
+                if (tier.code === 'MA' || tier.code === 'PS' || tier.code === 'HS') {
+                    bgEffect = `<div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-30 animate-pulse"></div>`;
+                }
+
                 return `
-                <div class="relative w-full aspect-[4/5] rounded-xl overflow-hidden group transition-all duration-500 hover:scale-[1.02] cursor-default border border-white/20 hover:border-${tier.barColor} bg-slate-800">
+                <div class="relative w-full aspect-[4/5] rounded-xl overflow-hidden group transition-all duration-500 hover:scale-[1.02] cursor-default border border-white/10 hover:border-${tier.barColor} bg-slate-900 shadow-2xl">
                     
-                   
-                    <!-- Background: Jika MA pakai Gradient Spesial, jika bukan pakai Default -->
-                    ${tier.code === 'MA' 
-                        ? `<div class="absolute inset-0 bg-gradient-to-br from-slate-900 via-purple-900/40 to-black opacity-90"></div><div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-30"></div>` 
-                        : `<div class="absolute inset-0 bg-gradient-to-br from-slate-700 via-slate-800 to-black opacity-90"></div>`
-                    }
+                    <!-- Background Gradient -->
+                    <div class="absolute inset-0 bg-gradient-to-br from-slate-800 via-slate-900 to-black"></div>
+                    <div class="absolute inset-0 opacity-30" style="background: radial-gradient(circle at top right, ${tier.barColor}, transparent 70%);"></div>
+                    ${bgEffect}
                     
-                    <!-- Glow Kuat -->
-                    <div class="absolute inset-0 opacity-40" style="background: radial-gradient(circle at top right, ${tier.barColor}, transparent 60%);"></div>
-                    
-                    <!-- Watermark -->
-                    <div class="absolute -bottom-4 -right-4 font-display text-8xl opacity-20 select-none" style="color: ${tier.barColor}; transform: rotate(-15deg);">
+                    <!-- Watermark (Tetap pakai warna solid agar tidak tabrakan) -->
+                    <div class="absolute -bottom-6 -right-6 font-display text-8xl opacity-10 select-none" style="color: ${tier.barColor}; transform: rotate(-15deg);">
                         ${tier.code}
                     </div>
 
-                    ${ach.isFinal ? `<div class="absolute top-2 right-2 p-1 bg-black/50 rounded-full border border-neonGold/50"><i data-lucide="medal" class="w-4 h-4 text-neonGold drop-shadow-[0_0_8px_rgba(255,215,0,0.8)]"></i></div>` : ''}
+                    ${ach.isFinal ? `<div class="absolute top-2 right-2 p-1 bg-black/50 rounded-full border border-neonGold/50 shadow-[0_0_10px_#ffd700]"><i data-lucide="medal" class="w-4 h-4 text-neonGold"></i></div>` : ''}
 
                     <div class="relative z-10 h-full flex flex-col p-4">
                         <div class="flex items-center gap-1.5 mb-auto">
@@ -941,28 +909,26 @@
                             <span class="text-[9px] font-bold tracking-widest text-slate-300 uppercase">${cat.label}</span>
                         </div>
 
+                        <!-- [PERBAIKAN UTAMA] Gunakan CLASS CSS, bukan STYLE COLOR -->
                         <div class="text-center my-2">
-                            <div class="font-display text-4xl transition-all duration-300 group-hover:scale-110 drop-shadow-lg" style="color: ${tier.barColor}; text-shadow: 0 0 25px ${tier.barColor};">
+                            <div class="font-display text-5xl transition-all duration-300 group-hover:scale-110 group-hover:rotate-1 ${tier.class}">
                                 ${tier.code}
                             </div>
-                            <div class="text-[9px] font-bold text-white tracking-[0.3em] uppercase opacity-90 mt-1">${tier.name}</div>
+                            <div class="text-[9px] font-bold text-white tracking-[0.3em] uppercase opacity-80 mt-1">${tier.name}</div>
                         </div>
 
                         <div class="mt-auto text-center">
                             <h4 class="text-xs font-bold text-white leading-tight mb-2 line-clamp-2">${ach.title}</h4>
-                            <div class="w-full h-px bg-white/20 mb-2"></div>
-                            <span class="text-[9px] font-mono text-slate-400 block">${Utils.formatDate(ach.dateUnlocked)}</span>
+                            <div class="w-full h-px bg-white/10 mb-2"></div>
+                            <span class="text-[9px] font-mono text-slate-500 block">${Utils.formatDate(ach.dateUnlocked)}</span>
                         </div>
                     </div>
 
                     <button onclick="if(confirm('Hapus snapshot sejarah ini?')){App.controller.deleteAchievement('${ach.id}')}" class="absolute top-2 left-2 p-2 rounded-full bg-black/50 text-slate-400 hover:text-neonRed opacity-0 group-hover:opacity-100 transition-all z-20 backdrop-blur-sm">
                         <i data-lucide="trash" class="w-3 h-3"></i>
                     </button>
-                    
-                    <div class="absolute inset-0 border border-white/10 rounded-xl pointer-events-none"></div>
                 </div>`;
             },
-
             achievementStack(goalId, snapshots) {
                 const latest = snapshots[snapshots.length - 1];
                 const tier = Config.TIERS[latest.tierIndex] || Config.TIERS[0];

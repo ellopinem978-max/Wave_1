@@ -821,10 +821,11 @@
             }
         }
 
-        /**
-         * MODULE 7: UI COMPONENT FACTORY
+      /**
+         * MODULE 7: UI COMPONENT FACTORY (LUXURY EDITION)
          */
         const ComponentFactory = {
+            // Kartu Rank di Dashboard (Tetap, tapi dirapikan dikit)
             rankCard(title, data, icon) {
                 const t = data.tier;
                 const col = t.barColor;
@@ -832,121 +833,118 @@
                 let bars = '';
                 for(let i=1; i<=2; i++) {
                     const active = i <= data.bars;
-                    const activeStyle = `background-color:${col}; box-shadow: 0 0 10px ${col}, 0 0 20px ${col}; border: 1px solid rgba(255,255,255,0.5);`;
-                    const inactiveStyle = `background-color:var(--bg-panel); border: 1px solid var(--border-dim); box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);`;
-                    const style = active ? activeStyle : inactiveStyle;
-                    
-                    bars += `<div class="w-1/2 h-2 rounded-full transition-all duration-500" style="${style}"></div>`;
+                    const style = active ? `background-color:${col}; box-shadow: 0 0 10px ${col};` : `background-color:rgba(255,255,255,0.1);`;
+                    bars += `<div class="w-1/2 h-1.5 rounded-full transition-all duration-500" style="${style}"></div>`;
                 }
 
                 return `
-                <div class="glass-card p-4 rounded-xl flex-1 flex flex-col items-center justify-between relative overflow-hidden group min-h-[120px] hover:bg-white/5 transition-colors cursor-default">
-                    <div class="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                    
-                    <div class="flex items-center justify-between w-full mb-1 z-10">
-                        <span class="text-[8px] font-mono text-slate-400 font-bold tracking-widest">${title}</span>
+                <div class="glass-card p-4 rounded-xl flex-1 flex flex-col relative overflow-hidden group min-h-[100px] border border-white/5 hover:bg-white/5 transition-all">
+                    <div class="flex items-center justify-between w-full mb-2 z-10">
+                        <span class="text-[9px] font-mono text-slate-400 font-bold tracking-widest uppercase">${title}</span>
                         <i data-lucide="${icon}" class="w-3 h-3 text-slate-500"></i>
                     </div>
-
-                    <div class="font-display text-4xl mb-1 z-10 transition-all duration-500" style="color:${col}; text-shadow: 0 0 15px ${col};">
+                    <div class="font-display text-4xl z-10 transition-all duration-500 tracking-tighter" style="color:${col}; text-shadow: 0 0 20px ${col};">
                         ${t.code}
                     </div>
-
-                    <div class="text-[8px] text-white font-bold tracking-[0.2em] z-10 mb-3 uppercase opacity-80">${t.name}</div>
-                    <div class="flex gap-2 w-full max-w-[60px] z-10 mt-2">${bars}</div>
+                    <div class="text-[8px] text-white font-bold tracking-[0.2em] z-10 mb-3 uppercase opacity-60">${t.name}</div>
+                    <div class="flex gap-2 w-full max-w-[50px] z-10 mt-auto opacity-80">${bars}</div>
                 </div>`;
             },
 
+            // Kartu Statistik (Chart)
             analyticsCard(tasks) {
-                const labels = [];
-                const data = [];
-                const today = new Date();
-                
+                // (Kode sama seperti sebelumnya, tidak perlu diubah, copas saja bagian ini dari yang lama kalau mau, atau pakai yang ini)
+                const labels = []; const data = []; const today = new Date();
                 for(let i=6; i>=0; i--) {
-                    const d = new Date();
-                    d.setDate(today.getDate() - i);
-                    const iso = Utils.getISO(d);
+                    const d = new Date(); d.setDate(today.getDate() - i);
                     const dayName = d.toLocaleDateString('id-ID', {weekday:'short'}).toUpperCase().slice(0,3);
                     labels.push(dayName);
-                    
+                    const iso = Utils.getISO(d);
                     const dayTasks = tasks.filter(t => t.date === iso && t.status === 'completed' && t.type !== 'bonus');
                     const pts = dayTasks.reduce((acc, t) => acc + (Config.DIFFICULTY[t.difficulty]?.pts || 0), 0);
                     data.push(pts);
                 }
-
-                const maxVal = Math.max(...data, 10); 
-                const h = 60; 
-                const w = 100;
-                const stepX = w / (data.length - 1);
-                
+                const maxVal = Math.max(...data, 10); const h = 60; const w = 100; const stepX = w / (data.length - 1);
                 let points = "";
-                data.forEach((val, i) => {
-                    const x = i * stepX;
-                    const y = h - ((val / maxVal) * h);
-                    points += `${x},${y} `;
-                });
+                data.forEach((val, i) => { points += `${i * stepX},${h - ((val / maxVal) * h)} `; });
 
                 return `
-                <div class="glass-card p-4 rounded-xl mb-4 relative overflow-hidden">
+                <div class="glass-card p-4 rounded-xl mb-4 relative overflow-hidden group">
+                    <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
                     <div class="flex justify-between items-start mb-2">
                         <div class="flex items-center gap-2">
                             <div class="p-1.5 rounded bg-neonCyan/10"><i data-lucide="activity" class="w-3 h-3 text-neonCyan"></i></div>
                             <span class="text-[10px] font-bold uppercase tracking-widest text-slate-300">Neural Analytics</span>
                         </div>
-                        <span class="text-[9px] text-slate-500 font-mono">7 HARI TERAKHIR</span>
+                        <span class="text-[9px] text-slate-500 font-mono">7 HARI</span>
                     </div>
-                    
                     <div class="relative h-16 w-full mt-2">
-                        <div class="absolute inset-0 flex flex-col justify-between opacity-10">
-                            <div class="border-t border-white/20 w-full"></div>
-                            <div class="border-t border-white/20 w-full"></div>
-                            <div class="border-t border-white/20 w-full"></div>
-                        </div>
-                        
                         <svg viewBox="0 0 100 60" preserveAspectRatio="none" class="w-full h-full overflow-visible">
-                            <defs>
-                                <linearGradient id="chartGrad" x1="0" x2="0" y1="0" y2="1">
-                                    <stop offset="0%" stop-color="var(--accent-primary)" stop-opacity="0.3"/>
-                                    <stop offset="100%" stop-color="var(--accent-primary)" stop-opacity="0"/>
-                                </linearGradient>
-                            </defs>
+                            <defs><linearGradient id="chartGrad" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="var(--accent-primary)" stop-opacity="0.3"/><stop offset="100%" stop-color="var(--accent-primary)" stop-opacity="0"/></linearGradient></defs>
                             <polygon points="0,60 ${points} 100,60" fill="url(#chartGrad)" />
                             <polyline points="${points}" fill="none" stroke="var(--accent-primary)" stroke-width="2" vector-effect="non-scaling-stroke" />
-                            ${data.map((val, i) => {
-                                const x = i * stepX;
-                                const y = h - ((val / maxVal) * h);
-                                return `<circle cx="${x}" cy="${y}" r="3" class="fill-obsidian stroke-neonCyan" stroke-width="1.5" vector-effect="non-scaling-stroke"/>`;
-                            }).join('')}
+                            ${data.map((val, i) => `<circle cx="${i * stepX}" cy="${h - ((val / maxVal) * h)}" r="3" class="fill-obsidian stroke-neonCyan" stroke-width="1.5" vector-effect="non-scaling-stroke"/>`).join('')}
                         </svg>
                     </div>
-                    
-                    <div class="flex justify-between mt-2 px-1">
-                        ${labels.map(l => `<span class="text-[8px] font-mono text-slate-500">${l}</span>`).join('')}
-                    </div>
+                    <div class="flex justify-between mt-2 px-1">${labels.map(l => `<span class="text-[8px] font-mono text-slate-500">${l}</span>`).join('')}</div>
                 </div>`;
             },
 
-            // UPDATED: Use Config.TIERS instead of static achievement tiers
+            // [REMASTERED] KARTU ACHIEVEMENT MEWAH (SINGLE)
             achievementBadge(ach) {
                 const tier = Config.TIERS[ach.tierIndex] || Config.TIERS[0];
                 const cat = Config.GOAL_CATEGORIES.find(c => c.id === ach.category) || {color:'text-white', label:''};
                 
                 return `
-                <div class="glass-card flex flex-col items-center justify-center p-3 rounded-xl border border-white/10 relative overflow-hidden group hover:scale-105 transition-transform duration-300 shadow-[0_0_15px_rgba(0,0,0,0.3)] relative">
-                    ${ach.isFinal ? `<div class="absolute top-1 right-1 text-neonGreen"><i data-lucide="check-circle-2" class="w-3 h-3"></i></div>` : ''}
-                    <div class="p-2 rounded-full bg-black/30 mb-2 font-display text-xl" style="color: ${tier.barColor}; text-shadow: 0 0 10px ${tier.barColor}">
+                <div class="relative w-full aspect-[4/5] rounded-xl overflow-hidden group transition-all duration-500 hover:scale-[1.02] cursor-default border border-white/10 hover:border-${tier.barColor}">
+                    
+                    <!-- Background & Glow -->
+                    <div class="absolute inset-0 bg-gradient-to-b from-slate-900 to-black"></div>
+                    <div class="absolute inset-0 opacity-20" style="background: radial-gradient(circle at top right, ${tier.barColor}, transparent 70%);"></div>
+                    
+                    <!-- Watermark Besar -->
+                    <div class="absolute -bottom-6 -right-6 font-display text-8xl opacity-10 select-none" style="color: ${tier.barColor}; transform: rotate(-15deg);">
                         ${tier.code}
                     </div>
-                    <span class="text-[9px] text-center font-bold text-white uppercase leading-tight">${ach.title}</span>
-                    <span class="text-[8px] text-center text-white/60 font-mono mt-1">${Utils.formatDate(ach.dateUnlocked).split(',')[1]}</span>
-                    
-                    <span class="text-[9px] font-mono font-bold text-neonGold mt-1 border border-neonGold/30 px-1.5 rounded bg-black/40">+${Utils.formatCurrency(tier.bonus)} Pts</span>
-                    
-                    <span class="text-[7px] uppercase mt-1 px-1.5 py-0.5 rounded bg-black/30 ${cat.color}">${cat.label}</span>
-                    <button onclick="if(confirm('Hapus snapshot sejarah ini?')){App.controller.deleteAchievement('${ach.id}')}" class="absolute top-1 left-1 opacity-0 group-hover:opacity-100 text-slate-500 hover:text-neonRed transition-opacity"><i data-lucide="trash" class="w-3 h-3"></i></button>
+
+                    <!-- Ribbon Status -->
+                    ${ach.isFinal ? `<div class="absolute top-3 right-3"><i data-lucide="medal" class="w-4 h-4 text-neonGold drop-shadow-[0_0_8px_rgba(255,215,0,0.8)]"></i></div>` : ''}
+
+                    <!-- Content -->
+                    <div class="relative z-10 h-full flex flex-col p-4">
+                        <!-- Top: Category -->
+                        <div class="flex items-center gap-1.5 mb-auto">
+                            <span class="w-1.5 h-1.5 rounded-full ${cat.color.replace('text-', 'bg-')} shadow-[0_0_5px_currentColor]"></span>
+                            <span class="text-[7px] font-bold tracking-widest text-slate-400 uppercase">${cat.label}</span>
+                        </div>
+
+                        <!-- Middle: Tier Code -->
+                        <div class="text-center my-2">
+                            <div class="font-display text-3xl transition-all duration-300 group-hover:scale-110" style="color: ${tier.barColor}; text-shadow: 0 0 15px ${tier.barColor};">
+                                ${tier.code}
+                            </div>
+                            <div class="text-[8px] font-bold text-white tracking-[0.3em] uppercase opacity-60">${tier.name}</div>
+                        </div>
+
+                        <!-- Bottom: Title & Date -->
+                        <div class="mt-auto text-center">
+                            <h4 class="text-[10px] font-bold text-white leading-tight mb-1 line-clamp-2">${ach.title}</h4>
+                            <div class="w-8 h-px bg-white/20 mx-auto mb-1"></div>
+                            <span class="text-[8px] font-mono text-slate-500">${Utils.formatDate(ach.dateUnlocked).split(',')[1]}</span>
+                        </div>
+                    </div>
+
+                    <!-- Delete Button (Hidden) -->
+                    <button onclick="if(confirm('Hapus snapshot sejarah ini?')){App.controller.deleteAchievement('${ach.id}')}" class="absolute top-2 left-2 p-1.5 rounded-full bg-black/50 text-slate-500 hover:text-neonRed opacity-0 group-hover:opacity-100 transition-all z-20 backdrop-blur-sm">
+                        <i data-lucide="trash" class="w-3 h-3"></i>
+                    </button>
+
+                    <!-- Shine Effect -->
+                    <div class="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] pointer-events-none"></div>
                 </div>`;
             },
 
+            // [REMASTERED] KARTU ACHIEVEMENT MEWAH (STACK)
             achievementStack(goalId, snapshots) {
                 const latest = snapshots[snapshots.length - 1];
                 const tier = Config.TIERS[latest.tierIndex] || Config.TIERS[0];
@@ -954,61 +952,76 @@
                 const cat = Config.GOAL_CATEGORIES.find(c => c.id === latest.category) || {color:'text-white', label:''};
 
                 return `
-                <div onclick="App.controller.openStackDetails('${goalId}')" class="glass-card flex flex-col items-center justify-center p-3 rounded-xl border border-white/10 relative overflow-hidden group hover:scale-105 transition-transform duration-300 cursor-pointer shadow-[0_0_15px_rgba(0,0,0,0.3)]">
-                    <div class="absolute top-[-5px] right-[-5px] w-6 h-6 flex items-center justify-center bg-neonCyan text-obsidian font-bold text-[8px] rounded-bl-lg z-10">${count}</div>
+                <div onclick="App.controller.openStackDetails('${goalId}')" class="relative w-full aspect-[4/5] rounded-xl overflow-hidden group transition-all duration-500 hover:scale-[1.02] cursor-pointer border border-white/10 hover:border-${tier.barColor}">
                     
-                    ${latest.isFinal ? `<div class="absolute top-1 right-5 text-neonGreen"><i data-lucide="check-circle-2" class="w-3 h-3"></i></div>` : ''}
+                    <!-- Stack Layer Effect (Visual tumpukan di belakang) -->
+                    <div class="absolute top-1 left-1 right-[-4px] bottom-[-4px] rounded-xl bg-white/5 border border-white/5 z-0 transform translate-x-1 translate-y-1"></div>
                     
-                    <div class="p-2 rounded-full bg-black/30 mb-2 font-display text-xl" style="color: ${tier.barColor}; text-shadow: 0 0 10px ${tier.barColor}">
+                    <!-- Background -->
+                    <div class="absolute inset-0 bg-gradient-to-br from-slate-900 via-obsidian to-black z-10"></div>
+                    <div class="absolute inset-0 opacity-20 z-10" style="background: radial-gradient(circle at bottom left, ${tier.barColor}, transparent 60%);"></div>
+
+                    <!-- Counter Badge -->
+                    <div class="absolute top-0 right-0 z-20 bg-white/10 backdrop-blur-md px-2 py-1 rounded-bl-xl border-l border-b border-white/10">
+                        <span class="text-[9px] font-black text-white font-mono">x${count}</span>
+                    </div>
+
+                    <!-- Watermark -->
+                    <div class="absolute -top-4 -left-4 font-display text-7xl opacity-10 select-none z-10" style="color: ${tier.barColor}; transform: rotate(15deg);">
                         ${tier.code}
                     </div>
-                    <span class="text-[9px] text-center font-bold text-white uppercase leading-tight line-clamp-2">${latest.title}</span>
-                    <span class="text-[8px] text-center text-white/60 font-mono mt-1">Updated: ${Utils.formatDate(latest.dateUnlocked).split(',')[1]}</span>
-                    
-                    <span class="text-[9px] font-mono font-bold text-neonGold mt-1 border border-neonGold/30 px-1.5 rounded bg-black/40">+${Utils.formatCurrency(tier.bonus)} Pts</span>
 
-                    <span class="text-[7px] uppercase mt-1 px-1.5 py-0.5 rounded bg-black/30 ${cat.color}">${cat.label}</span>
-                    
-                    <div class="absolute bottom-0 inset-x-2 h-1 bg-white/10 rounded-t-sm"></div>
-                    <div class="absolute bottom-1 inset-x-3 h-1 bg-white/5 rounded-t-sm"></div>
+                    <!-- Content -->
+                    <div class="relative z-20 h-full flex flex-col p-4">
+                         <div class="flex items-center gap-1.5 mb-auto">
+                            <span class="w-1.5 h-1.5 rounded-full ${cat.color.replace('text-', 'bg-')} shadow-[0_0_5px_currentColor]"></span>
+                            <span class="text-[7px] font-bold tracking-widest text-slate-400 uppercase">${cat.label}</span>
+                        </div>
+
+                        <div class="text-center my-2">
+                             <div class="font-display text-3xl transition-all duration-300 group-hover:scale-110" style="color: ${tier.barColor}; text-shadow: 0 0 15px ${tier.barColor};">
+                                ${tier.code}
+                            </div>
+                            <div class="text-[8px] font-bold text-white tracking-[0.3em] uppercase opacity-60">SERIES</div>
+                        </div>
+
+                        <div class="mt-auto text-center">
+                            <h4 class="text-[10px] font-bold text-white leading-tight mb-1 line-clamp-2">${latest.parentTitle || latest.title}</h4>
+                            <div class="w-8 h-px bg-white/20 mx-auto mb-1"></div>
+                            <span class="text-[8px] font-mono text-neonCyan">Latest: ${Utils.formatDate(latest.dateUnlocked).split(',')[1]}</span>
+                        </div>
+                    </div>
                 </div>`;
             },
 
             goalCard(goal) {
-                const cat = Config.GOAL_CATEGORIES.find(c => c.id === goal.category) || {label:'Lainnya', color:'text-slate-400', border:'border-slate-500'};
-                
-                return `
-                <div class="glass-card p-4 rounded-xl border ${cat.border} relative group min-w-[200px] flex flex-col justify-between">
-                    <div class="flex justify-between items-start mb-2">
-                        <div class="flex items-center gap-2">
-                            <i data-lucide="target" class="w-4 h-4 ${cat.color}"></i>
-                            <span class="text-[10px] font-bold uppercase tracking-widest ${cat.color}">${cat.label}</span>
-                        </div>
-                        <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button onclick="App.controller.editGoal('${goal.id}')" class="p-1 text-slate-400 hover:text-white"><i data-lucide="edit-2" class="w-3 h-3"></i></button>
-                            <button onclick="App.controller.deleteGoal('${goal.id}')" class="p-1 text-slate-400 hover:text-neonRed"><i data-lucide="trash" class="w-3 h-3"></i></button>
-                        </div>
-                    </div>
-                    
-                    <h3 class="text-sm font-bold text-white mb-1">${goal.title}</h3>
-                    <p class="text-xs text-slate-400 font-mono mb-4">
-                        ${goal.type === 'progressive' ? `Target: <span class="text-white">${goal.currentTarget}</span>` : `<span class="text-neonGold font-bold">RANK ${Config.TIERS[goal.rankIndex].code}</span>`}
-                    </p>
-                    
-                    <button onclick="App.controller.openSnapshotModal('${goal.id}')" class="w-full bg-slate-800 hover:bg-neonCyan hover:text-obsidian text-slate-300 text-[10px] font-bold py-2 rounded-lg transition-colors flex items-center justify-center gap-1 border border-slate-700">
-                        <i data-lucide="camera" class="w-3 h-3"></i> CHECKPOINT
-                    </button>
-                </div>`;
+                 const cat = Config.GOAL_CATEGORIES.find(c => c.id === goal.category) || {label:'Lainnya', color:'text-slate-400', border:'border-slate-500'};
+                 return `
+                 <div class="glass-card p-4 rounded-xl border ${cat.border} relative group min-w-[200px] flex flex-col justify-between">
+                     <div class="flex justify-between items-start mb-2">
+                         <div class="flex items-center gap-2">
+                             <i data-lucide="target" class="w-4 h-4 ${cat.color}"></i>
+                             <span class="text-[10px] font-bold uppercase tracking-widest ${cat.color}">${cat.label}</span>
+                         </div>
+                         <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                             <button onclick="App.controller.editGoal('${goal.id}')" class="p-1 text-slate-400 hover:text-white"><i data-lucide="edit-2" class="w-3 h-3"></i></button>
+                             <button onclick="App.controller.deleteGoal('${goal.id}')" class="p-1 text-slate-400 hover:text-neonRed"><i data-lucide="trash" class="w-3 h-3"></i></button>
+                         </div>
+                     </div>
+                     <h3 class="text-sm font-bold text-white mb-1">${goal.title}</h3>
+                     <p class="text-xs text-slate-400 font-mono mb-4">
+                         ${goal.type === 'progressive' ? `Target: <span class="text-white">${goal.currentTarget}</span>` : `<span class="text-neonGold font-bold">RANK ${Config.TIERS[goal.rankIndex].code}</span>`}
+                     </p>
+                     <button onclick="App.controller.openSnapshotModal('${goal.id}')" class="w-full bg-slate-800 hover:bg-neonCyan hover:text-obsidian text-slate-300 text-[10px] font-bold py-2 rounded-lg transition-colors flex items-center justify-center gap-1 border border-slate-700">
+                         <i data-lucide="camera" class="w-3 h-3"></i> CHECKPOINT
+                     </button>
+                 </div>`;
             },
 
-           taskItem(t, mode) { 
+            taskItem(t, mode) { 
                 let timeLabel = "ALL DAY";
-                if (t.customLabel) {
-                    timeLabel = t.customLabel; 
-                } else {
-                    const slot = Config.TIME_SLOTS.find(s=>s.id === (t.timeSlot||'all'));
-                    if (slot) timeLabel = slot.label;
-                }
+                if (t.customLabel) { timeLabel = t.customLabel; } 
+                else { const slot = Config.TIME_SLOTS.find(s=>s.id === (t.timeSlot||'all')); if (slot) timeLabel = slot.label; }
                 
                 const diff = Config.DIFFICULTY[t.difficulty] || {label:'BONUS', color:'text-neonGold', border:'border-neonGold'};
                 
@@ -1017,33 +1030,29 @@
                 let action = '';
                 let cardClass = '';
                 let textClass = 'text-white font-medium';
-                let specialBadge = ''; // [BARU] Untuk badge loop
+                let specialBadge = '';
 
-                // --- LOGIKA VISUAL BARU UNTUK LOOP ---
                 if (t.isLoop) {
-                    // Cek apakah ini Jackpot (Misi Terakhir & Ada Bonus)
                     if (t.isJackpot) {
                         cardClass = 'border-neonGold/50 bg-gradient-to-r from-neonGold/10 to-transparent shadow-[0_0_15px_rgba(245,158,11,0.2)]';
                         specialBadge = `<div class="flex items-center gap-1 bg-neonGold/20 px-2 py-0.5 rounded text-[8px] font-bold text-neonGold border border-neonGold/30 mb-1 w-max"><i data-lucide="crown" class="w-3 h-3"></i> FINAL JACKPOT (Step ${t.loopIndex}/${t.loopTotal})</div>`;
                     } else {
-                        cardClass = 'border-neonPurple/40 bg-neonPurple/5'; // Warna Ungu khas Loop
+                        cardClass = 'border-neonPurple/40 bg-neonPurple/5';
                         specialBadge = `<div class="flex items-center gap-1 bg-neonPurple/20 px-2 py-0.5 rounded text-[8px] font-bold text-neonPurple border border-neonPurple/30 mb-1 w-max"><i data-lucide="repeat" class="w-3 h-3"></i> PROTOCOL: ${t.loopIndex}/${t.loopTotal}</div>`;
                     }
                 } else {
-                    // Misi Biasa (Polos/Glass)
                     cardClass = 'glass-card opacity-70 border-white/5';
                 }
 
-                // Override class berdasarkan status (Menang/Kalah lebih prioritas dari Loop style)
                 if (t.type === 'bonus') {
                       cardClass = 'bg-neonGold/10 border-neonGold/30';
                       action = `<span class="text-xs font-bold text-neonGold">+${t.pts} PTS</span>`;
                       textClass = 'text-neonGold font-bold uppercase';
                 }
                 else if (t.status === 'completed') {
-                    cardClass = 'bg-green-900/20 border-green-500/30 shadow-[0_0_10px_rgba(16,185,129,0.1)] opacity-60'; // Opacity biar gak ganggu fokus
+                    cardClass = 'bg-green-900/20 border-green-500/30 shadow-[0_0_10px_rgba(16,185,129,0.1)] opacity-60'; 
                     action = `<i data-lucide="check-circle" class="text-neonGreen w-5 h-5 drop-shadow-md"></i>`;
-                    textClass = 'text-neonGreen font-bold line-through decoration-neonGreen/50'; // Coret teks biar jelas selesai
+                    textClass = 'text-neonGreen font-bold line-through decoration-neonGreen/50'; 
                 } 
                 else if (t.status === 'failed') {
                     cardClass = 'bg-red-900/20 border-red-500/30 opacity-60';
@@ -1051,9 +1060,7 @@
                     textClass = 'text-neonRed font-bold';
                 }
                 else if (mode === 'active' && t.status === 'pending') {
-                    // Pertahankan style loop jika aktif, kalau bukan loop pakai style aktif biasa
                     if(!t.isLoop) cardClass = 'border-dashed border-slate-600 bg-transparent';
-                    
                     action = `
                     <div class="flex gap-2">
                         <button onclick="App.controller.updateTask('${t.id}','failed')" class="w-9 h-9 rounded-xl bg-slate-800 border border-neonRed/30 text-neonRed flex items-center justify-center hover:bg-neonRed/20 active:scale-95 transition-all"><i data-lucide="x" class="w-4 h-4"></i></button>
@@ -1061,7 +1068,7 @@
                     </div>`;
                 }
                 else if (mode === 'locked' && t.status === 'pending') {
-                    cardClass = 'glass-card opacity-60 border-slate-700'; // Lebih redup
+                    cardClass = 'glass-card opacity-60 border-slate-700'; 
                     action = `<i data-lucide="lock" class="text-slate-600 w-4 h-4"></i>`;
                 }
                 else if (mode === 'edit') {
@@ -1072,8 +1079,7 @@
                 return `
                 <div class="p-4 rounded-xl flex items-center justify-between border mb-3 transition-all duration-300 ${cardClass}">
                     <div class="flex-1 pr-3">
-                        ${specialBadge} <!-- Badge Keren Disini -->
-                        
+                        ${specialBadge}
                         <div class="flex items-center gap-2 mb-1.5">
                             <span class="text-[8px] font-mono font-bold text-slate-300 bg-surface px-1.5 py-0.5 rounded border border-white/5">${timeLabel}</span>
                             ${t.type !== 'bonus' ? `<span class="text-[8px] font-bold border px-1.5 py-0.5 rounded uppercase ${diff.color} ${diff.border} bg-white/5">${diff.label}</span>` : ''}
@@ -1090,7 +1096,6 @@
                     <div class="font-display w-8 text-center text-lg ${t.class}">${t.code}</div>
                     <div class="flex-1">
                         <div class="text-[10px] font-bold text-white uppercase tracking-wider">${t.name}</div>
-                        <!-- Baris tampilan bonus dihapus di sini -->
                     </div>
                 </div>`).join('');
             }
@@ -1215,7 +1220,7 @@
                 const tasks = Store.get('tasks');
                 let createdCount = 0;
                 let d = new Date(); 
-                // Mulai hari ini (tanpa d.setDate + 1 di awal)
+                d.setDate(d.getDate() + 1);
                 
                 const basePts = Config.DIFFICULTY[diff].pts;
                 const timeLabel = `${String(start).padStart(2,'0')}:00 - ${String(end).padStart(2,'0')}:00`;

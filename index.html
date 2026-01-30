@@ -981,48 +981,85 @@
                 </div>`;
             },
 
-          goalCard(goal) {
+        goalCard(goal) {
                  const cat = Config.GOAL_CATEGORIES.find(c => c.id === goal.category) || {label:'Lainnya', color:'text-slate-400', border:'border-slate-500'};
                  
-                 // [LOGIKA BARU] Hitung Tier Saat Ini (Real-time)
+                 // 1. Hitung Rank Saat Ini
                  let currentTierIdx = goal.rankIndex || 0;
-                 if (goal.type === 'progressive') {
-                     // Hitung berapa kali sudah checkpoint
-                     const achs = Store.get('achievements').filter(a => a.goalId === goal.id);
-                     currentTierIdx += achs.length;
-                 }
-                 // Mentok di Tier Terakhir (MA)
-                 if (currentTierIdx >= Config.TIERS.length) currentTierIdx = Config.TIERS.length - 1;
+                 let progressText = "";
                  
+                 if (goal.type === 'progressive') {
+                     const achs = Store.get('achievements').filter(a => a.goalId === goal.id);
+                     // Progress ditambah jumlah checkpoint yang sudah dicapai
+                     currentTierIdx += achs.length;
+                     progressText = `STEP ${achs.length}`;
+                 }
+                 
+                 // Batasi Max Tier
+                 if (currentTierIdx >= Config.TIERS.length) currentTierIdx = Config.TIERS.length - 1;
                  const tier = Config.TIERS[currentTierIdx];
 
                  return `
-                 <div class="glass-card p-4 rounded-xl border relative group min-w-[200px] flex flex-col justify-between transition-all duration-500 hover:scale-[1.02]" 
-                      style="border-color: ${tier.barColor}; box-shadow: inset 0 0 20px ${tier.barColor}10, 0 0 10px ${tier.barColor}20;">
+                 <div class="glass-card p-4 rounded-xl border relative group min-w-[200px] flex flex-col justify-between transition-all duration-300 overflow-hidden" 
+                      style="border-color: ${tier.barColor}; background: linear-gradient(to bottom right, rgba(15,23,42,0.9), rgba(0,0,0,0.8));">
                      
-                     <div class="absolute -right-2 -top-2 opacity-20 font-display text-4xl select-none pointer-events-none" style="color: ${tier.barColor}">${tier.code}</div>
+                     <!-- Watermark Besar (Background) -->
+                     <div class="absolute -right-4 -bottom-4 font-display text-8xl opacity-10 select-none pointer-events-none transition-transform group-hover:scale-110 group-hover:rotate-[-10deg]" 
+                          style="color: ${tier.barColor};">
+                          ${tier.code}
+                     </div>
+                     
+                     <!-- Glow Ambient -->
+                     <div class="absolute inset-0 opacity-20 pointer-events-none group-hover:opacity-30 transition-opacity" 
+                          style="background: radial-gradient(circle at top left, ${tier.barColor}, transparent 70%);">
+                     </div>
 
-                     <div class="flex justify-between items-start mb-2 relative z-10">
+                     <!-- Header -->
+                     <div class="flex justify-between items-start mb-3 relative z-10">
                          <div class="flex items-center gap-2">
-                             <i data-lucide="target" class="w-4 h-4" style="color: ${tier.barColor}"></i>
-                             <span class="text-[10px] font-bold uppercase tracking-widest ${cat.color}">${cat.label}</span>
+                             <div class="px-2 py-0.5 rounded border border-white/10 bg-black/40 backdrop-blur-sm">
+                                <span class="text-[8px] font-bold uppercase tracking-widest ${cat.color}">${cat.label}</span>
+                             </div>
                          </div>
-                         <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                             <button onclick="App.controller.editGoal('${goal.id}')" class="p-1 text-slate-400 hover:text-white"><i data-lucide="edit-2" class="w-3 h-3"></i></button>
-                             <button onclick="App.controller.deleteGoal('${goal.id}')" class="p-1 text-slate-400 hover:text-neonRed"><i data-lucide="trash" class="w-3 h-3"></i></button>
+                         <!-- Tombol Edit & Hapus -->
+                         <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 rounded-lg p-1 backdrop-blur-sm border border-white/10">
+                             <button onclick="App.controller.editGoal('${goal.id}')" class="p-1.5 text-slate-400 hover:text-white transition-colors"><i data-lucide="edit-2" class="w-3 h-3"></i></button>
+                             <button onclick="App.controller.deleteGoal('${goal.id}')" class="p-1.5 text-slate-400 hover:text-neonRed transition-colors"><i data-lucide="trash" class="w-3 h-3"></i></button>
                          </div>
                      </div>
 
-                     <h3 class="text-sm font-bold text-white mb-1 drop-shadow-md">${goal.title}</h3>
+                     <!-- Title & Current Rank Info -->
+                     <div class="relative z-10 mb-4">
+                         <h3 class="text-sm font-bold text-white mb-1 leading-tight drop-shadow-md line-clamp-2" style="text-shadow: 0 0 10px rgba(0,0,0,0.8);">${goal.title}</h3>
+                         
+                         <div class="flex items-center gap-2 mt-2">
+                             <!-- Kode Rank -->
+                             <span class="font-display text-xl" style="color:${tier.barColor}; text-shadow: 0 0 10px ${tier.barColor};">${tier.code}</span>
+                             <div class="h-4 w-px bg-white/20"></div>
+                             <!-- Info Target/Rank Name -->
+                             <div class="flex flex-col">
+                                 <span class="text-[7px] text-slate-400 uppercase tracking-widest">CURRENT RANK</span>
+                                 <span class="text-[9px] font-bold text-white uppercase">${tier.name}</span>
+                             </div>
+                         </div>
+                     </div>
                      
-                     <p class="text-xs text-slate-400 font-mono mb-4 flex items-center gap-2">
-                         ${goal.type === 'progressive' ? `Target: <span class="text-white font-bold">${goal.currentTarget}</span>` : `<span style="color:${tier.barColor}">RANK ${tier.code}</span>`}
-                     </p>
-                     
-                     <button onclick="App.controller.openSnapshotModal('${goal.id}')" class="w-full text-obsidian text-[10px] font-bold py-2 rounded-lg transition-colors flex items-center justify-center gap-1 shadow-lg active:scale-95"
-                        style="background-color: ${tier.barColor}; box-shadow: 0 0 10px ${tier.barColor}50;">
-                         <i data-lucide="camera" class="w-3 h-3"></i> CHECKPOINT
+                     <!-- Checkpoint Button -->
+                     <button onclick="App.controller.openSnapshotModal('${goal.id}')" 
+                             class="relative z-10 w-full text-obsidian text-[10px] font-bold py-2.5 rounded-lg transition-all flex items-center justify-center gap-2 shadow-lg active:scale-95 group/btn overflow-hidden"
+                             style="background-color: ${tier.barColor};">
+                         <!-- Kilauan pada tombol -->
+                         <div class="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover/btn:translate-x-[100%] transition-transform duration-700"></div>
+                         
+                         <i data-lucide="camera" class="w-3 h-3"></i> 
+                         ${goal.type === 'progressive' ? 'LEVEL UP' : 'CLAIM'}
                      </button>
+
+                     <!-- Next Target Preview (Khusus Progressive) -->
+                     ${goal.type === 'progressive' ? `
+                     <div class="relative z-10 mt-2 text-center">
+                        <span class="text-[8px] text-slate-500 font-mono">Next: <span class="text-slate-300">${goal.currentTarget}</span></span>
+                     </div>` : ''}
                  </div>`;
             },
 
@@ -1913,20 +1950,22 @@
                 this.render();
             },
 
-          deleteGoal(id) {
-                if(confirm('PERINGATAN KERAS:\nMenghapus target ini akan MENGHAPUS SEMUA riwayat Snapshot/Achievement yang terkait dengannya di Hall of Fame.\n\nLanjutkan penghapusan?')) {
-                    // 1. Hapus Goal
+        deleteGoal(id) {
+                // Konfirmasi keras
+                if(confirm('⚠️ PERINGATAN PROTOCOL:\n\nMenghapus TARGET UTAMA ini akan menghapus SELURUH riwayat Level Up / Checkpoint yang ada di dalamnya secara PERMANEN.\n\nAnda tidak bisa mengembalikan data yang sudah dihapus. Lanjutkan?')) {
+                    
+                    // 1. Hapus Goal dari daftar aktif
                     const goals = Store.get('goals') || [];
                     const newGoals = goals.filter(g => g.id !== id);
                     Store.set('goals', newGoals);
 
-                    // 2. [BARU] Hapus Achievements terkait
+                    // 2. Hapus Achievements terkait (Akarnya)
                     const achs = Store.get('achievements') || [];
                     const newAchs = achs.filter(a => a.goalId !== id);
                     Store.set('achievements', newAchs);
 
                     this.sound.play('click');
-                    this.toast('Target dan seluruh riwayatnya dihapus.', 'info');
+                    this.toast('Target beserta seluruh sejarahnya telah dihapus.', 'info');
                     this.render();
                 }
             },
@@ -2099,6 +2138,7 @@
             openStackDetails(goalId) {
                 this.sound.play('click');
                 const achs = Store.get('achievements').filter(a => a.goalId === goalId);
+                // Urutkan dari yang terbaru
                 achs.sort((a,b) => new Date(b.dateUnlocked) - new Date(a.dateUnlocked));
                 
                 if (achs.length === 0) return;
@@ -2110,25 +2150,39 @@
                     <div class="flex justify-between items-center mb-4">
                         <div>
                             <h3 class="text-lg font-bold text-white">${parentTitle}</h3>
-                            <p class="text-slate-400 text-xs font-mono">Riwayat Perjalanan</p>
+                            <p class="text-slate-400 text-xs font-mono">Riwayat Perjalanan (Read Only)</p>
                         </div>
                         <button onclick="App.controller.closeModal()" class="text-slate-500 hover:text-white bg-slate-800/50 p-2 rounded-full"><i data-lucide="x" class="w-5 h-5"></i></button>
                     </div>
                     
                     <div class="overflow-y-auto custom-scroll flex-1 pr-1 space-y-3">
-                        ${achs.map(ach => {
+                        ${achs.map((ach, idx) => {
                             const tier = Config.TIERS[ach.tierIndex] || Config.TIERS[0];
+                            // Indikator urutan
+                            const stepNum = achs.length - idx; 
+                            
                             return `
-                            <div class="glass-card p-3 rounded-xl flex items-center justify-between border border-white/5 bg-slate-800/50">
-                                <div class="flex items-center gap-3">
-                                    <div class="font-display text-2xl w-10 text-center" style="color:${tier.barColor}; text-shadow:0 0 10px ${tier.barColor}">${tier.code}</div>
-                                    <div>
-                                        <div class="text-sm font-bold text-white line-clamp-1">${ach.title}</div>
-                                        <div class="text-[10px] text-slate-500 font-mono">${Utils.formatDate(ach.dateUnlocked)}</div>
-                                        <!-- [FIX] BAGIAN POIN SUDAH DIHAPUS DISINI -->
+                            <div class="glass-card p-3 rounded-xl flex items-center justify-between border border-white/5 bg-slate-800/50 relative overflow-hidden">
+                                <!-- Glow Tipis sesuai Tier -->
+                                <div class="absolute inset-0 opacity-10 pointer-events-none" style="background: linear-gradient(to right, ${tier.barColor}, transparent);"></div>
+                                
+                                <div class="flex items-center gap-3 relative z-10">
+                                    <!-- Kode Tier -->
+                                    <div class="font-display text-2xl w-12 text-center" style="color:${tier.barColor}; text-shadow:0 0 10px ${tier.barColor}">${tier.code}</div>
+                                    
+                                    <div class="flex-1">
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-[8px] bg-white/10 px-1.5 rounded text-slate-300 font-mono">STEP ${stepNum}</span>
+                                            <div class="text-xs font-bold text-white line-clamp-1">${ach.title}</div>
+                                        </div>
+                                        <div class="text-[9px] text-slate-500 font-mono mt-0.5">${Utils.formatDate(ach.dateUnlocked)}</div>
                                     </div>
                                 </div>
-                                <button onclick="if(confirm('Hapus entry ini?')){App.controller.deleteAchievement('${ach.id}')}" class="text-slate-600 hover:text-neonRed p-2"><i data-lucide="trash" class="w-4 h-4"></i></button>
+                                
+                                <!-- Icon Status (Bukan Tombol Delete) -->
+                                <div class="text-slate-600">
+                                    ${ach.isFinal ? `<i data-lucide="check-circle-2" class="w-4 h-4 text-neonGreen"></i>` : `<i data-lucide="chevrons-up" class="w-4 h-4" style="color:${tier.barColor}"></i>`}
+                                </div>
                             </div>`;
                         }).join('')}
                     </div>

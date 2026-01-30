@@ -1173,12 +1173,11 @@
                 this.calcLoopTotal();
             },
           generateLoopTasks() {
-                
                 const text = document.getElementById('loop-text').value.trim();
                 const total = parseInt(document.getElementById('loop-total').value);
                 const diff = document.getElementById('loop-diff').value;
                 
-                // Ambil Waktu Range
+                // [BARU] Ambil Waktu Range
                 const start = parseInt(document.getElementById('loop-start').value);
                 const end = parseInt(document.getElementById('loop-end').value);
                 
@@ -1189,18 +1188,18 @@
                 if (!text) { this.toast("Nama misi wajib diisi!", "error"); return; }
                 if (isNaN(total) || total <= 0) { this.toast("Total repetisi tidak valid!", "error"); return; }
                 if (selectedDays.length === 0) { this.toast("Pilih minimal satu hari!", "error"); return; }
+                
+                // [BARU] Validasi Waktu (Sama seperti Blueprint)
                 if (end <= start) { this.toast("Jam selesai harus lebih besar dari mulai", "error"); return; }
 
                 const tasks = Store.get('tasks');
                 let createdCount = 0;
                 let d = new Date(); 
-                
-                // --- [PERBAIKAN] ---
-                // HAPUS BARIS: d.setDate(d.getDate() + 1); 
-                // Biarkan kosong di sini agar d tetap HARI INI.
-                // -------------------
+                d.setDate(d.getDate() + 1); 
 
                 const basePts = Config.DIFFICULTY[diff].pts;
+                
+                // Label Waktu Otomatis
                 const timeLabel = `${String(start).padStart(2,'0')}:00 - ${String(end).padStart(2,'0')}:00`;
 
                 for (let i = 0; i < 365; i++) {
@@ -1222,6 +1221,8 @@
                             id: Utils.generateId(),
                             text: finalText,
                             difficulty: diff,
+                            
+                            // [PENTING] Set ke Custom & Masukkan Data Range
                             timeSlot: 'custom',
                             customStart: start,
                             customEnd: end,
@@ -1234,10 +1235,7 @@
                         });
                         createdCount++;
                     }
-                    
-                    // [PENTING] BARIS INI JANGAN DIHAPUS
-                    // Ini fungsinya untuk pindah ke hari esok di putaran loop selanjutnya
-                    d.setDate(d.getDate() + 1); 
+                    d.setDate(d.getDate() + 1);
                 }
 
                 Store.set('tasks', tasks);
@@ -1245,7 +1243,6 @@
                 this.toast(`Protokol aktif! Jackpot ${bonusPts} Pts di akhir.`, 'success');
                 this.closeModal();
                 this.render();
-            
             },
             state: {
                 view: 'home',
@@ -1493,17 +1490,14 @@
                     text: this.state.tempTask.text,
                     difficulty: this.state.tempTask.difficulty,
                     timeSlot: slotId,
-                    
-                    // [PERBAIKAN] Ganti getTomorrow() jadi getISO()
-                    date: Utils.getISO(), 
-                    
+                    date: Utils.getTomorrow(), 
                     status: 'pending',
                     createdAt: new Date().toISOString()
                 });
                 Store.set('tasks', tasks);
                 this.closeModal();
                 this.sound.play('success');
-                this.toast('Misi aktif hari ini!', 'success');
+                this.toast('Misi dijadwalkan besok', 'success');
                 this.render();
             },
 
@@ -2631,12 +2625,13 @@
                 }
             },
 
-           // Simpan Misi (Range)
+            // Simpan Misi
             submitTimeRange() {
                 if (!this.state.tempTask) return;
                 const range = this.state.tempTimeRange;
                 const tasks = Store.get('tasks');
                 
+                // Label Otomatis
                 let timeLabel = "ALL DAY";
                 let slotId = "all";
                 
@@ -2650,13 +2645,12 @@
                     text: this.state.tempTask.text,
                     difficulty: this.state.tempTask.difficulty,
                     timeSlot: slotId,
+                    // SIMPAN DATA RANGE SPESIFIK
                     customStart: range.start,
                     customEnd: range.end,
                     customLabel: timeLabel,
                     
-                    // [PERBAIKAN] Ganti getTomorrow() jadi getISO() agar masuk HARI INI
-                    date: Utils.getISO(), 
-                    
+                    date: Utils.getTomorrow(), 
                     status: 'pending',
                     createdAt: new Date().toISOString()
                 });
@@ -2664,9 +2658,10 @@
                 Store.set('tasks', tasks);
                 this.closeModal();
                 this.sound.play('success');
-                this.toast('Misi aktif hari ini!', 'success');
+                this.toast('Misi terjadwal rapi!', 'success');
                 this.render();
             },
+
             closeModal() {
                 this.sound.play('click');
                 const m = document.getElementById('modal-layer');
@@ -2711,60 +2706,69 @@
                 
                 const pts = Engine.calcPoints(tasks);
 
-               if (this.state.view === 'home') {
+                if (this.state.view === 'home') {
+                    
                     const rnk = Engine.calcRank(monthKey, tasks, financeData);
                     const ref = reflections.find(r => r.date === today);
+                    
+                    // [PERBAIKAN UTAMA] Ambil jam sekarang
                     const currentHour = new Date().getHours(); 
 
-                    // --- [PERBAIKAN LOGIKA FILTER] ---
                     // Helper untuk membaca Start/End dari Misi (Baik Custom maupun ID)
                     const getTaskRange = (t) => {
-                        if (t.customStart !== undefined) {
+                        // Prioritas 1: Cek properti customStart (dari input manual/loop)
+                        if (t.customStart !== undefined && t.customStart !== null) {
                             return { start: t.customStart, end: t.customEnd };
                         }
+                        // Prioritas 2: Cek dari ID slot (compatibility data lama)
                         const slot = Config.TIME_SLOTS.find(s => s.id === t.timeSlot);
-                        // Jika slot 'all', kita anggap start 0 end 24
-                        return slot ? { start: slot.start, end: slot.end } : { start: 0, end: 24 };
+                        // Jika slot 'all' atau tidak ketemu, default 0-24
+                        return slot && slot.id !== 'all' ? { start: slot.start, end: slot.end } : { start: 0, end: 24 };
                     };
 
-                    // 1. MISI GAGAL (Status failed hari ini)
+                    // 1. MISI GAGAL
                     const tFailed = Engine.sortTasks(tasks.filter(t => t.date === today && t.status === 'failed'));
                     
-                    // 2. MISI SELESAI (Status completed hari ini)
+                    // 2. MISI SELESAI
                     const tCompleted = Engine.sortTasks(tasks.filter(t => t.date === today && t.status === 'completed'));
 
                     // 3. MISI AKTIF (Sedang Berlangsung)
-                    // Logika: Jam Sekarang ada di antara Start dan End
                     const tActive = Engine.sortTasks(tasks.filter(t => {
+                        // Harus hari ini dan status pending
                         if (t.date !== today || t.status !== 'pending') return false;
-                        if (t.timeSlot === 'all') return true; // All Day selalu aktif
                         
+                        // All Day selalu aktif
+                        if (t.timeSlot === 'all') return true; 
+                        
+                        // Cek Matematika Jam
                         const { start, end } = getTaskRange(t);
+                        // Aktif jika: Jam Sekarang >= Mulai DAN Jam Sekarang < Selesai
                         return currentHour >= start && currentHour < end;
                     }));
                     
-                    // 4. MISI AKAN DATANG (Start-nya nanti)
+                    // 4. MISI AKAN DATANG (Belum waktunya)
                     const tUpcoming = Engine.sortTasks(tasks.filter(t => {
                         if (t.date !== today || t.status !== 'pending') return false;
-                        if (t.timeSlot === 'all') return false; 
+                        if (t.timeSlot === 'all') return false; // All day tidak masuk sini
                         
                         const { start } = getTaskRange(t);
-                        return start > currentHour; // Hanya yang jam mulainya > jam sekarang
+                        // Upcoming jika: Jam Mulai > Jam Sekarang
+                        return start > currentHour; 
                     }));
 
-                    // 5. LIST MANAJEMEN (Di bawah tombol Jadwalkan)
-                    // Kita set filter ke 'today' agar misi yang barusan dibuat langsung kelihatan
-                    const tTom = Engine.sortTasks(tasks.filter(t => t.date === today));
+                    // ... (lanjut ke kode tTom / Misi Hari Ini di bawahnya seperti biasa) ...
+                    
+                    const tTom = Engine.sortTasks(tasks.filter(t => t.date === Utils.getTomorrow()));
+
                     const tTomPoints = tTom.reduce((acc, t) => acc + (Config.DIFFICULTY[t.difficulty]?.pts || 0), 0);
 
-                    // Helper tombol difficulty
                     const diffBtn = (d) => {
                         const act = this.state.difficulty === d;
                         const c = Config.DIFFICULTY[d];
                         return `<button onclick="App.controller.setDifficulty('${d}')" class="flex-1 py-2 rounded-lg text-[10px] font-bold border uppercase transition-all ${act ? `bg-white/10 text-white shadow-[0_0_10px_currentColor] ${c.border}` : 'border-slate-700 text-slate-500'}" style="${act?`color:${c.hex}`:''}">${c.label}</button>`;
                     };
 
-                    // Finance Card Logic
+                    // --- FINANCE SETUP CARD ---
                     let financeCard = '';
                     if (!myFinance) {
                         const selectedModeId = this.state.tempMode;
@@ -2816,7 +2820,6 @@
                         </div>`;
                     }
 
-                    // --- RENDER HTML UTAMA ---
                     main.innerHTML = `
                     <div class="space-y-8 pb-10 animate-[fadeIn_0.4s_ease-out]">
                         
@@ -2901,15 +2904,14 @@
 
                         <div class="flex items-center justify-center opacity-20 py-2"><div class="h-px bg-white w-full"></div><div class="mx-4 text-[9px] font-mono text-white whitespace-nowrap">NEXT CYCLE</div><div class="h-px bg-white w-full"></div></div>
 
-                        <!-- SECTION: MANAJEMEN MISI (INPUT) -->
+                        <!-- SECTION: PERENCANAAN BESOK -->
                         <div>
                             <div class="flex justify-between items-center mb-4">
-                                <h2 class="text-sm font-bold text-white flex items-center gap-2"><i data-lucide="sunrise" class="w-4 h-4 text-neonGold"></i> MISI HARI INI</h2>
+                                <h2 class="text-sm font-bold text-white flex items-center gap-2"><i data-lucide="sunrise" class="w-4 h-4 text-neonGold"></i> PERENCANAAN BESOK</h2>
                                 <span class="text-[10px] font-mono text-neonGold border border-neonGold/30 px-2 py-1 rounded bg-neonGold/10">POTENSI: +${tTomPoints} PTS</span>
                             </div>
                             <div class="glass-card p-5 rounded-xl space-y-4 mb-4 relative group">
-                                
-                                <!-- Tombol Besar Blueprint & Loop -->
+                               <!-- Tombol Besar Blueprint & Loop -->
                                 <div class="grid grid-cols-2 gap-3 mb-2">
                                     <button onclick="App.controller.openBlueprintManager()" class="glass-card p-3 rounded-xl border-t-2 border-neonCyan hover:bg-neonCyan/10 transition-all flex flex-col items-center gap-1 group active:scale-95">
                                         <div class="p-1.5 rounded-full bg-neonCyan/10 text-neonCyan group-hover:scale-110 transition-transform mb-1">
@@ -2928,7 +2930,7 @@
                                     </button>
                                 </div>
 
-                                <input id="task-in" type="text" placeholder="Input nama misi..." value="${this.state.tempTaskInput || ''}" class="w-full bg-charcoal text-white rounded-lg px-4 py-3 text-sm border border-slate-700 focus:border-neonCyan outline-none">
+                                <input id="task-in" type="text" placeholder="Input nama misi..." value="${this.state.tempTaskInput || ''}" class="w-full bg-charcoal text-white rounded-lg px-4 py-3 text-sm border border-slate-700 focus:border-neonCyan outline-none pr-12">
                                 <div class="flex gap-2">${['easy','medium','hard'].map(diffBtn).join('')}</div>
                                 <div class="flex gap-2">
                                     <button onclick="App.controller.initTask()" class="flex-1 btn-action bg-neonCyan hover:bg-white hover:text-obsidian text-obsidian font-bold py-3 rounded-lg text-xs uppercase tracking-widest shadow-[0_0_15px_rgba(6,182,212,0.3)] flex justify-center gap-2"><i data-lucide="plus-circle" class="w-4 h-4"></i> Jadwalkan</button>
@@ -2937,7 +2939,7 @@
                             <div class="space-y-0">${tTom.map(t => ComponentFactory.taskItem(t, 'edit')).join('')}</div>
                         </div>
                     </div>`;
-                }
+                } 
                 else if (this.state.view === 'rank') {
                     const rnk = Engine.calcRank(monthKey, tasks, financeData);
                     let hHtml = '';
@@ -3364,3 +3366,4 @@
     </script>
 </body>
 </html>
+

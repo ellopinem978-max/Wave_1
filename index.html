@@ -227,11 +227,12 @@
         }
         
         /* MA - MAXIMUM: Void Black (Final Form) */
+       /* MA - MAXIMUM: God Mode (White Core with Cosmic Aura) */
         .tier-max { 
-            color: #000000; 
-            -webkit-text-stroke: 1px rgba(255,255,255,0.6); 
-            text-shadow: 0 0 20px #7C3AED, 0 0 40px #B11226; /* Cosmic Glow: Ungu & Merah Tipis */
-            animation: float 6s ease-in-out infinite; 
+            color: #FFFFFF; 
+            text-shadow: 0 0 5px #FFFFFF, 0 0 20px #D946EF, 0 0 40px #FF0000; 
+            filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.8));
+            animation: pulse-slow 2s infinite; 
         }
         /* Navigation Dock */
         .nav-dock {
@@ -2014,6 +2015,7 @@
                 const goalType = goal.type || 'progressive';
                 let nextTarget = '';
                 
+                // Validasi input target selanjutnya
                 if (goalType === 'progressive' && action === 'continue') {
                     nextTarget = document.getElementById('snap-next').value.trim();
                     if (!nextTarget) {
@@ -2022,17 +2024,21 @@
                     }
                 }
 
+                // [PERBAIKAN BUG] Cek Duplikat Berdasarkan Tier Index (Level)
+                // Bukan berdasarkan judul. Jadi level 13 (PS) pasti beda dengan 12 (HS).
                 let achs = Store.get('achievements');
-                const isDuplicate = achs.some(a => a.goalId === goalId && a.title === milestone); 
+                const tierIdx = this.state.tempSnapshot.tierIndex;
+                
+                const isDuplicate = achs.some(a => a.goalId === goalId && a.tierIndex === tierIdx); 
+                
                 if (isDuplicate) {
-                    this.toast('Checkpoint ini sudah ada!', 'error');
+                    this.toast('Anda sudah mencapai Rank ini sebelumnya!', 'error');
                     return;
                 }
 
                 const isFinal = (action === 'final');
-                const tierIdx = this.state.tempSnapshot.tierIndex;
                 
-                // 1. SAVE ACHIEVEMENT (Hanya simpan kenangan)
+                // 1. SAVE ACHIEVEMENT
                 achs.push({
                     id: Utils.generateId(),
                     title: milestone, 
@@ -2045,20 +2051,21 @@
                 });
                 Store.set('achievements', achs);
 
-                // [DIHAPUS] Bagian Injeksi Bonus Poin (+Pts) sudah dibuang sesuai request.
-                // Misi "Hall of Fame Bonus" tidak akan dibuat lagi.
+                // [FIX] TIDAK ADA PENAMBAHAN POIN SAMA SEKALI
 
                 // 2. UPDATE GOAL STATE
                 if (isFinal) {
+                    // Hapus goal dari daftar aktif jika sudah tamat
                     goals = goals.filter(g => g.id !== goalId);
                 } else if (nextTarget) {
+                    // Update target untuk level berikutnya
                     goals[goalIndex].currentTarget = nextTarget;
                 }
 
                 Store.set('goals', goals);
 
                 this.sound.play('success');
-                this.toast(`Snapshot tersimpan di Hall of Fame!`, 'success'); // Pesan toast diubah
+                this.toast(`Snapshot Rank ${Config.TIERS[tierIdx].code} tersimpan!`, 'success');
                 this.closeModal();
                 this.render();
             },
@@ -2072,7 +2079,6 @@
                 this.render();
             },
 
-            // New: Show Stack Details
             openStackDetails(goalId) {
                 this.sound.play('click');
                 const achs = Store.get('achievements').filter(a => a.goalId === goalId);
@@ -2096,13 +2102,13 @@
                         ${achs.map(ach => {
                             const tier = Config.TIERS[ach.tierIndex] || Config.TIERS[0];
                             return `
-                            <div class="glass-card p-3 rounded-xl flex items-center justify-between border border-white/5">
+                            <div class="glass-card p-3 rounded-xl flex items-center justify-between border border-white/5 bg-slate-800/50">
                                 <div class="flex items-center gap-3">
                                     <div class="font-display text-2xl w-10 text-center" style="color:${tier.barColor}; text-shadow:0 0 10px ${tier.barColor}">${tier.code}</div>
                                     <div>
-                                        <div class="text-sm font-bold text-white">${ach.title}</div>
+                                        <div class="text-sm font-bold text-white line-clamp-1">${ach.title}</div>
                                         <div class="text-[10px] text-slate-500 font-mono">${Utils.formatDate(ach.dateUnlocked)}</div>
-                                        <div class="text-[8px] text-neonGold mt-0.5">+${Utils.formatCurrency(tier.bonus)} Pts</div>
+                                        <!-- [FIX] BAGIAN POIN SUDAH DIHAPUS DISINI -->
                                     </div>
                                 </div>
                                 <button onclick="if(confirm('Hapus entry ini?')){App.controller.deleteAchievement('${ach.id}')}" class="text-slate-600 hover:text-neonRed p-2"><i data-lucide="trash" class="w-4 h-4"></i></button>

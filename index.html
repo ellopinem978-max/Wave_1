@@ -1195,7 +1195,7 @@
                 const tasks = Store.get('tasks');
                 let createdCount = 0;
                 let d = new Date(); 
-                d.setDate(d.getDate() + 1); 
+                
 
                 const basePts = Config.DIFFICULTY[diff].pts;
                 
@@ -1490,14 +1490,17 @@
                     text: this.state.tempTask.text,
                     difficulty: this.state.tempTask.difficulty,
                     timeSlot: slotId,
-                    date: Utils.getTomorrow(), 
+                    
+                    // [PERBAIKAN] Ganti getTomorrow() jadi getISO()
+                    date: Utils.getISO(), 
+                    
                     status: 'pending',
                     createdAt: new Date().toISOString()
                 });
                 Store.set('tasks', tasks);
                 this.closeModal();
                 this.sound.play('success');
-                this.toast('Misi dijadwalkan besok', 'success');
+                this.toast('Misi aktif hari ini!', 'success');
                 this.render();
             },
 
@@ -2625,13 +2628,12 @@
                 }
             },
 
-            // Simpan Misi
+           // Simpan Misi (Range)
             submitTimeRange() {
                 if (!this.state.tempTask) return;
                 const range = this.state.tempTimeRange;
                 const tasks = Store.get('tasks');
                 
-                // Label Otomatis
                 let timeLabel = "ALL DAY";
                 let slotId = "all";
                 
@@ -2645,12 +2647,13 @@
                     text: this.state.tempTask.text,
                     difficulty: this.state.tempTask.difficulty,
                     timeSlot: slotId,
-                    // SIMPAN DATA RANGE SPESIFIK
                     customStart: range.start,
                     customEnd: range.end,
                     customLabel: timeLabel,
                     
-                    date: Utils.getTomorrow(), 
+                    // [PERBAIKAN] Ganti getTomorrow() jadi getISO() agar masuk HARI INI
+                    date: Utils.getISO(), 
+                    
                     status: 'pending',
                     createdAt: new Date().toISOString()
                 });
@@ -2658,10 +2661,9 @@
                 Store.set('tasks', tasks);
                 this.closeModal();
                 this.sound.play('success');
-                this.toast('Misi terjadwal rapi!', 'success');
+                this.toast('Misi aktif hari ini!', 'success');
                 this.render();
             },
-
             closeModal() {
                 this.sound.play('click');
                 const m = document.getElementById('modal-layer');
@@ -2707,23 +2709,36 @@
                 const pts = Engine.calcPoints(tasks);
 
                 if (this.state.view === 'home') {
-                    const rnk = Engine.calcRank(monthKey, tasks, financeData);
-                    const ref = reflections.find(r => r.date === today);
-                    
-                    // UPDATED: Logic Filter
-                    // Fail: Date today & Status failed (Checked by AutoFail)
+                    // --- LOGIKA FILTER YANG BENAR ---
+                    const currentHour = new Date().getHours(); 
+
+                    // Helper baca jam
+                    const getTaskRange = (t) => {
+                        if (t.customStart !== undefined) return { start: t.customStart, end: t.customEnd };
+                        const slot = Config.TIME_SLOTS.find(s => s.id === t.timeSlot);
+                        return slot ? { start: slot.start, end: slot.end } : { start: 0, end: 24 };
+                    };
+
+                    // Filter
                     const tFailed = Engine.sortTasks(tasks.filter(t => t.date === today && t.status === 'failed'));
                     const tCompleted = Engine.sortTasks(tasks.filter(t => t.date === today && t.status === 'completed'));
-                    
+
+                    // MISI AKTIF (Sekarang)
                     const tActive = Engine.sortTasks(tasks.filter(t => {
-                        return t.date === today && t.status === 'pending' && (t.timeSlot === currentSlot.id || t.timeSlot === 'all');
+                        if (t.date !== today || t.status !== 'pending') return false;
+                        if (t.timeSlot === 'all') return true; // All day selalu aktif
+                        const { start, end } = getTaskRange(t);
+                        return currentHour >= start && currentHour < end;
                     }));
                     
+                    // MISI AKAN DATANG (Nanti)
                     const tUpcoming = Engine.sortTasks(tasks.filter(t => {
                         if (t.date !== today || t.status !== 'pending') return false;
-                        const slot = Config.TIME_SLOTS.find(s => s.id === t.timeSlot);
-                        return slot && slot.id !== 'all' && slot.start > currentHour; 
+                        if (t.timeSlot === 'all') return false; 
+                        const { start } = getTaskRange(t);
+                        return start > currentHour; // Hanya yang jam mulainya > jam sekarang
                     }));
+                    
                     
                     const tTom = Engine.sortTasks(tasks.filter(t => t.date === Utils.getTomorrow()));
 

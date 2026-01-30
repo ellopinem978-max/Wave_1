@@ -1173,11 +1173,12 @@
                 this.calcLoopTotal();
             },
           generateLoopTasks() {
+                
                 const text = document.getElementById('loop-text').value.trim();
                 const total = parseInt(document.getElementById('loop-total').value);
                 const diff = document.getElementById('loop-diff').value;
                 
-                // [BARU] Ambil Waktu Range
+                // Ambil Waktu Range
                 const start = parseInt(document.getElementById('loop-start').value);
                 const end = parseInt(document.getElementById('loop-end').value);
                 
@@ -1188,18 +1189,18 @@
                 if (!text) { this.toast("Nama misi wajib diisi!", "error"); return; }
                 if (isNaN(total) || total <= 0) { this.toast("Total repetisi tidak valid!", "error"); return; }
                 if (selectedDays.length === 0) { this.toast("Pilih minimal satu hari!", "error"); return; }
-                
-                // [BARU] Validasi Waktu (Sama seperti Blueprint)
                 if (end <= start) { this.toast("Jam selesai harus lebih besar dari mulai", "error"); return; }
 
                 const tasks = Store.get('tasks');
                 let createdCount = 0;
                 let d = new Date(); 
                 
+                // --- [PERBAIKAN] ---
+                // HAPUS BARIS: d.setDate(d.getDate() + 1); 
+                // Biarkan kosong di sini agar d tetap HARI INI.
+                // -------------------
 
                 const basePts = Config.DIFFICULTY[diff].pts;
-                
-                // Label Waktu Otomatis
                 const timeLabel = `${String(start).padStart(2,'0')}:00 - ${String(end).padStart(2,'0')}:00`;
 
                 for (let i = 0; i < 365; i++) {
@@ -1221,8 +1222,6 @@
                             id: Utils.generateId(),
                             text: finalText,
                             difficulty: diff,
-                            
-                            // [PENTING] Set ke Custom & Masukkan Data Range
                             timeSlot: 'custom',
                             customStart: start,
                             customEnd: end,
@@ -1235,7 +1234,10 @@
                         });
                         createdCount++;
                     }
-                    d.setDate(d.getDate() + 1);
+                    
+                    // [PENTING] BARIS INI JANGAN DIHAPUS
+                    // Ini fungsinya untuk pindah ke hari esok di putaran loop selanjutnya
+                    d.setDate(d.getDate() + 1); 
                 }
 
                 Store.set('tasks', tasks);
@@ -1243,6 +1245,7 @@
                 this.toast(`Protokol aktif! Jackpot ${bonusPts} Pts di akhir.`, 'success');
                 this.closeModal();
                 this.render();
+            
             },
             state: {
                 view: 'home',

@@ -220,19 +220,37 @@
         }
         
         /* PS - Peak State: Absolute White (Perfection) */
+        /* PS - Peak State: Clean & Holy (Putih Bersih Stabil) */
         .tier-ps { 
             color: #FFFFFF; 
-            text-shadow: 0 0 10px rgba(255,255,255,0.8); 
-            -webkit-text-stroke: 1px #111; /* Outline Gelap Wajib */
+            text-shadow: 0 0 10px rgba(255,255,255,0.9); 
+            filter: drop-shadow(0 0 2px #000); /* Outline tipis */
         }
         
-        /* MA - MAXIMUM: Void Black (Final Form) */
-       /* MA - MAXIMUM: God Mode (White Core with Cosmic Aura) */
+        /* MA - MAXIMUM: GOD MODE (Holographic & Unstable) */
         .tier-max { 
-            color: #FFFFFF; 
-            text-shadow: 0 0 5px #FFFFFF, 0 0 20px #D946EF, 0 0 40px #FF0000; 
-            filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.8));
-            animation: pulse-slow 2s infinite; 
+            /* Text Gradient Animasi */
+            background: linear-gradient(135deg, #FFFFFF 20%, #00E5FF 40%, #FFFFFF 50%, #FF00FF 60%, #FFFFFF 80%);
+            background-size: 300% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            
+            /* Glow Berlapis (Cyan & Magenta) */
+            filter: drop-shadow(0 0 2px rgba(255,255,255,1))
+                    drop-shadow(0 0 10px rgba(0, 229, 255, 0.6))
+                    drop-shadow(0 0 20px rgba(255, 0, 255, 0.4));
+            
+            /* Animasi Gerak */
+            animation: holo-shift 3s linear infinite, float 4s ease-in-out infinite;
+            font-weight: 900;
+            letter-spacing: 2px;
+        }
+
+        /* Keyframes untuk efek MA */
+        @keyframes holo-shift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
         }
         /* Navigation Dock */
         .nav-dock {
@@ -387,7 +405,7 @@
                 { id:11, code:'EXR', name:'EXTREME RANK', class:'tier-exr', barColor:'#B11226', bonus: 3000 },
                 { id:12, code:'HS', name:'HIGH SPEC', class:'tier-hs', barColor:'#FF4500', bonus: 5000 },
                 { id:13, code:'PS', name:'PEAK STATE', class:'tier-ps', barColor:'#FFFFFF', bonus: 7500 },
-                { id:14, code:'MA', name:'MAXIMUM', class:'tier-max', barColor:'#FFFFFF', bonus: 10000 }
+                { id:14, code:'MA', name:'MAXIMUM', class:'tier-max', barColor:'##E0FFFF', bonus: 10000 }
             ],
 
             // Difficulty Settings
@@ -900,8 +918,12 @@
                 return `
                 <div class="relative w-full aspect-[4/5] rounded-xl overflow-hidden group transition-all duration-500 hover:scale-[1.02] cursor-default border border-white/20 hover:border-${tier.barColor} bg-slate-800">
                     
-                    <!-- Background Lebih Terang -->
-                    <div class="absolute inset-0 bg-gradient-to-br from-slate-700 via-slate-800 to-black opacity-90"></div>
+                   
+                    <!-- Background: Jika MA pakai Gradient Spesial, jika bukan pakai Default -->
+                    ${tier.code === 'MA' 
+                        ? `<div class="absolute inset-0 bg-gradient-to-br from-slate-900 via-purple-900/40 to-black opacity-90"></div><div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-30"></div>` 
+                        : `<div class="absolute inset-0 bg-gradient-to-br from-slate-700 via-slate-800 to-black opacity-90"></div>`
+                    }
                     
                     <!-- Glow Kuat -->
                     <div class="absolute inset-0 opacity-40" style="background: radial-gradient(circle at top right, ${tier.barColor}, transparent 60%);"></div>

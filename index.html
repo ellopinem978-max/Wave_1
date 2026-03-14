@@ -657,16 +657,51 @@
 
                 return { cur, mon, last, avg, total };
             }
-            
-           static calcRank(monthKey, tasks, financeData) {
-                let eTier=0, eBar=0, cTier=0, cBar=0;
+            // [FITUR BARU] Sistem Pajak Mingguan (5% dari saldo)
+            static applyTax(tasks, rewards, settings) {
+                const now = new Date();
+                const today = Utils.getISO(now);
                 
-                // [FIX] Filter tanggal: Hanya ambil misi bulan ini YANG TANGGALNYA <= HARI INI
-                // Jangan hitung misi masa depan sebagai kegagalan!
+                if (!settings.lastTaxDate) {
+                    settings.lastTaxDate = today;
+                    Store.set('settings', settings);
+                    return false;
+                }
+                
+                const lastDate = new Date(settings.lastTaxDate);
+                const diffDays = Math.ceil(Math.abs(now - lastDate) / (1000 * 60 * 60 * 24));
+                
+                if (diffDays >= 7) {
+                    const { total } = this.calcPoints(tasks);
+                    const allRedeemed = rewards.filter(r => r.status === 'redeemed');
+                    const totalSpent = allRedeemed.reduce((acc, r) => acc + (r.cost || 0), 0) + (settings.archivedSpent || 0);
+                    const balance = total - totalSpent;
+                    
+                    if (balance > 0) {
+                        const taxAmount = Math.ceil(balance * 0.05); // Memotong 5% dari sisa poin
+                        rewards.push({
+                            id: Utils.generateId(),
+                            name: 'Pajak Ekosistem Sistem (5%)',
+                            cost: taxAmount,
+                            price: 0,
+                            status: 'redeemed',
+                            redeemedDate: today
+                        });
+                        Store.set('rewards', rewards);
+                    }
+                    
+                    settings.lastTaxDate = today;
+                    Store.set('settings', settings);
+                    return true;
+                }
+                return false;
+            }
+            
+          static calcRank(monthKey, tasks, financeData) {
                 const today = Utils.getISO();
                 const mTasks = tasks.filter(t => 
                     t.date.startsWith(monthKey) && 
-                    t.date <= today &&  // <--- INI KUNCINYA
+                    t.date <= today && 
                     t.type !== 'bonus'
                 );
                 
@@ -677,34 +712,43 @@
                 
                 let eWins = 0;
                 let cWins = 0;
+                const restDays = Store.get('restDays') || [];
 
                 dates.forEach(d => {
+                    // Kalau hari itu Hibernasi, Rank Otomatis Naik/Aman
+                    if (restDays.includes(d)) {
+                        eWins++; cWins++; 
+                        return;
+                    }
                     const ts = mTasks.filter(t => t.date === d);
                     const done = ts.filter(t => t.status === 'completed').length;
                     const total = ts.length;
                     
-                    const dayPoints = ts.reduce((acc, t) => acc + (t.status === 'completed' ? Config.DIFFICULTY[t.difficulty].pts : 0), 0);
+                    // [FIX] Menggunakan '?.' (Optional Chaining) agar tidak crash jika data lama korup
+                    const dayPoints = ts.reduce((acc, t) => acc + (t.status === 'completed' ? (Config.DIFFICULTY[t.difficulty]?.pts || 0) : 0), 0);
 
                     if (done === total && total > 0) eWins++;
                     if (dayPoints >= dailyTarget) cWins++;
                 });
 
-                // ... (sisa logika tier sama) ...
-                // Pastikan pakai Math.ceil untuk bars
                 const maxTier = Config.TIERS.length - 1;
+                
+                // [FIX] Proteksi tambahan agar indeks Tier tidak menjadi NaN / Error
                 let eTierIndex = Math.floor(eWins / 4);
+                if (isNaN(eTierIndex) || eTierIndex < 0) eTierIndex = 0;
                 if (eTierIndex > maxTier) eTierIndex = maxTier;
                 let eBars = Math.ceil((eWins % 4) / 2); 
                 if (eTierIndex === maxTier) eBars = 2;
 
                 let cTierIndex = Math.floor(cWins / 4);
+                if (isNaN(cTierIndex) || cTierIndex < 0) cTierIndex = 0;
                 if (cTierIndex > maxTier) cTierIndex = maxTier;
                 let cBars = Math.ceil((cWins % 4) / 2);
                 if (cTierIndex === maxTier) cBars = 2;
 
                 return { 
-                    exec: { tier: Config.TIERS[eTierIndex], bars: eBars }, 
-                    cons: { tier: Config.TIERS[cTierIndex], bars: cBars },
+                    exec: { tier: Config.TIERS[eTierIndex] || Config.TIERS[0], bars: eBars || 0 }, 
+                    cons: { tier: Config.TIERS[cTierIndex] || Config.TIERS[0], bars: cBars || 0 },
                     dailyTarget: dailyTarget
                 };
             }
@@ -718,6 +762,8 @@
 
                 tasks.forEach(task => {
                     if (task.type === 'bonus') return;
+
+                    if (task.date === today && restDays.includes(today)) return;
 
                     if (task.status === 'pending') {
                         if (task.date < today) {
@@ -1105,6 +1151,11 @@
                     action = `<i data-lucide="x-circle" class="text-neonRed w-5 h-5 drop-shadow-md"></i>`;
                     textClass = 'text-neonRed font-bold';
                 }
+                else if (t.status === 'rest') {
+                    cardClass = 'bg-blue-900/20 border-blue-500/30 opacity-50';
+                    action = `<i data-lucide="moon" class="text-blue-400 w-5 h-5 drop-shadow-md"></i>`;
+                    textClass = 'text-blue-400 font-bold italic line-through decoration-blue-500/50';
+                }
                 else if (mode === 'active' && t.status === 'pending') {
                     if(!t.isLoop) cardClass = 'border-dashed border-slate-600 bg-transparent';
                     action = `
@@ -1353,6 +1404,7 @@
                 
                 Store.prune(2);
                 
+                
                 // Initialize Theme
                 const settings = Store.get('settings');
                 this.setTheme(settings.theme || 'default');
@@ -1366,6 +1418,12 @@
 
                 setInterval(() => {
                     const tasks = Store.get('tasks');
+                    const rewards = Store.get('rewards');
+                const settings = Store.get('settings');
+                if (Engine.applyTax(tasks, rewards, settings)) {
+                    setTimeout(() => this.toast("Pajak mingguan (5%) telah dipotong otomatis.", "info"), 2000);
+                }
+                this.setTheme(settings.theme || 'default');
                     let hasUpdate = false;
 
                     if (Engine.checkAutoFail(tasks)) {
@@ -1603,6 +1661,29 @@
                     } else {
                         this.sound.play('error');
                     }
+                    this.render();
+                }
+            },
+            activateRestDay() {
+                const restDays = Store.get('restDays') || [];
+                const today = Utils.getISO();
+                
+                if(restDays.includes(today)) {
+                    this.toast("Rest Day sudah aktif hari ini.", "info"); return;
+                }
+                
+                if(confirm("Aktifkan MODE HIBERNASI hari ini?\n\nMisi hari ini akan di-skip, Rank akan tetap aman, dan Streak tidak putus.")) {
+                    restDays.push(today);
+                    Store.set('restDays', restDays);
+                    
+                    const tasks = Store.get('tasks');
+                    tasks.forEach(t => {
+                        if(t.date === today && t.status === 'pending') t.status = 'rest';
+                    });
+                    Store.set('tasks', tasks);
+                    
+                    this.sound.play('success');
+                    this.toast("Mode Hibernasi Aktif! Selamat istirahat.", "success");
                     this.render();
                 }
             },
@@ -3033,17 +3114,18 @@
                             <div class="space-y-0">${tCompleted.map(t => ComponentFactory.taskItem(t, true)).join('')}</div>
                         </div>` : ''}
 
-                        <!-- SECTION: MISI AKTIF -->
-                        <div>
-                            <div class="flex justify-between mb-4 items-end border-b border-white/5 pb-2">
+                       <div class="flex justify-between mb-4 items-end border-b border-white/5 pb-2">
                                 <h2 class="text-sm font-bold text-white flex items-center gap-2"><i data-lucide="crosshair" class="w-4 h-4 text-neonCyan"></i> MISI AKTIF</h2>
-                                <div class="flex flex-col items-end">
-                                    <span class="text-[9px] text-neonCyan font-mono font-bold uppercase tracking-widest">${currentSlot.label} PHASE</span>
-                                    <span class="text-[8px] text-slate-500 font-mono">${currentSlot.range}</span>
+                                <div class="flex items-center gap-2">
+                                    <!-- TOMBOL REST DAY -->
+                                    <button onclick="App.controller.activateRestDay()" class="text-[9px] bg-slate-800 hover:bg-blue-900/40 text-blue-400 px-2 py-1 rounded border border-blue-500/30 flex items-center gap-1 transition-colors active:scale-95"><i data-lucide="moon" class="w-3 h-3"></i> HIBERNASI</button>
+                                    
+                                    <div class="flex flex-col items-end">
+                                        <span class="text-[9px] text-neonCyan font-mono font-bold uppercase tracking-widest">${currentSlot.label} PHASE</span>
+                                        <span class="text-[8px] text-slate-500 font-mono">${currentSlot.range}</span>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="space-y-0">${tActive.length===0 ? '<div class="text-center py-8 text-xs text-slate-600 font-mono border border-dashed border-slate-800 rounded-xl">ISTIRAHAT / FASE KOSONG</div>' : tActive.map(t => ComponentFactory.taskItem(t, 'active')).join('')}</div>
-                        </div>
 
                         <!-- SECTION: MISI AKAN DATANG -->
                         ${tUpcoming.length > 0 ? `
@@ -3384,8 +3466,13 @@
                     for(let i=0; i<offset; i++) grid += `<div class="aspect-square"></div>`;
                     
                     // 3. Tanggal
+                   // 3. Tanggal
+                    const restDays = Store.get('restDays') || []; // Ambil data hibernasi
+
                     days.forEach(d => {
                         const isToday = (d === today);
+                        const isRest = restDays.includes(d); // Cek apakah hari ini hibernasi
+                        
                         const dayTasks = tasks.filter(t=>t.date===d);
                         const has = dayTasks.length>0;
                         const all = has && dayTasks.every(t=>t.status==='completed');
@@ -3393,8 +3480,10 @@
                         
                         let bg='bg-slate-800/30 text-slate-500', br='border-transparent';
                         
-                        // Warna status misi
-                        if(has) { 
+                        // Warna status misi & Hibernasi
+                        if (isRest) {
+                            bg='bg-blue-900/30 text-blue-400'; br='border-blue-500/50';
+                        } else if(has) { 
                             if(all){ bg='bg-neonGreen/20 text-white'; br='border-neonGreen/30' } 
                             else if(fail){ bg='bg-neonRed/20 text-white'; br='border-neonRed/30' } 
                             else { bg='bg-neonPurple/20 text-white'; br='border-neonPurple/30' } 
@@ -3403,7 +3492,7 @@
                         // Style jika "Hari Ini" (Border Cyan Terang)
                         if (isToday) {
                             br = 'border-neonCyan shadow-[0_0_10px_rgba(6,182,212,0.3)]';
-                            if(!has) bg = 'bg-slate-700 text-white'; 
+                            if(!has && !isRest) bg = 'bg-slate-700 text-white'; 
                         }
 
                         // Style jika "Diklik/Dipilih" (Solid Block)
@@ -3414,6 +3503,7 @@
 
                         grid += `<button onclick="App.controller.setDate('${d}')" class="cal-cell aspect-square rounded-lg flex flex-col items-center justify-center text-xs border ${br} ${bg} transition-all hover:scale-105 active:scale-95 relative overflow-hidden">
                             ${new Date(d).getDate()}
+                            ${isRest ? '<i data-lucide="moon" class="absolute top-1 right-1 w-2.5 h-2.5 text-blue-400 opacity-80"></i>' : ''}
                             ${isToday ? '<div class="absolute bottom-0.5 w-1 h-1 bg-white rounded-full"></div>' : ''}
                         </button>`;
                     });

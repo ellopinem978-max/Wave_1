@@ -1471,7 +1471,7 @@
                     const tasks = await Store.get('tasks');
                     const rewards = await Store.get('rewards');
                 const settings = await Store.get('settings');
-                if (await Engine.checkAutoFail(tasks)) {
+                if (await Engine.applyTax(tasks, rewards, settings)) {
                     setTimeout(() => this.toast("Pajak mingguan (5%) telah dipotong otomatis.", "info"), 2000);
                 }
                 await this.setTheme(settings.theme || 'default');

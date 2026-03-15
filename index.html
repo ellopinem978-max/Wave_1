@@ -760,6 +760,8 @@
                 const h = now.getHours();
                 let hasChange = false;
 
+                const restDays = Store.get('restDays') || [];
+
                 tasks.forEach(task => {
                     if (task.type === 'bonus') return;
 
@@ -1202,7 +1204,24 @@
          * MODULE 8: MAIN CONTROLLER
          */
         const Controller = {
-           // --- LOOP PROTOCOL (MISI BERKALA + KALKULATOR) ---
+           
+           
+           calcLoopTotal() {
+        const total = parseInt(document.getElementById('loop-total')?.value || 0);
+        const diff = document.getElementById('loop-diff')?.value || 'easy';
+        const bonus = parseInt(document.getElementById('loop-bonus')?.value || 0);
+        
+        if (total > 0 && Config.DIFFICULTY[diff]) {
+            const basePts = Config.DIFFICULTY[diff].pts;
+            const totalPts = (basePts * total) + bonus;
+            const resEl = document.getElementById('loop-calc-res');
+            if (resEl) resEl.innerText = `${totalPts} Pts`;
+        } else {
+            const resEl = document.getElementById('loop-calc-res');
+            if (resEl) resEl.innerText = `0 Pts`;
+        }
+    },
+            // --- LOOP PROTOCOL (MISI BERKALA + KALKULATOR) ---
             openPeriodicModal() {
                 this.sound.play('click');
                 const m = document.getElementById('modal-layer');

@@ -1477,7 +1477,7 @@
                 await this.setTheme(settings.theme || 'default');
                     let hasUpdate = false;
 
-                    if (Engine.checkAutoFail(tasks)) {
+                    if (await Engine.checkAutoFail(tasks)) {
                         await Store.set('tasks', tasks);
                         this.sound.play('error'); 
                         this.toast('Status misi diperbarui!', 'error');
@@ -3177,6 +3177,10 @@
                                     </div>
                                 </div>
                             </div>
+                             <!-- SECTION: LIST MISI AKTIF -->
+                            <div class="space-y-0 mb-6">
+                                ${tActive.length === 0 ? '<div class="text-center py-6 text-xs text-slate-600 border border-dashed border-slate-800 rounded-xl">Tidak ada misi aktif di jam ini.</div>' : tActive.map(t => ComponentFactory.taskItem(t, 'active')).join('')}
+                            </div>
 
                         <!-- SECTION: MISI AKAN DATANG -->
                         ${tUpcoming.length > 0 ? `
@@ -3495,7 +3499,7 @@
                     
                     const sTasks = sd ? Engine.sortTasks(tasks.filter(t=>t.date===sd)) : [];
                     const sRef = sd ? reflections.find(r=>r.date===sd) : null;
-                    const histRank = Engine.calcRank(this.state.histMonth, tasks, financeData);
+                    const histRank = await Engine.calcRank(this.state.histMonth, tasks, financeData);
                     
                     const histTasksAll = tasks.filter(t => t.date.startsWith(this.state.histMonth) && t.status === 'completed');
                     const histTotalPoints = histTasksAll.reduce((acc, t) => acc + (Config.DIFFICULTY[t.difficulty]?.pts || 0), 0);

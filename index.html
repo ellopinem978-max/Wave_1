@@ -2557,13 +2557,18 @@
             },
 
             // --- SETTINGS ---
-            async openSettings() {
+          async openSettings() {
                 this.sound.play('click');
                 const m = document.getElementById('modal-layer');
                 const isMuted = this.sound.muted;
                 const notifPerm = ("Notification" in window) ? Notification.permission : 'denied';
                 const settings = await Store.get('settings');
                 const currentTheme = settings.theme || 'default';
+                
+                // 👉 KODE BARU: Deteksi Status Cloud
+                const user = window.CloudEngine ? window.CloudEngine.currentUser : null;
+                const authText = user ? "Logout Access" : "Login Google";
+                const authIcon = user ? "log-out" : "log-in";
                 
                 m.innerHTML = `
                 <div class="bg-charcoal border-t sm:border border-slate-700 rounded-t-3xl sm:rounded-2xl w-full max-w-sm p-6 shadow-2xl pointer-events-auto animate-[slideIn_0.3s_ease-out]">
@@ -2577,7 +2582,31 @@
                     
                     <div class="space-y-4 max-h-[60vh] overflow-y-auto custom-scroll pr-1">
                         
-                        <!-- Theme Selector -->
+                        <div class="glass-card p-4 rounded-xl border border-neonCyan/30 bg-neonCyan/5">
+                            <div class="flex justify-between items-center mb-3 border-b border-neonCyan/20 pb-2">
+                                <div class="flex items-center gap-2">
+                                    <i data-lucide="cloud" class="w-4 h-4 text-neonCyan"></i>
+                                    <span class="text-[10px] font-bold text-neonCyan uppercase tracking-widest">Cloud Sync</span>
+                                </div>
+                                <span class="text-[8px] font-mono ${user ? 'text-neonGreen' : 'text-slate-500'}">${user ? 'ONLINE' : 'OFFLINE'}</span>
+                            </div>
+                            
+                            <div class="grid grid-cols-2 gap-2 mb-2">
+                                <button onclick="window.CloudEngine.syncToCloud()" class="p-2 rounded-lg bg-slate-800 border border-slate-700 hover:border-neonCyan hover:bg-slate-700 transition-all flex flex-col items-center gap-1">
+                                    <i data-lucide="upload-cloud" class="w-4 h-4 text-slate-300"></i>
+                                    <span class="text-[9px] font-bold text-slate-400">Save to Cloud</span>
+                                </button>
+                                <button onclick="window.CloudEngine.syncFromCloud()" class="p-2 rounded-lg bg-slate-800 border border-slate-700 hover:border-neonCyan hover:bg-slate-700 transition-all flex flex-col items-center gap-1">
+                                    <i data-lucide="download-cloud" class="w-4 h-4 text-slate-300"></i>
+                                    <span class="text-[9px] font-bold text-slate-400">Load Data</span>
+                                </button>
+                            </div>
+                            <button onclick="window.CloudEngine.currentUser ? window.CloudEngine.logout() : window.CloudEngine.login()" class="w-full p-2 rounded-lg bg-slate-800 border border-slate-700 hover:border-white transition-all flex justify-center items-center gap-2 text-slate-300 hover:text-obsidian mt-2">
+                                <i data-lucide="${authIcon}" class="w-4 h-4"></i>
+                                <span class="text-[10px] font-bold uppercase">${authText}</span>
+                            </button>
+                        </div>
+
                         <div>
                             <label class="text-[9px] text-slate-500 uppercase font-bold mb-2 block">Tema Visual</label>
                             <div class="grid grid-cols-3 gap-2">
@@ -2594,7 +2623,6 @@
                             </div>
                         </div>
 
-                        <!-- Sound Toggle -->
                         <div class="flex items-center justify-between p-4 rounded-xl bg-surface border border-slate-700">
                             <div class="flex items-center gap-3">
                                 <div class="p-2 bg-neonPurple/10 rounded-lg text-neonPurple"><i data-lucide="${isMuted ? 'volume-x' : 'volume-2'}" class="w-5 h-5"></i></div>
@@ -2608,7 +2636,6 @@
                             </button>
                         </div>
 
-                        <!-- Notification Toggle -->
                         <div class="flex items-center justify-between p-4 rounded-xl bg-surface border border-slate-700">
                             <div class="flex items-center gap-3">
                                 <div class="p-2 bg-neonGold/10 rounded-lg text-neonGold"><i data-lucide="bell" class="w-5 h-5"></i></div>
@@ -2627,16 +2654,16 @@
                             <button onclick="App.controller.exportData()" class="w-full flex items-center gap-3 p-4 rounded-xl bg-surface border border-slate-700 hover:border-neonCyan transition-all group">
                                 <div class="p-2 bg-neonCyan/10 rounded-lg text-neonCyan"><i data-lucide="download" class="w-5 h-5"></i></div>
                                 <div class="text-left">
-                                    <span class="block text-sm font-bold text-white group-hover:text-neonCyan transition-colors">Backup Data</span>
-                                    <span class="block text-[10px] text-slate-400">Unduh data ke file JSON</span>
+                                    <span class="block text-sm font-bold text-white group-hover:text-neonCyan transition-colors">Backup Manual</span>
+                                    <span class="block text-[10px] text-slate-400">Unduh data ke file JSON lokal</span>
                                 </div>
                             </button>
                             
                             <button onclick="App.controller.importData()" class="w-full flex items-center gap-3 p-4 rounded-xl bg-surface border border-slate-700 hover:border-neonGreen transition-all group">
                                 <div class="p-2 bg-neonGreen/10 rounded-lg text-neonGreen"><i data-lucide="upload" class="w-5 h-5"></i></div>
                                 <div class="text-left">
-                                    <span class="block text-sm font-bold text-white group-hover:text-neonGreen transition-colors">Restore Data</span>
-                                    <span class="block text-[10px] text-slate-400">Pulihkan dari file JSON</span>
+                                    <span class="block text-sm font-bold text-white group-hover:text-neonGreen transition-colors">Restore Manual</span>
+                                    <span class="block text-[10px] text-slate-400">Pulihkan dari file JSON lokal</span>
                                 </div>
                             </button>
                             
@@ -3657,8 +3684,115 @@
         };
 
         // INITIALIZE APP
-        const App = { controller: Controller };
+        window.Store = Store;
+        window.App = { controller: Controller };
         window.onload = () => App.controller.init();
+
+        </script> <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+        // Pakai API Key yang sama dengan LifeTracker
+        const firebaseConfig = {
+            apiKey: "AIzaSyCf4OwcSbwD5g5pDHvGev8E7Ye5zr14jrM",
+            authDomain: "lifetrack-a1dd9.firebaseapp.com",
+            projectId: "lifetrack-a1dd9",
+            storageBucket: "lifetrack-a1dd9.firebasestorage.app",
+            messagingSenderId: "151838180601",
+            appId: "1:151838180601:web:10e375650fe0e9d1a88e28"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const provider = new GoogleAuthProvider();
+
+        window.CloudEngine = {
+            currentUser: null,
+            login: async () => {
+                try {
+                    const result = await signInWithPopup(auth, provider);
+                    if (window.App) window.App.controller.toast(`Sistem mendeteksi: ${result.user.displayName}`, 'success');
+                    return result.user;
+                } catch (error) {
+                    if (window.App) window.App.controller.toast("Gagal login: " + error.message, 'error');
+                }
+            },
+            logout: async () => {
+                await signOut(auth);
+                if (window.App) window.App.controller.toast("Koneksi Cloud diputus.", 'success');
+            },
+            syncToCloud: async () => {
+                if (!window.CloudEngine.currentUser) {
+                    window.App.controller.toast("Otorisasi Google diperlukan!", "error");
+                    return;
+                }
+                try {
+                    window.App.controller.toast("Uploading neural data...", "info");
+                    const uid = window.CloudEngine.currentUser.uid;
+                    
+                    // Ambil semua tabel IndexedDB WakeMap
+                    const keys = ['tasks', 'rewards', 'achievements', 'goals', 'blueprints', 'reflections', 'finance', 'settings'];
+                    const payload = {};
+                    for (let k of keys) {
+                        payload[k] = await window.Store.get(k);
+                    }
+                    payload.lastSync = new Date().toISOString();
+
+                    // Simpan ke koleksi khusus 'wakemap_users' biar gak nabrak LifeTracker
+                    await setDoc(doc(db, "wakemap_users", uid), payload);
+                    window.App.controller.toast("Backup Cloud Berhasil! ✅", "success");
+                } catch (error) {
+                    window.App.controller.toast("Upload gagal: " + error.message, "error");
+                }
+            },
+            syncFromCloud: async () => {
+                if (!window.CloudEngine.currentUser) {
+                    window.App.controller.toast("Otorisasi Google diperlukan!", "error");
+                    return;
+                }
+                if(confirm("Tarik data dari Cloud?\nPeringatan: Ini akan me-reset data di device ini sesuai Cloud.")) {
+                    try {
+                        window.App.controller.toast("Downloading neural data...", "info");
+                        const uid = window.CloudEngine.currentUser.uid;
+                        const docSnap = await getDoc(doc(db, "wakemap_users", uid));
+
+                        if (docSnap.exists()) {
+                            const data = docSnap.data();
+                            const keys = ['tasks', 'rewards', 'achievements', 'goals', 'blueprints', 'reflections', 'finance', 'settings'];
+                            
+                            for (let k of keys) {
+                                if(data[k]) await window.Store.set(k, data[k]);
+                            }
+
+                            window.App.controller.toast("Restore sukses! Sistem Reboot...", "success");
+                            setTimeout(() => window.location.reload(), 1500);
+                        } else {
+                            window.App.controller.toast("Belum ada backup WakeMap di Cloud.", "error");
+                        }
+                    } catch (error) {
+                        window.App.controller.toast("Download gagal: " + error.message, "error");
+                    }
+                }
+            }
+        };
+
+        onAuthStateChanged(auth, (user) => {
+            window.CloudEngine.currentUser = user;
+            
+            // Ubah Header Keren Wake Map (Dari TAP TO RELOAD jadi tulisan Auth)
+            const headerStatus = document.getElementById('header-status');
+            if (headerStatus) {
+                headerStatus.innerText = user ? `AUTH: ${user.email.split('@')[0].toUpperCase()}` : 'TAP TO RELOAD';
+            }
+
+            // Auto-refresh Setting UI kalau lagi dibuka
+            const m = document.getElementById('modal-layer');
+            if (m && !m.classList.contains('opacity-0') && m.innerHTML.includes('Pengaturan')) {
+                if (window.App) window.App.controller.openSettings();
+            }
+        });
 
     </script>
 </body>

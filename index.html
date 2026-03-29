@@ -848,69 +848,68 @@
                     });
                     return hasChange;
                 }
-                // 👉 FITUR BARU: Evaluasi Performa Kemarin (Pajak Kemalasan)
-                static async evaluateYesterday(tasks, rewards, financeData, settings) {
-                    const today = new Date();
-                    const yesterday = new Date(today);
-                    yesterday.setDate(today.getDate() - 1);
-                    const yISO = Utils.getISO(yesterday);
-                    const tISO = Utils.getISO(today);
+               // 👉 FITUR BARU: Evaluasi Performa (Rapel Denda Kemalasan Anti-Kabur)
+            static async evaluateYesterday(tasks, rewards, financeData, settings) {
+                const today = new Date();
+                today.setHours(0,0,0,0); // Normalisasi ke tengah malam
+                const tISO = Utils.getISO(today);
 
-                    // Jika baru pertama kali install / belum ada data, set patokan ke kemarin
-                    if (!settings.lastEvaluatedDay) {
-                        settings.lastEvaluatedDay = yISO;
-                        await Store.set('settings', settings);
-                        return false;
-                    }
-
-                    // Jika hari kemarin sudah dievaluasi, lewati
-                    if (settings.lastEvaluatedDay >= yISO) return false;
-
-                    // Cek apakah kemarin itu Mode Hibernasi (Aman dari Denda)
-                    const restDays = await Store.get('restDays') || [];
-                    if (restDays.includes(yISO)) {
-                        settings.lastEvaluatedDay = yISO;
-                        await Store.set('settings', settings);
-                        return false; // Bebas pajak
-                    }
-
-                    // 1. Hitung Poin yang didapat KEMARIN
-                    const yTasks = tasks.filter(t => t.date === yISO && t.status === 'completed');
-                    const yPointsEarned = yTasks.reduce((acc, t) => acc + (t.pts !== undefined ? t.pts : (Config.DIFFICULTY[t.difficulty]?.pts || 0)), 0);
-
-                    // 2. Ambil Target Harian KEMARIN
-                    const monthKey = yISO.slice(0, 7);
-                    const myFinance = financeData.find(f => f.month === monthKey);
-                    const dailyTarget = myFinance ? myFinance.targetPts : 24; // Default 24 kalau gak diset
-
-                    // 3. MATEMATIKA DENDA (Ide Lu: < 20% Target = Denda 50% Target)
-                    const minimumEffort = dailyTarget * 0.20; 
-                    
-                    if (yPointsEarned < minimumEffort) {
-                        const lazinessTax = Math.ceil(dailyTarget * 0.50); // Denda 50%
-                        
-                        // Masukkan denda ke tabel rewards (sebagai pengeluaran paksa)
-                        rewards.push({
-                            id: Utils.generateId(),
-                            name: `Pinalti Kemalasan (${yISO})`,
-                            cost: lazinessTax,
-                            price: 0,
-                            status: 'redeemed',
-                            redeemedDate: tISO
-                        });
-                        
-                        await Store.set('rewards', rewards);
-                        settings.lastEvaluatedDay = yISO;
-                        await Store.set('settings', settings);
-                        
-                        return lazinessTax; // Mengembalikan nilai denda untuk notif
-                    }
-
-                    // Lolos evaluasi (Kerja bagus)
-                    settings.lastEvaluatedDay = yISO;
+                if (!settings.lastEvaluatedDay) {
+                    settings.lastEvaluatedDay = tISO; 
                     await Store.set('settings', settings);
                     return false;
                 }
+
+                if (settings.lastEvaluatedDay >= tISO) return false; // Udah dievaluasi hari ini
+
+                const restDays = await Store.get('restDays') || [];
+                let totalTaxApplied = 0;
+
+                // Loop dari hari setelah lastEvaluatedDay sampai H-1 (Kemarin)
+                let evalDate = new Date(settings.lastEvaluatedDay);
+                evalDate.setDate(evalDate.getDate() + 1);
+
+                while (evalDate < today) {
+                    const eISO = Utils.getISO(evalDate);
+                    
+                    // Kalau hari itu dia beli tiket Hibernasi, aman (bebas pajak)
+                    if (!restDays.includes(eISO)) {
+                        // 1. Hitung poin di hari tersebut
+                        const dayTasks = tasks.filter(t => t.date === eISO && t.status === 'completed');
+                        const dayPointsEarned = dayTasks.reduce((acc, t) => acc + (t.pts !== undefined ? t.pts : (Config.DIFFICULTY[t.difficulty]?.pts || 0)), 0);
+
+                        // 2. Target di bulan tersebut
+                        const monthKey = eISO.slice(0, 7);
+                        const myFinance = financeData.find(f => f.month === monthKey);
+                        const dailyTarget = myFinance ? myFinance.targetPts : 24; 
+
+                        // 3. Eksekusi Pajak Kemalasan (< 20% target)
+                        const minimumEffort = dailyTarget * 0.20; 
+                        
+                        if (dayPointsEarned < minimumEffort) {
+                            const lazinessTax = Math.ceil(dailyTarget * 0.50); 
+                            totalTaxApplied += lazinessTax;
+                            
+                            rewards.push({
+                                id: Utils.generateId(), name: `Pinalti Kemalasan (${eISO})`, cost: lazinessTax, price: 0, status: 'redeemed', redeemedDate: tISO
+                            });
+                        }
+                    }
+                    evalDate.setDate(evalDate.getDate() + 1); // Lanjut ke hari berikutnya
+                }
+
+                // Update tanggal evaluasi terakhir ke hari ini (biar besok baru ngecek lagi)
+                settings.lastEvaluatedDay = tISO;
+                
+                if (totalTaxApplied > 0) {
+                    await Store.set('rewards', rewards);
+                    await Store.set('settings', settings);
+                    return totalTaxApplied; // Return total denda rapelan
+                }
+                
+                await Store.set('settings', settings);
+                return false;
+            }
             }
 
             /**
@@ -1435,7 +1434,7 @@
                             <!-- Input Bonus Jackpot -->
                             <div class="bg-neonGold/5 p-3 rounded-xl border border-neonGold/20">
                                 <label class="text-[9px] text-neonGold uppercase font-bold mb-1 block flex justify-between">
-                                    <span>Bonus Selesai (Jackpot)</span>
+                                    <span>Bonus Selesai (Opsional)</span>
                                     <i data-lucide="gift" class="w-3 h-3"></i>
                                 </label>
                                 <input id="loop-bonus" type="number" placeholder="0" value="0" oninput="App.controller.calcLoopTotal()" class="w-full bg-charcoal text-neonGold font-bold rounded-lg px-4 py-2 text-sm border border-slate-700 focus:border-neonGold outline-none placeholder:text-slate-600">
@@ -3270,7 +3269,31 @@
                         const tTom = Engine.sortTasks(tasks.filter(t => t.date === Utils.getTomorrow()));
 
                     const tTomPoints = tTom.reduce((acc, t) => acc + (t.pts !== undefined ? t.pts : (Config.DIFFICULTY[t.difficulty]?.pts || 0)), 0);
-                        const diffBtn = (d) => {
+                        // 👉 FITUR BARU: LOGIKA UI PERINGATAN PAJAK KEMALASAN
+                    const dailyTarget = myFinance ? myFinance.targetPts : 24;
+                    const minEffort = Math.ceil(dailyTarget * 0.20);
+                    const taxPenalty = Math.ceil(dailyTarget * 0.50);
+                    
+                    let lazinessWarning = '';
+                    // Jika poin hari ini masih kurang dari batas aman (20%)
+                    if (pts.cur < minEffort) {
+                        const shortfall = minEffort - pts.cur;
+                        lazinessWarning = `
+                        <div class="glass-card p-4 rounded-xl border border-neonRed/60 bg-neonRed/10 shadow-[0_0_15px_rgba(239,68,68,0.15)] animate-[pulse-slow]">
+                            <div class="flex items-start gap-3">
+                                <div class="p-2 rounded-full bg-neonRed/20 text-neonRed shrink-0">
+                                    <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+                                </div>
+                                <div>
+                                    <h4 class="text-[10px] font-bold text-neonRed uppercase tracking-widest mb-1">Ancaman Pinalti Kemalasan</h4>
+                                    <p class="text-xs text-slate-300 leading-relaxed">
+                                        Performa hari ini di bawah batas aman! Kumpulkan minimal <strong class="text-white">${shortfall} Pts</strong> lagi sebelum tengah malam untuk menghindari denda <strong class="text-neonRed font-mono">-${taxPenalty} PTS</strong> besok!
+                                    </p>
+                                </div>
+                            </div>
+                        </div>`;
+                    }
+                         const diffBtn = (d) => {
                             const act = this.state.difficulty === d;
                             const c = Config.DIFFICULTY[d];
                             return `<button onclick="App.controller.setDifficulty('${d}')" class="flex-1 py-2 rounded-lg text-[10px] font-bold border uppercase transition-all ${act ? `bg-white/10 text-white shadow-[0_0_10px_currentColor] ${c.border}` : 'border-slate-700 text-slate-500'}" style="${act?`color:${c.hex}`:''}">${c.label}</button>`;
@@ -3339,10 +3362,14 @@
 
                             <!-- Poin Hari Ini -->
                             <div class="glass-card p-5 rounded-xl flex items-center justify-between relative overflow-hidden">
-                                <div class="absolute right-0 top-0 h-full w-1/2 bg-gradient-to-l from-neonCyan/10 to-transparent"></div>
-                                <div class="relative z-10"><div class="text-[9px] text-neonCyan font-bold uppercase tracking-widest mb-1">Poin Hari Ini</div><div class="text-4xl font-mono font-bold text-white drop-shadow-md">${pts.cur} <span class="text-xs text-slate-500 font-sans font-normal">/ ${myFinance ? myFinance.targetPts : '-'} PTS</span></div></div>
-                                <div class="relative z-10 w-12 h-12 rounded-full bg-slate border border-white/10 flex items-center justify-center"><i data-lucide="activity" class="text-neonCyan w-6 h-6"></i></div>
-                            </div>
+                            <div class="absolute right-0 top-0 h-full w-1/2 bg-gradient-to-l from-neonCyan/10 to-transparent"></div>
+                            <div class="relative z-10"><div class="text-[9px] text-neonCyan font-bold uppercase tracking-widest mb-1">Poin Hari Ini</div><div class="text-4xl font-mono font-bold text-white drop-shadow-md">${pts.cur} <span class="text-xs text-slate-500 font-sans font-normal">/ ${myFinance ? myFinance.targetPts : '-'} PTS</span></div></div>
+                            <div class="relative z-10 w-12 h-12 rounded-full bg-slate border border-white/10 flex items-center justify-center"><i data-lucide="activity" class="text-neonCyan w-6 h-6"></i></div>
+                        </div>
+
+                        ${lazinessWarning}
+
+                        <div class="glass-card p-3 rounded-xl flex items-center justify-between border-l-2 border-neonPurple bg-white/5">
 
                             <!-- Rata-rata Harian -->
                             <div class="glass-card p-3 rounded-xl flex items-center justify-between border-l-2 border-neonPurple bg-white/5">
@@ -3358,10 +3385,11 @@
 
                             <!-- Stats Bulanan Grid -->
                             <div class="grid grid-cols-2 gap-3">
-                                <div class="glass-card p-4 flex flex-col items-center border-t-2 border-slate-600">
-                                    <span class="text-[8px] text-slate-400 uppercase tracking-widest mb-1">Bulan Lalu</span>
-                                    <span class="text-xl font-mono font-bold text-slate-300">${pts.last}</span>
-                                </div>
+                               <div class="glass-card p-4 flex flex-col items-center border-t-2 border-neonPurple relative overflow-hidden group">
+                                <div class="absolute left-[-10px] top-[-10px] bg-neonPurple/10 w-12 h-12 rounded-full blur-xl"></div>
+                                <span class="text-[8px] text-neonPurple uppercase tracking-widest mb-1 relative z-10">Bulan Lalu</span>
+                                <span class="text-xl font-mono font-bold text-slate-300 relative z-10">${pts.last}</span>
+                            </div>
                                 <div class="glass-card p-4 flex flex-col items-center border-t-2 border-neonCyan">
                                     <span class="text-[8px] text-neonCyan uppercase tracking-widest mb-1">Bulan Ini</span>
                                     <span class="text-xl font-mono font-bold text-white">${pts.mon}</span>
@@ -3844,10 +3872,11 @@
                             <!-- COMPACT RANK CARDS -->
                             <div class="grid grid-cols-2 gap-3 mb-6">
                                 <!-- Execution Rank Kecil -->
-                                <div class="glass-card p-4 flex flex-col items-center border-t-2 border-slate-600 bg-white/5">
-                                    <span class="text-[8px] text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1"><i data-lucide="swords" class="w-3 h-3"></i> EXECUTION</span>
-                                    <span class="text-3xl font-display ${histRank.exec.tier.class} drop-shadow-lg">${histRank.exec.tier.code}</span>
-                                </div>
+                               <div class="glass-card p-4 flex flex-col items-center border-t-2 border-neonPurple bg-white/5 relative overflow-hidden">
+                                <div class="absolute left-[-10px] top-[-10px] bg-neonPurple/10 w-16 h-16 rounded-full blur-xl"></div>
+                                <span class="text-[8px] text-neonPurple uppercase tracking-widest mb-1 flex items-center gap-1 relative z-10"><i data-lucide="swords" class="w-3 h-3"></i> EXECUTION</span>
+                                <span class="text-3xl font-display ${histRank.exec.tier.class} drop-shadow-lg relative z-10">${histRank.exec.tier.code}</span>
+                            </div>
                                 <!-- Consistency Rank Kecil -->
                                 <div class="glass-card p-4 flex flex-col items-center border-t-2 border-neonCyan bg-white/5">
                                     <span class="text-[8px] text-neonCyan uppercase tracking-widest mb-1 flex items-center gap-1"><i data-lucide="zap" class="w-3 h-3"></i> CONSISTENCY</span>

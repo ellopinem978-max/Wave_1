@@ -676,13 +676,23 @@
                 let total = archived; 
 
                 tasks.forEach(t => {
+                    // Ambil nilai poin asli (termasuk kalau ada poin jackpot/bonus)
+                    const pts = t.pts !== undefined ? t.pts : (Config.DIFFICULTY[t.difficulty]?.pts || 0);
+                    
                     if (t.status === 'completed') {
-                        const pts = t.pts !== undefined ? t.pts : (Config.DIFFICULTY[t.difficulty]?.pts || 0);
                         total += pts; 
-
                         if (t.date === today) cur += pts;
                         if (t.date.startsWith(monthKey)) mon += pts;
                         if (t.date.startsWith(prevMonthKey)) last += pts;
+                    } 
+                    // 👉 FITUR BARU: SISTEM DENDA (PUNISHMENT)
+                    else if (t.status === 'failed') {
+                        // Jika gagal, poin lu ditarik kembali (Minus). 
+                        // Catatan: Kalau cur (Poin Hari Ini) jadi minus, biarin aja biar user tau dia lagi "berhutang" kebiasaan.
+                        total -= pts;
+                        if (t.date === today) cur -= pts;
+                        if (t.date.startsWith(monthKey)) mon -= pts;
+                        if (t.date.startsWith(prevMonthKey)) last -= pts;
                     }
                 });
 
@@ -828,6 +838,69 @@
                     }
                 });
                 return hasChange;
+            }
+            // 👉 FITUR BARU: Evaluasi Performa Kemarin (Pajak Kemalasan)
+            static async evaluateYesterday(tasks, rewards, financeData, settings) {
+                const today = new Date();
+                const yesterday = new Date(today);
+                yesterday.setDate(today.getDate() - 1);
+                const yISO = Utils.getISO(yesterday);
+                const tISO = Utils.getISO(today);
+
+                // Jika baru pertama kali install / belum ada data, set patokan ke kemarin
+                if (!settings.lastEvaluatedDay) {
+                    settings.lastEvaluatedDay = yISO;
+                    await Store.set('settings', settings);
+                    return false;
+                }
+
+                // Jika hari kemarin sudah dievaluasi, lewati
+                if (settings.lastEvaluatedDay >= yISO) return false;
+
+                // Cek apakah kemarin itu Mode Hibernasi (Aman dari Denda)
+                const restDays = await Store.get('restDays') || [];
+                if (restDays.includes(yISO)) {
+                    settings.lastEvaluatedDay = yISO;
+                    await Store.set('settings', settings);
+                    return false; // Bebas pajak
+                }
+
+                // 1. Hitung Poin yang didapat KEMARIN
+                const yTasks = tasks.filter(t => t.date === yISO && t.status === 'completed');
+                const yPointsEarned = yTasks.reduce((acc, t) => acc + (t.pts !== undefined ? t.pts : (Config.DIFFICULTY[t.difficulty]?.pts || 0)), 0);
+
+                // 2. Ambil Target Harian KEMARIN
+                const monthKey = yISO.slice(0, 7);
+                const myFinance = financeData.find(f => f.month === monthKey);
+                const dailyTarget = myFinance ? myFinance.targetPts : 24; // Default 24 kalau gak diset
+
+                // 3. MATEMATIKA DENDA (Ide Lu: < 20% Target = Denda 50% Target)
+                const minimumEffort = dailyTarget * 0.20; 
+                
+                if (yPointsEarned < minimumEffort) {
+                    const lazinessTax = Math.ceil(dailyTarget * 0.50); // Denda 50%
+                    
+                    // Masukkan denda ke tabel rewards (sebagai pengeluaran paksa)
+                    rewards.push({
+                        id: Utils.generateId(),
+                        name: `Pinalti Kemalasan (${yISO})`,
+                        cost: lazinessTax,
+                        price: 0,
+                        status: 'redeemed',
+                        redeemedDate: tISO
+                    });
+                    
+                    await Store.set('rewards', rewards);
+                    settings.lastEvaluatedDay = yISO;
+                    await Store.set('settings', settings);
+                    
+                    return lazinessTax; // Mengembalikan nilai denda untuk notif
+                }
+
+                // Lolos evaluasi (Kerja bagus)
+                settings.lastEvaluatedDay = yISO;
+                await Store.set('settings', settings);
+                return false;
             }
         }
 
@@ -1204,9 +1277,34 @@
                     cardClass = 'glass-card opacity-60 border-slate-700'; 
                     action = `<i data-lucide="lock" class="text-slate-600 w-4 h-4"></i>`;
                 }
-                else if (mode === 'edit') {
-                    if(!t.isLoop) cardClass = 'glass-card opacity-90';
-                    action = `<button onclick="App.controller.deleteTask('${t.id}')" class="text-slate-500 hover:text-neonRed p-2 transition-colors"><i data-lucide="trash-2" class="w-4 h-4"></i></button>`;
+              else if (mode === 'edit') {
+                    // LOGIKA TIME-LOCK
+                    const now = new Date();
+                    const currentHour = now.getHours();
+                    const today = Utils.getISO(now);
+                    let isLocked = false;
+
+                    // Ambil jam mulai misi
+                    let startHour = 0;
+                    if (t.customStart !== undefined && t.customStart !== null) { startHour = t.customStart; } 
+                    else {
+                        const slot = Config.TIME_SLOTS.find(s => s.id === t.timeSlot);
+                        if (slot && slot.id !== 'all') startHour = slot.start;
+                    }
+
+                    // Kunci misi jika: Misi hari ini DAN Jam sudah lewat/sama dengan jam mulai
+                    // ATAU misi dari hari-hari kemarin
+                    if ((t.date === today && currentHour >= startHour && t.timeSlot !== 'all') || t.date < today) {
+                        isLocked = true;
+                    }
+
+                    if (!t.isLoop) cardClass = 'glass-card opacity-90';
+                    
+                    if (isLocked) {
+                        action = `<span class="text-[9px] font-bold text-slate-500 uppercase flex items-center gap-1"><i data-lucide="lock" class="w-3 h-3"></i> Locked</span>`;
+                    } else {
+                        action = `<button onclick="App.controller.deleteTask('${t.id}')" class="text-slate-500 hover:text-neonRed p-2 transition-colors"><i data-lucide="trash-2" class="w-4 h-4"></i></button>`;
+                    }
                 }
 
                 return `
@@ -1467,27 +1565,41 @@
 
                 this.render();
 
-                setInterval(async() => {
+               setInterval(async() => {
                     const tasks = await Store.get('tasks');
                     const rewards = await Store.get('rewards');
-                const settings = await Store.get('settings');
-                if (await Engine.applyTax(tasks, rewards, settings)) {
-                    setTimeout(() => this.toast("Pajak mingguan (5%) telah dipotong otomatis.", "info"), 2000);
-                }
-                await this.setTheme(settings.theme || 'default');
+                    const settings = await Store.get('settings');
+                    const financeData = await Store.get('finance'); // Tambahkan ini
+                    
                     let hasUpdate = false;
 
+                    // 1. Cek Pajak Ekosistem 5% Mingguan (Kode lama lu)
+                    if (await Engine.applyTax(tasks, rewards, settings)) {
+                        setTimeout(() => this.toast("Pajak mingguan (5%) telah dipotong otomatis.", "info"), 2000);
+                        hasUpdate = true;
+                    }
+                    
+                    // 👉 2. CEK PAJAK KEMALASAN (Kode Baru)
+                    const taxAmount = await Engine.evaluateYesterday(tasks, rewards, financeData, settings);
+                    if (taxAmount) {
+                        this.sound.play('error');
+                        setTimeout(() => this.toast(`⚠️ PINALTI KEMALASAN: Saldo dipotong -${taxAmount} PTS karena performa kemarin buruk!`, "error"), 1000);
+                        hasUpdate = true;
+                    }
+
+                    // 3. Cek Auto-Fail Misi yang kelewat jam (Kode lama lu)
                     if (await Engine.checkAutoFail(tasks)) {
                         await Store.set('tasks', tasks);
                         this.sound.play('error'); 
-                        this.toast('Status misi diperbarui!', 'error');
+                        this.toast('Misi gagal dieksekusi tepat waktu!', 'error');
                         hasUpdate = true;
                     }
 
                     await this.checkNotifications(tasks);
 
-                    if(hasUpdate && this.state.view === 'home') this.render();
-                }, 10000);
+                    // Re-render jika ada perubahan dari denda
+                    if(hasUpdate && (this.state.view === 'home' || this.state.view === 'rewards')) this.render();
+                }, 10000); // Jalanin tiap 10 detik
             },
 
             async setTheme(themeId) {
@@ -1715,19 +1827,56 @@
                     this.render();
                 }
             },
-            async activateRestDay() {
+           async activateRestDay() {
                 const restDays = await Store.get('restDays') || [];
                 const today = Utils.getISO();
                 
                 if(restDays.includes(today)) {
                     this.toast("Rest Day sudah aktif hari ini.", "info"); return;
                 }
+
+                // 1. Hitung Harga Tiket (1.5x Target Harian)
+                const monthKey = Utils.getMonthKey(today);
+                const financeData = await Store.get('finance');
+                const myFinance = financeData.find(f => f.month === monthKey);
+                const dailyTarget = myFinance ? myFinance.targetPts : 24;
+                const ticketPrice = Math.floor(dailyTarget * 1.5); // Harga Dinamis
+
+                // 2. Cek Saldo Dompet
+                const tasks = await Store.get('tasks');
+                const rewards = await Store.get('rewards');
+                const settings = await Store.get('settings');
                 
-                if(confirm("Aktifkan MODE HIBERNASI hari ini?\n\nMisi hari ini akan di-skip, Rank akan tetap aman, dan Streak tidak putus.")) {
+                const { total } = await Engine.calcPoints(tasks);
+                const archivedSpent = settings.archivedSpent || 0;
+                const allRedeemed = rewards.filter(r => r.status === 'redeemed');
+                const totalSpent = allRedeemed.reduce((acc, r) => acc + (r.cost || 0), 0) + archivedSpent;
+                
+                const walletBalance = total - totalSpent;
+
+                if (walletBalance < ticketPrice) {
+                    this.sound.play('error');
+                    this.toast(`Saldo Poin tidak cukup! Butuh ${ticketPrice} PTS untuk Hibernasi.`, 'error');
+                    return;
+                }
+                
+                if(confirm(`Beli TIKET HIBERNASI seharga ${ticketPrice} PTS?\n\nSaldo Anda akan dipotong. Misi hari ini akan di-skip (aman), Rank aman, dan Streak tidak putus.`)) {
+                    
+                    // 3. Potong Saldo (Catat sebagai "pembelian" di tabel rewards)
+                    rewards.push({
+                        id: Utils.generateId(),
+                        name: 'Tiket Hibernasi (Rest Day)',
+                        cost: ticketPrice,
+                        price: 0,
+                        status: 'redeemed',
+                        redeemedDate: today
+                    });
+                    await Store.set('rewards', rewards);
+
+                    // 4. Aktifkan Hibernasi
                     restDays.push(today);
                     await Store.set('restDays', restDays);
                     
-                    const tasks = await Store.get('tasks');
                     tasks.forEach(t => {
                         if(t.date === today && t.status === 'pending') t.status = 'rest';
                     });
@@ -2386,12 +2535,13 @@
                 this.render();
             },
 
-            async calcRewardRecs() {
+           async calcRewardRecs() {
                 const priceIn = document.getElementById('rew-price').value;
+                const recContainer = document.getElementById('rec-container');
+
                 if (!priceIn || priceIn <= 0) {
                     this.state.tempReward.recs = null;
-                    const c = document.getElementById('rec-container');
-                    if(c) c.innerHTML = '';
+                    if(recContainer) recContainer.innerHTML = '';
                     return;
                 }
 
@@ -2400,40 +2550,70 @@
                 const myFinance = financeData.find(f => f.month === curMonthKey);
 
                 if (myFinance) {
-                    const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
-                    
-                    const allocation = myFinance.allocation || 0.2; 
-                    const monthlyBudget = myFinance.amount * allocation;
-                    const dailyBudget = monthlyBudget / daysInMonth;
-                    
-                    const dailyTarget = myFinance.targetPts || 10;
-                    
-                    const valPerPoint = Math.max(1, Math.round(dailyBudget / dailyTarget)); 
                     const price = parseInt(priceIn);
                     
-                    const normalPts = Math.ceil(price / valPerPoint);
+                    // 1. Ambil data transaksi bulan ini
+                    const rewards = await Store.get('rewards');
+                    const redeemedThisMonth = rewards.filter(r => r.status === 'redeemed' && r.redeemedDate && r.redeemedDate.startsWith(curMonthKey));
+                    const currentSpent = redeemedThisMonth.reduce((acc, r) => acc + (r.price || 0), 0);
+
+                    // 2. Hitung parameter dompet
+                    const budgetRupiah = myFinance.amount * (myFinance.allocation || 0.2);
+                    const remainingBudget = Math.max(0, budgetRupiah - currentSpent);
+                    const budgetUsedRatio = budgetRupiah > 0 ? currentSpent / budgetRupiah : 1;
+
+                    // 3. MATEMATIKA INFLASI KELANGKAAN (Scarcity Multiplier)
+                    // Makin tipis sisa uang lu, makin MAHAL harga poinnya!
+                    let scarcityMultiplier = 1.0;
+                    let warningText = '';
+                    
+                    if (budgetUsedRatio > 0.9) {
+                        scarcityMultiplier = 3.0; // Sisa uang < 10%, poin dikali 3! (Sangat Mahal)
+                        warningText = '<span class="block text-[9px] text-neonRed font-bold mt-2 animate-pulse text-center">⚠️ DANGER: Sisa anggaran menipis! Inflasi Poin 300%.</span>';
+                    } else if (budgetUsedRatio > 0.75) {
+                        scarcityMultiplier = 2.0; // Sisa uang < 25%, poin dikali 2 (Mahal)
+                        warningText = '<span class="block text-[9px] text-neonGold font-bold mt-2 text-center">⚠️ WARNING: Anggaran menipis. Inflasi Poin 200%.</span>';
+                    } else if (budgetUsedRatio > 0.5) {
+                        scarcityMultiplier = 1.3; // Sisa uang < 50%, poin dikali 1.3 (Sedikit Mahal)
+                    }
+
+                    // PROTEKSI HARD BLOCK: Jika harga barang lebih dari sisa dompet!
+                    if (price > remainingBudget && remainingBudget > 0) {
+                         warningText = `<span class="block text-[9px] text-neonRed font-bold mt-2 text-center">❌ DITOLAK: Harga barang (Rp ${Utils.formatCurrency(price)}) melebihi sisa anggaran (Rp ${Utils.formatCurrency(remainingBudget)}).</span>`;
+                         if(recContainer) recContainer.innerHTML = warningText;
+                         return; // Hentikan kalkulasi, jangan kasih tombol rekomendasi
+                    }
+
+                    // 4. Kalkulasi Base Poin
+                    const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
+                    const dailyTarget = myFinance.targetPts || 10;
+                    const monthlyTargetPts = dailyTarget * daysInMonth;
+                    
+                    // Harga 1 poin secara normal (Rupiah per Poin)
+                    const baseValPerPoint = Math.max(1, Math.round(budgetRupiah / monthlyTargetPts));
+                    
+                    // 5. Kalkulasi Akhir dengan Inflasi
+                    const normalPts = Math.ceil((price / baseValPerPoint) * scarcityMultiplier);
                     const hardPts = Math.ceil(normalPts * 1.5);
 
-                    const recContainer = document.getElementById('rec-container');
                     if (recContainer) {
                         recContainer.innerHTML = `
                         <div class="flex gap-2 mt-2 animate-[fadeIn_0.3s]">
                             <button onclick="App.controller.applyRec(${normalPts})" class="flex-1 bg-surface border border-slate-600 hover:border-neonCyan p-2 rounded-lg text-center transition-all group active:scale-95">
-                                <span class="block text-[9px] text-slate-400 uppercase group-hover:text-white">Normal (Fair)</span>
+                                <span class="block text-[9px] text-slate-400 uppercase group-hover:text-white">Normal</span>
                                 <span class="block text-neonCyan font-bold font-mono text-sm">${normalPts} Pts</span>
                             </button>
                             <button onclick="App.controller.applyRec(${hardPts})" class="flex-1 bg-surface border border-slate-600 hover:border-neonPurple p-2 rounded-lg text-center transition-all group active:scale-95">
                                 <span class="block text-[9px] text-slate-400 uppercase group-hover:text-white">Sulit (Hemat)</span>
                                 <span class="block text-neonPurple font-bold font-mono text-sm">${hardPts} Pts</span>
                             </button>
-                        </div>`;
+                        </div>
+                        ${warningText}`;
                     }
                 } else {
-                      const recContainer = document.getElementById('rec-container');
                       if(recContainer) recContainer.innerHTML = `<p class="text-[10px] text-neonRed text-center mt-2">Belum ada data keuangan bulan ini. Cek Menu PETA.</p>`;
                 }
             },
-
             applyRec(pts) {
                 const costInput = document.getElementById('rew-cost');
                 if (costInput) costInput.value = pts;
@@ -3071,8 +3251,7 @@
                     
                     const tTom = Engine.sortTasks(tasks.filter(t => t.date === Utils.getTomorrow()));
 
-                    const tTomPoints = tTom.reduce((acc, t) => acc + (Config.DIFFICULTY[t.difficulty]?.pts || 0), 0);
-
+                  const tTomPoints = tTom.reduce((acc, t) => acc + (t.pts !== undefined ? t.pts : (Config.DIFFICULTY[t.difficulty]?.pts || 0)), 0);
                     const diffBtn = (d) => {
                         const act = this.state.difficulty === d;
                         const c = Config.DIFFICULTY[d];

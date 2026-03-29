@@ -436,6 +436,23 @@
                     const h = new Date().getHours();
                     return Config.TIME_SLOTS.find(s => s.id !== 'all' && h >= s.start && h < s.end) || Config.TIME_SLOTS[0];
                 }
+                static getCurrentSlot() {
+                    const h = new Date().getHours();
+                    return Config.TIME_SLOTS.find(s => s.id !== 'all' && h >= s.start && h < s.end) || Config.TIME_SLOTS[0];
+                }
+                
+                // 👉 TAMBAHAN BARU: Format interval 30 menit
+                static formatTimeSlot(index) {
+                    const h = Math.floor(index / 2);
+                    const m = index % 2 === 0 ? '00' : '30';
+                    return `${String(h).padStart(2, '0')}:${m}`;
+                }
+
+                // 👉 TAMBAHAN BARU: Ambil index waktu saat ini (0-48)
+                static getCurrentTimeIndex() {
+                    const now = new Date();
+                    return now.getHours() * 2 + (now.getMinutes() >= 30 ? 1 : 0);
+                }
             }
 
             /**
@@ -806,48 +823,43 @@
                     };
                 }
 
-                // [UPDATE] Auto Fail Logic (Agar support Range Waktu Baru)
                 static async checkAutoFail(tasks) {
-                    const now = new Date();
-                    const today = Utils.getISO(now);
-                    const h = now.getHours();
-                    let hasChange = false;
+                const now = new Date();
+                const today = Utils.getISO(now);
+                // 👉 UBAH BARIS INI:
+                const currentTimeIdx = Utils.getCurrentTimeIndex(); 
+                let hasChange = false;
 
-                    const restDays = await Store.get('restDays') || [];
+                const restDays = await Store.get('restDays') || [];
 
-                    tasks.forEach(task => {
-                        if (task.type === 'bonus') return;
+                tasks.forEach(task => {
+                    if (task.type === 'bonus') return;
+                    if (task.date === today && restDays.includes(today)) return;
 
-                        if (task.date === today && restDays.includes(today)) return;
+                    if (task.status === 'pending') {
+                        if (task.date < today) {
+                            task.status = 'failed'; hasChange = true;
+                        } 
+                        else if (task.date === today) {
+                            let endTime = 48; // 👉 UBAH DARI 24 JADI 48 (Sistem Baru)
 
-                        if (task.status === 'pending') {
-                            if (task.date < today) {
+                            if (task.customEnd !== undefined) {
+                                endTime = task.customEnd;
+                            } else {
+                                const slot = Config.TIME_SLOTS.find(s => s.id === (task.timeSlot||'all'));
+                                if(slot && slot.id !== 'all') endTime = slot.end * 2; // konversi data lama kalau ada
+                            }
+
+                            // 👉 UBAH h JADI currentTimeIdx
+                            if (currentTimeIdx >= endTime) {
                                 task.status = 'failed';
                                 hasChange = true;
-                            } 
-                            else if (task.date === today) {
-                                // --- LOGIKA BARU UNTUK RANGE ---
-                                let endTime = 24; // Default (All Day)
-
-                                if (task.customEnd !== undefined) {
-                                    // Jika pakai Range Manual (06-09), ambil end-nya (9)
-                                    endTime = task.customEnd;
-                                } else {
-                                    // Jika pakai sistem lama (Compatibility)
-                                    const slot = Config.TIME_SLOTS.find(s => s.id === (task.timeSlot||'all'));
-                                    if(slot && slot.id !== 'all') endTime = slot.end;
-                                }
-
-                                // Jika jam sekarang >= jam berakhir, GAGAL.
-                                if (h >= endTime) {
-                                    task.status = 'failed';
-                                    hasChange = true;
-                                }
                             }
                         }
-                    });
-                    return hasChange;
-                }
+                    }
+                });
+                return hasChange;
+            }
                // 👉 FITUR BARU: Evaluasi Performa (Rapel Denda Kemalasan Anti-Kabur)
             static async evaluateYesterday(tasks, rewards, financeData, settings) {
                 const today = new Date();
@@ -1285,35 +1297,35 @@
                         cardClass = 'glass-card opacity-60 border-slate-700'; 
                         action = `<i data-lucide="lock" class="text-slate-600 w-4 h-4"></i>`;
                     }
-                else if (mode === 'edit') {
-                        // LOGIKA TIME-LOCK
-                        const now = new Date();
-                        const currentHour = now.getHours();
-                        const today = Utils.getISO(now);
-                        let isLocked = false;
+                    else if (mode === 'edit') {
+                    // LOGIKA TIME-LOCK (SISTEM 30 MENIT)
+                    const today = Utils.getISO();
+                    // 👉 Pake fungsi index waktu yang baru
+                    const currentTimeIdx = Utils.getCurrentTimeIndex(); 
+                    let isLocked = false;
 
-                        // Ambil jam mulai misi
-                        let startHour = 0;
-                        if (t.customStart !== undefined && t.customStart !== null) { startHour = t.customStart; } 
-                        else {
-                            const slot = Config.TIME_SLOTS.find(s => s.id === t.timeSlot);
-                            if (slot && slot.id !== 'all') startHour = slot.start;
-                        }
-
-                        // Kunci misi jika: Misi hari ini DAN Jam sudah lewat/sama dengan jam mulai
-                        // ATAU misi dari hari-hari kemarin
-                        if ((t.date === today && currentHour >= startHour && t.timeSlot !== 'all') || t.date < today) {
-                            isLocked = true;
-                        }
-
-                        if (!t.isLoop) cardClass = 'glass-card opacity-90';
-                        
-                        if (isLocked) {
-                            action = `<span class="text-[9px] font-bold text-slate-500 uppercase flex items-center gap-1"><i data-lucide="lock" class="w-3 h-3"></i> Locked</span>`;
-                        } else {
-                            action = `<button onclick="App.controller.deleteTask('${t.id}')" class="text-slate-500 hover:text-neonRed p-2 transition-colors"><i data-lucide="trash-2" class="w-4 h-4"></i></button>`;
-                        }
+                    // Ambil jam mulai misi
+                    let startHourIdx = 0;
+                    if (t.customStart !== undefined && t.customStart !== null) { 
+                        startHourIdx = t.customStart; 
+                    } else {
+                        const slot = Config.TIME_SLOTS.find(s => s.id === t.timeSlot);
+                        if (slot && slot.id !== 'all') startHourIdx = slot.start * 2; // Data lama dikali 2
                     }
+
+                    // Kunci misi jika: Misi hari ini DAN Jam sudah lewat/sama dengan jam mulai
+                    if ((t.date === today && currentTimeIdx >= startHourIdx && t.timeSlot !== 'all') || t.date < today) {
+                        isLocked = true;
+                    }
+
+                    if (!t.isLoop) cardClass = 'glass-card opacity-90';
+                    
+                    if (isLocked) {
+                        action = `<span class="text-[9px] font-bold text-slate-500 uppercase flex items-center gap-1"><i data-lucide="lock" class="w-3 h-3"></i> Locked</span>`;
+                    } else {
+                        action = `<button onclick="App.controller.deleteTask('${t.id}')" class="text-slate-500 hover:text-neonRed p-2 transition-colors"><i data-lucide="trash-2" class="w-4 h-4"></i></button>`;
+                    }
+                }
 
                     return `
                     <div class="p-4 rounded-xl flex items-center justify-between border mb-3 transition-all duration-300 ${cardClass}">
@@ -1344,191 +1356,239 @@
              * MODULE 8: MAIN CONTROLLER
              */
             const Controller = {
-            calcLoopTotal() {
-            const total = parseInt(document.getElementById('loop-total')?.value || 0);
-            const diff = document.getElementById('loop-diff')?.value || 'easy';
-            const bonus = parseInt(document.getElementById('loop-bonus')?.value || 0);
+      // 👉 STATE BARU BUAT LOOP (Taruh ini di dalam state: {} di Controller lu kalau mau rapi, atau pake state.tempLoopDiff = 'easy' langsung jalan)
             
-            if (total > 0 && Config.DIFFICULTY[diff]) {
-                const basePts = Config.DIFFICULTY[diff].pts;
-                const totalPts = (basePts * total) + bonus;
-                const resEl = document.getElementById('loop-calc-res');
-                if (resEl) resEl.innerText = `${totalPts} Pts`;
-            } else {
-                const resEl = document.getElementById('loop-calc-res');
-                if (resEl) resEl.innerText = `0 Pts`;
-            }
-        },
-                // --- LOOP PROTOCOL (MISI BERKALA + KALKULATOR) ---
-                openPeriodicModal() {
-                    this.sound.play('click');
-                    const m = document.getElementById('modal-layer');
-                    
-                    // Helper untuk opsi jam 00-23
-                    const hourOptions = Array.from({length: 24}, (_, i) => `<option value="${i}">${String(i).padStart(2,'0')}:00</option>`).join('');
+            setTempLoopDiff(d) {
+                this.state.tempLoopDiff = d;
+                this.renderLoopDiffBtns();
+                this.sound.play('click');
+                this.calcLoopTotal(); // Hitung ulang kalau diff ganti
+            },
 
-                    m.innerHTML = `
-                    <div class="bg-charcoal border-t sm:border border-slate-700 rounded-t-3xl sm:rounded-2xl w-full max-w-sm p-6 shadow-2xl pointer-events-auto animate-[slideIn_0.3s_ease-out]">
-                        <div class="flex justify-between items-start mb-4">
-                            <div>
-                                <h3 class="text-xl font-bold text-white mb-1 flex items-center gap-2"><i data-lucide="repeat" class="w-5 h-5 text-neonPurple"></i> Loop Protocol</h3>
-                                <p class="text-slate-400 text-xs font-mono">Penjadwalan Misi Otomatis.</p>
-                            </div>
-                            <button onclick="App.controller.closeModal()" class="text-slate-500 hover:text-white bg-slate-800/50 p-2 rounded-full"><i data-lucide="x" class="w-5 h-5"></i></button>
-                        </div>
-
-                        <div class="space-y-4 max-h-[70vh] overflow-y-auto custom-scroll pr-1">
-                            <!-- Nama Misi -->
-                            <div>
-                                <label class="text-[9px] text-slate-500 uppercase font-bold mb-1 block">Nama Misi</label>
-                                <input id="loop-text" type="text" placeholder="Contoh: Lari Pagi..." class="w-full bg-surface text-white rounded-lg px-4 py-2.5 text-sm border border-slate-700 focus:border-neonPurple outline-none">
-                            </div>
-
-                            <!-- Pilih Hari -->
-                            <div>
-                                <label class="text-[9px] text-slate-500 uppercase font-bold mb-2 block">Aktif Pada Hari:</label>
-                                <div class="flex justify-between gap-1">
-                                    ${['M','S','S','R','K','J','S'].map((d, i) => `
-                                        <label class="cursor-pointer relative group">
-                                            <input type="checkbox" name="loopDay" value="${i}" class="peer hidden" ${(i===1)?'checked':''} onchange="App.controller.calcLoopTotal()">
-                                            <div class="w-8 h-8 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center text-xs font-bold text-slate-500 peer-checked:bg-neonPurple peer-checked:text-white peer-checked:border-neonPurple transition-all active:scale-90">
-                                                ${d}
-                                            </div>
-                                        </label>
-                                    `).join('')}
-                                </div>
-                            </div>
-
-                            <!-- Konfigurasi -->
-                            <div class="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label class="text-[9px] text-slate-500 uppercase font-bold mb-1 block">Total Muncul (Kali)</label>
-                                    <input id="loop-total" type="number" value="0" min="1" max="100" oninput="App.controller.calcLoopTotal()" class="w-full bg-surface text-white rounded-lg px-3 py-2.5 text-sm border border-slate-700 focus:border-neonPurple outline-none text-center font-mono">
-                                </div>
-                                <div>
-                                    <label class="text-[9px] text-slate-500 uppercase font-bold mb-1 block">Kesulitan</label>
-                                    <select id="loop-diff" onchange="App.controller.calcLoopTotal()" class="w-full bg-surface text-white rounded-lg px-3 py-2.5 text-xs border border-slate-700 outline-none">
-                                        <option value="easy">Mudah (2 Pts)</option>
-                                        <option value="medium">Sedang (4 Pts)</option>
-                                        <option value="hard">Sulit (6 Pts)</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <!-- [REVISI] Waktu Eksekusi Range -->
-                            <div class="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label class="text-[9px] text-slate-500 uppercase font-bold mb-1 block">Mulai Jam</label>
-                                    <select id="loop-start" class="w-full bg-surface text-white rounded-lg px-3 py-2.5 text-xs border border-slate-700 outline-none font-mono">
-                                        ${hourOptions}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="text-[9px] text-slate-500 uppercase font-bold mb-1 block">Selesai Jam</label>
-                                    <select id="loop-end" class="w-full bg-surface text-white rounded-lg px-3 py-2.5 text-xs border border-slate-700 outline-none font-mono">
-                                        ${Array.from({length: 24}, (_, i) => `<option value="${i+1}" ${i===0?'selected':''}>${String(i+1).padStart(2,'0')}:00</option>`).join('')}
-                                    </select>
-                                </div>
-                            </div>
-
-                            <!-- Input Bonus Jackpot -->
-                            <div class="bg-neonGold/5 p-3 rounded-xl border border-neonGold/20">
-                                <label class="text-[9px] text-neonGold uppercase font-bold mb-1 block flex justify-between">
-                                    <span>Bonus Selesai (Opsional)</span>
-                                    <i data-lucide="gift" class="w-3 h-3"></i>
-                                </label>
-                                <input id="loop-bonus" type="number" placeholder="0" value="0" oninput="App.controller.calcLoopTotal()" class="w-full bg-charcoal text-neonGold font-bold rounded-lg px-4 py-2 text-sm border border-slate-700 focus:border-neonGold outline-none placeholder:text-slate-600">
-                            </div>
-
-                            <div class="flex justify-between items-center px-2 py-2 border-t border-white/5">
-                                <span class="text-[9px] text-slate-400">Total Nilai Loop:</span>
-                                <span id="loop-calc-res" class="text-sm font-mono font-bold text-white">0 Pts</span>
-                            </div>
-
-                            <button onclick="App.controller.generateLoopTasks()" class="w-full bg-neonPurple text-white py-3 rounded-lg font-bold shadow-[0_0_15px_rgba(139,92,246,0.4)] hover:bg-white hover:text-neonPurple transition-all flex items-center justify-center gap-2">
-                                <i data-lucide="cpu" class="w-4 h-4"></i> GENERATE PROTOCOL
-                            </button>
-                        </div>
-                    </div>`;
-                    
-                    m.classList.remove('opacity-0', 'invisible', 'pointer-events-none');
-                    lucide.createIcons();
-                    this.calcLoopTotal();
-                },
-            async generateLoopTasks() {
-                    const text = document.getElementById('loop-text').value.trim();
-                    const total = parseInt(document.getElementById('loop-total').value);
-                    const diff = document.getElementById('loop-diff').value;
-                    const start = parseInt(document.getElementById('loop-start').value);
-                    const end = parseInt(document.getElementById('loop-end').value);
-                    const bonusInput = document.getElementById('loop-bonus').value;
-                    const bonusPts = bonusInput ? parseInt(bonusInput) : 0;
-                    const selectedDays = Array.from(document.querySelectorAll('input[name="loopDay"]:checked')).map(cb => parseInt(cb.value));
-
-                    // Validasi (Sama seperti sebelumnya)
-                    if (!text) { this.toast("Nama misi wajib diisi!", "error"); return; }
-                    if (isNaN(total) || total <= 0) { this.toast("Total repetisi tidak valid!", "error"); return; }
-                    if (selectedDays.length === 0) { this.toast("Pilih minimal satu hari!", "error"); return; }
-                    if (end <= start) { this.toast("Jam selesai harus lebih besar dari mulai", "error"); return; }
-
-                    const tasks = await Store.get('tasks');
-                    let createdCount = 0;
-                    let d = new Date(); 
-                    d.setDate(d.getDate() + 1);
-                    
-                    const basePts = Config.DIFFICULTY[diff].pts;
-                    const timeLabel = `${String(start).padStart(2,'0')}:00 - ${String(end).padStart(2,'0')}:00`;
-                    const seriesId = Utils.generateId(); // Satu ID untuk satu keluarga loop
-
-                    for (let i = 0; i < 365; i++) {
-                        if (createdCount >= total) break;
-                        const currentDayIndex = d.getDay();
-
-                        if (selectedDays.includes(currentDayIndex)) {
-                            const isLast = (createdCount === total - 1);
-                            let finalPts = undefined; 
-                            
-                            // [PERUBAHAN PENTING] Jangan ubah variable 'text' jadi aneh-aneh.
-                            // Biarkan nama misinya murni, nanti kita hias di UI.
-                            
-                            let isJackpot = false;
-                            if (isLast && bonusPts > 0) {
-                                finalPts = basePts + bonusPts;
-                                isJackpot = true;
-                            }
-
-                            tasks.push({
-                                id: Utils.generateId(),
-                                loopSeriesId: seriesId, // ID Keluarga
-                                
-                                // Data Tampilan Khusus
-                                isLoop: true,
-                                loopIndex: createdCount + 1,
-                                loopTotal: total,
-                                isJackpot: isJackpot,
-                                
-                                text: text, // Teks murni ("Lari Pagi")
-                                difficulty: diff,
-                                timeSlot: 'custom',
-                                customStart: start,
-                                customEnd: end,
-                                customLabel: timeLabel,
-                                date: Utils.getISO(d),
-                                status: 'pending',
-                                createdAt: new Date().toISOString(),
-                                pts: finalPts 
-                            });
-                            createdCount++;
-                        }
-                        d.setDate(d.getDate() + 1);
+            renderLoopDiffBtns() {
+                const diffs = ['easy', 'medium', 'hard'];
+                diffs.forEach(d => {
+                    const btn = document.getElementById(`loop-btn-${d}`);
+                    if(!btn) return;
+                    const c = Config.DIFFICULTY[d];
+                    if (this.state.tempLoopDiff === d) {
+                        btn.className = `flex-1 py-2 rounded-lg text-[10px] font-bold border uppercase transition-all bg-white/10 text-white shadow-[0_0_10px_currentColor] ${c.border}`;
+                        btn.style.color = c.hex;
+                    } else {
+                        btn.className = `flex-1 py-2 rounded-lg text-[10px] font-bold border border-slate-700 text-slate-500 uppercase transition-all hover:bg-slate-700`;
+                        btn.style.color = '';
                     }
+                });
+            },
 
-                    await Store.set('tasks', tasks);
-                    this.sound.play('success');
-                    this.toast(`Protokol ${total} tahap diaktifkan!`, 'success');
-                    this.closeModal();
-                    this.render();
-                },
+            calcLoopTotal() {
+                const diff = this.state.tempLoopDiff || 'easy';
+                const bonus = parseInt(document.getElementById('loop-bonus')?.value || 0);
+                const endDateStr = document.getElementById('loop-end-date')?.value;
+                const selectedDays = Array.from(document.querySelectorAll('input[name="loopDay"]:checked')).map(cb => parseInt(cb.value));
+                
+                const resEl = document.getElementById('loop-calc-res');
+                if (!resEl) return;
+
+                if (!endDateStr || selectedDays.length === 0) {
+                    resEl.innerHTML = `0 Kali <span class="text-slate-500 text-[10px]">/ 0 Pts</span>`;
+                    return;
+                }
+
+                const endDate = new Date(endDateStr);
+                endDate.setHours(23, 59, 59, 999);
+                
+                let d = new Date(); 
+                d.setDate(d.getDate() + 1); // Mulai dari besok
+                d.setHours(0,0,0,0);
+
+                let count = 0;
+                while(d <= endDate) {
+                    if (selectedDays.includes(d.getDay())) count++;
+                    d.setDate(d.getDate() + 1);
+                }
+
+                if (count > 0 && Config.DIFFICULTY[diff]) {
+                    const basePts = Config.DIFFICULTY[diff].pts;
+                    const totalPts = (basePts * count) + bonus;
+                    resEl.innerHTML = `<span class="text-neonCyan">${count} Kali</span> <span class="text-neonGold text-xs">/ ${totalPts} Pts</span>`;
+                } else {
+                    resEl.innerHTML = `0 Kali <span class="text-slate-500 text-[10px]">/ 0 Pts</span>`;
+                }
+            },
+
+            openPeriodicModal() {
+                this.sound.play('click');
+                const m = document.getElementById('modal-layer');
+                this.state.tempLoopDiff = 'easy'; // Reset diff
+                
+                // Helper Sistem 30 Menit (0 - 48)
+                const hourOptions = Array.from({length: 49}, (_, i) => `<option value="${i}">${Utils.formatTimeSlot(i)}</option>`).join('');
+
+                m.innerHTML = `
+                <div class="bg-charcoal border-t sm:border border-slate-700 rounded-t-3xl sm:rounded-2xl w-full max-w-sm p-6 shadow-2xl pointer-events-auto animate-[slideIn_0.3s_ease-out]">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <h3 class="text-xl font-bold text-white mb-1 flex items-center gap-2"><i data-lucide="repeat" class="w-5 h-5 text-neonPurple"></i> Loop Protocol</h3>
+                            <p class="text-slate-400 text-xs font-mono">Penjadwalan Misi Otomatis.</p>
+                        </div>
+                        <button onclick="App.controller.closeModal()" class="text-slate-500 hover:text-white bg-slate-800/50 p-2 rounded-full"><i data-lucide="x" class="w-5 h-5"></i></button>
+                    </div>
+
+                    <div class="space-y-4 max-h-[70vh] overflow-y-auto custom-scroll pr-1">
+                        <div>
+                            <label class="text-[9px] text-slate-500 uppercase font-bold mb-1 block">Nama Misi</label>
+                            <input id="loop-text" type="text" placeholder="Contoh: Lari Pagi..." class="w-full bg-surface text-white rounded-lg px-4 py-2.5 text-sm border border-slate-700 focus:border-neonPurple outline-none">
+                        </div>
+
+                        <div>
+                            <label class="text-[9px] text-slate-500 uppercase font-bold mb-2 block">Aktif Pada Hari:</label>
+                            <div class="flex justify-between gap-1">
+                                ${['M','S','S','R','K','J','S'].map((d, i) => `
+                                    <label class="cursor-pointer relative group">
+                                        <input type="checkbox" name="loopDay" value="${i}" class="peer hidden" ${(i===1)?'checked':''} onchange="App.controller.calcLoopTotal()">
+                                        <div class="w-8 h-8 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center text-xs font-bold text-slate-500 peer-checked:bg-neonPurple peer-checked:text-white peer-checked:border-neonPurple transition-all active:scale-90">
+                                            ${d}
+                                        </div>
+                                    </label>
+                                `).join('')}
+                            </div>
+                        </div>
+
+                        <div class="space-y-3">
+                            <div>
+                                <label class="text-[9px] text-slate-500 uppercase font-bold mb-1 block flex items-center gap-1"><i data-lucide="calendar-clock" class="w-3 h-3"></i> Tanggal Berakhir Loop</label>
+                                <input id="loop-end-date" type="date" min="${Utils.getTomorrow()}" onchange="App.controller.calcLoopTotal()" class="w-full bg-surface text-white rounded-lg px-4 py-2.5 text-sm border border-slate-700 focus:border-neonPurple outline-none font-mono">
+                            </div>
+                            <div>
+                                <label class="text-[9px] text-slate-500 uppercase font-bold mb-1 block">Kesulitan</label>
+                                <div class="flex gap-2">
+                                    <button type="button" onclick="App.controller.setTempLoopDiff('easy')" id="loop-btn-easy" class="flex-1 py-2 rounded-lg text-[10px] font-bold border border-slate-700 text-slate-500 uppercase transition-all hover:bg-slate-700">Mudah</button>
+                                    <button type="button" onclick="App.controller.setTempLoopDiff('medium')" id="loop-btn-medium" class="flex-1 py-2 rounded-lg text-[10px] font-bold border border-slate-700 text-slate-500 uppercase transition-all hover:bg-slate-700">Sedang</button>
+                                    <button type="button" onclick="App.controller.setTempLoopDiff('hard')" id="loop-btn-hard" class="flex-1 py-2 rounded-lg text-[10px] font-bold border border-slate-700 text-slate-500 uppercase transition-all hover:bg-slate-700">Sulit</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="text-[9px] text-slate-500 uppercase font-bold mb-1 block">Mulai Jam</label>
+                                <select id="loop-start" class="w-full bg-surface text-white rounded-lg px-3 py-2.5 text-xs border border-slate-700 outline-none font-mono">
+                                    ${hourOptions}
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-[9px] text-slate-500 uppercase font-bold mb-1 block">Selesai Jam</label>
+                                <select id="loop-end" class="w-full bg-surface text-white rounded-lg px-3 py-2.5 text-xs border border-slate-700 outline-none font-mono">
+                                    ${hourOptions}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="bg-neonGold/5 p-3 rounded-xl border border-neonGold/20">
+                            <label class="text-[9px] text-neonGold uppercase font-bold mb-1 block flex justify-between">
+                                <span>Bonus Selesai (Jackpot)</span>
+                                <i data-lucide="gift" class="w-3 h-3"></i>
+                            </label>
+                            <input id="loop-bonus" type="number" placeholder="0" value="0" oninput="App.controller.calcLoopTotal()" class="w-full bg-charcoal text-neonGold font-bold rounded-lg px-4 py-2 text-sm border border-slate-700 focus:border-neonGold outline-none placeholder:text-slate-600">
+                        </div>
+
+                        <div class="flex justify-between items-center px-2 py-2 border-t border-white/5">
+                            <span class="text-[9px] text-slate-400">Total Generasi & Poin:</span>
+                            <span id="loop-calc-res" class="font-bold font-mono">0 Kali</span>
+                        </div>
+
+                        <button onclick="App.controller.generateLoopTasks()" class="w-full bg-neonPurple text-white py-3 rounded-lg font-bold shadow-[0_0_15px_rgba(139,92,246,0.4)] hover:bg-white hover:text-neonPurple transition-all flex items-center justify-center gap-2">
+                            <i data-lucide="cpu" class="w-4 h-4"></i> GENERATE PROTOCOL
+                        </button>
+                    </div>
+                </div>`;
+                m.classList.remove('opacity-0', 'invisible', 'pointer-events-none');
+                lucide.createIcons();
+                this.renderLoopDiffBtns(); // Set UI warna diff awal
+                this.calcLoopTotal();
+            },
+
+            async generateLoopTasks() {
+                const text = document.getElementById('loop-text').value.trim();
+                const endDateStr = document.getElementById('loop-end-date').value;
+                const diff = this.state.tempLoopDiff;
+                const start = parseInt(document.getElementById('loop-start').value);
+                const end = parseInt(document.getElementById('loop-end').value);
+                const bonusPts = parseInt(document.getElementById('loop-bonus').value || 0);
+                const selectedDays = Array.from(document.querySelectorAll('input[name="loopDay"]:checked')).map(cb => parseInt(cb.value));
+
+                if (!text) { this.toast("Nama misi wajib diisi!", "error"); return; }
+                if (!endDateStr) { this.toast("Pilih Tanggal Berakhir!", "error"); return; }
+                if (selectedDays.length === 0) { this.toast("Pilih minimal satu hari!", "error"); return; }
+                if (end <= start) { this.toast("Jam selesai harus lebih besar!", "error"); return; }
+
+                const endDate = new Date(endDateStr);
+                endDate.setHours(23, 59, 59, 999);
+                
+                let d = new Date(); 
+                d.setDate(d.getDate() + 1); // Mulai besok
+                d.setHours(0,0,0,0);
+
+                // Pre-calculate total loop for indexing
+                let total = 0;
+                let tempD = new Date(d);
+                while(tempD <= endDate) {
+                    if (selectedDays.includes(tempD.getDay())) total++;
+                    tempD.setDate(tempD.getDate() + 1);
+                }
+
+                if (total === 0) { this.toast("Tidak ada hari yang cocok hingga tanggal tersebut!", "error"); return; }
+
+                const tasks = await Store.get('tasks');
+                let createdCount = 0;
+                
+                const basePts = Config.DIFFICULTY[diff].pts;
+                const timeLabel = `${Utils.formatTimeSlot(start)} - ${Utils.formatTimeSlot(end)}`;
+                const seriesId = Utils.generateId(); 
+
+                while (d <= endDate) {
+                    const currentDayIndex = d.getDay();
+
+                    if (selectedDays.includes(currentDayIndex)) {
+                        const isLast = (createdCount === total - 1);
+                        let finalPts = undefined; 
+                        let isJackpot = false;
+                        
+                        if (isLast && bonusPts > 0) {
+                            finalPts = basePts + bonusPts;
+                            isJackpot = true;
+                        }
+
+                        tasks.push({
+                            id: Utils.generateId(),
+                            loopSeriesId: seriesId, 
+                            isLoop: true,
+                            loopIndex: createdCount + 1,
+                            loopTotal: total,
+                            isJackpot: isJackpot,
+                            text: text, 
+                            difficulty: diff,
+                            timeSlot: 'custom',
+                            customStart: start,
+                            customEnd: end,
+                            customLabel: timeLabel,
+                            date: Utils.getISO(d),
+                            status: 'pending',
+                            createdAt: new Date().toISOString(),
+                            pts: finalPts 
+                        });
+                        createdCount++;
+                    }
+                    d.setDate(d.getDate() + 1);
+                }
+
+                await Store.set('tasks', tasks);
+                this.sound.play('success');
+                this.toast(`Protokol ${createdCount} tahap diaktifkan!`, 'success');
+                this.closeModal();
+                this.render();
+            },
                 state: {
                     view: 'home',
                     difficulty: 'easy',
@@ -2005,8 +2065,8 @@
                     const m = document.getElementById('modal-layer');
                     
                     // Helper untuk generate opsi jam 00-23
-                    const hourOptions = Array.from({length: 24}, (_, i) => `<option value="${i}">${String(i).padStart(2,'0')}:00</option>`).join('');
-
+                    // Helper untuk generate opsi jam 00:00 - 24:00 (Sistem 30 Menit)
+                    const hourOptions = Array.from({length: 49}, (_, i) => `<option value="${i}">${Utils.formatTimeSlot(i)}</option>`).join('');    
                     m.innerHTML = `
                     <div class="bg-charcoal border-t sm:border border-slate-700 rounded-t-3xl sm:rounded-2xl w-full max-w-md p-6 shadow-2xl pointer-events-auto animate-[slideIn_0.3s_ease-out] max-h-[85vh] flex flex-col">
                         <div class="flex justify-between items-start mb-6">
@@ -2041,7 +2101,7 @@
                                     <div>
                                         <label class="text-[9px] text-slate-500 uppercase font-bold mb-1 block">Selesai Jam</label>
                                         <select id="bp-end" class="w-full bg-charcoal text-white rounded-lg px-3 py-2.5 text-xs border border-slate-700 focus:border-neonCyan outline-none font-mono">
-                                            ${Array.from({length: 24}, (_, i) => `<option value="${i+1}" ${i===0?'selected':''}>${String(i+1).padStart(2,'0')}:00</option>`).join('')}
+                                            ${hourOptions}
                                         </select>
                                     </div>
                                 </div>
@@ -2982,17 +3042,18 @@
                     const m = document.getElementById('modal-layer');
                     
                     // GENERATE 25 TOMBOL (00 - 24)
-                    let gridHtml = '';
-                    for (let i = 0; i <= 24; i++) {
-                        const label = i === 24 ? "24:00" : String(i).padStart(2,'0') + ":00";
-                        const isLast = i === 24;
-                        gridHtml += `
-                            <button id="slot-btn-${i}" onclick="App.controller.selectTimeSlot(${i})" class="glass-card p-1 rounded-lg border ${isLast ? 'border-neonRed/30' : 'border-slate-700'} hover:bg-slate-700 text-center transition-all flex flex-col items-center justify-center min-h-[40px] ${isLast ? 'col-span-4 mt-2 bg-slate-800' : ''}">
-                                <span class="${isLast ? 'text-neonRed' : 'text-slate-400'} font-mono font-bold text-xs pointer-events-none">${label}</span>
-                                ${isLast ? '<span class="text-[8px] text-slate-500 uppercase">Batas Akhir (Midnight)</span>' : ''}
-                            </button>
-                        `;
-                    }
+                    // GENERATE 49 TOMBOL (00:00 - 24:00)
+                let gridHtml = '';
+                for (let i = 0; i <= 48; i++) {
+                    const label = Utils.formatTimeSlot(i);
+                    const isLast = i === 48;
+                    gridHtml += `
+                        <button id="slot-btn-${i}" onclick="App.controller.selectTimeSlot(${i})" class="glass-card p-1 rounded-lg border ${isLast ? 'border-neonRed/30' : 'border-slate-700'} hover:bg-slate-700 text-center transition-all flex flex-col items-center justify-center min-h-[40px] ${isLast ? 'col-span-4 mt-2 bg-slate-800' : ''}">
+                            <span class="${isLast ? 'text-neonRed' : 'text-slate-400'} font-mono font-bold text-xs pointer-events-none">${label}</span>
+                            ${isLast ? '<span class="text-[8px] text-slate-500 uppercase">Batas Akhir (Midnight)</span>' : ''}
+                        </button>
+                    `;
+                }
 
                     // --- TAMBAHAN BARU: AMBIL DATA MISI BESOK ---
                     const tasks = await Store.get('tasks');
@@ -3131,21 +3192,22 @@
                     }
 
                     // Update Status Text
-                    if (range.start !== null && range.end === null) {
-                        statusEl.innerHTML = `Mulai: <span class="text-neonGold font-bold">${String(range.start).padStart(2,'0')}:00</span>... <span class="text-slate-500">(Klik angka lebih besar)</span>`;
-                        btnConfirm.innerHTML = `PILIH WAKTU SELESAI...`;
-                        btnConfirm.disabled = true;
-                        btnConfirm.className = "flex-[2] bg-slate-800 text-slate-600 p-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 cursor-not-allowed border border-slate-700";
-                    } 
-                    else if (range.start !== null && range.end !== null) {
-                        const duration = range.end - range.start;
-                        const endLabel = range.end === 24 ? "24" : String(range.end).padStart(2,'0'); // Label 24
-                        
-                        statusEl.innerHTML = `Jadwal: <span class="text-neonCyan">${String(range.start).padStart(2,'0')}:00 - ${endLabel}:00</span> (${duration} Jam)`;
-                        btnConfirm.innerHTML = `JADWALKAN SEKARANG`;
-                        btnConfirm.disabled = false;
-                        btnConfirm.className = "flex-[2] bg-neonCyan text-obsidian p-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(6,182,212,0.4)] hover:bg-white cursor-pointer active:scale-95";
-                    } 
+// (BAGIAN BAWAH updateTimeGridUI)
+                // Update Status Text
+                if (range.start !== null && range.end === null) {
+                    statusEl.innerHTML = `Mulai: <span class="text-neonGold font-bold">${Utils.formatTimeSlot(range.start)}</span>... <span class="text-slate-500">(Klik angka lebih besar)</span>`;
+                    btnConfirm.innerHTML = `PILIH WAKTU SELESAI...`;
+                    btnConfirm.disabled = true;
+                    btnConfirm.className = "flex-[2] bg-slate-800 text-slate-600 p-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 cursor-not-allowed border border-slate-700";
+                } 
+                else if (range.start !== null && range.end !== null) {
+                    const duration = (range.end - range.start) * 0.5; // Dikali 0.5 karena tiap loncatan = 30 menit
+                    
+                    statusEl.innerHTML = `Jadwal: <span class="text-neonCyan">${Utils.formatTimeSlot(range.start)} - ${Utils.formatTimeSlot(range.end)}</span> (${duration} Jam)`;
+                    btnConfirm.innerHTML = `JADWALKAN SEKARANG`;
+                    btnConfirm.disabled = false;
+                    btnConfirm.className = "flex-[2] bg-neonCyan text-obsidian p-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(6,182,212,0.4)] hover:bg-white cursor-pointer active:scale-95";
+                }
                     else {
                         statusEl.innerText = "Pilih JAM MULAI...";
                         btnConfirm.innerHTML = "PILIH WAKTU...";
@@ -3240,20 +3302,17 @@
                         const rnk =await Engine.calcRank(monthKey, tasks, financeData);
                         const ref = reflections.find(r => r.date === today);
                         
-                        // [PERBAIKAN UTAMA] Ambil jam sekarang
-                        const currentHour = new Date().getHours(); 
+                       // [PERBAIKAN UTAMA] Ambil Index Waktu Sekarang (0-48)
+                    const currentTimeIdx = Utils.getCurrentTimeIndex(); 
 
-                        // Helper untuk membaca Start/End dari Misi (Baik Custom maupun ID)
-                        const getTaskRange = (t) => {
-                            // Prioritas 1: Cek properti customStart (dari input manual/loop)
-                            if (t.customStart !== undefined && t.customStart !== null) {
-                                return { start: t.customStart, end: t.customEnd };
-                            }
-                            // Prioritas 2: Cek dari ID slot (compatibility data lama)
-                            const slot = Config.TIME_SLOTS.find(s => s.id === t.timeSlot);
-                            // Jika slot 'all' atau tidak ketemu, default 0-24
-                            return slot && slot.id !== 'all' ? { start: slot.start, end: slot.end } : { start: 0, end: 24 };
-                        };
+                    // Helper untuk membaca Start/End dari Misi
+                    const getTaskRange = (t) => {
+                        if (t.customStart !== undefined && t.customStart !== null) {
+                            return { start: t.customStart, end: t.customEnd };
+                        }
+                        const slot = Config.TIME_SLOTS.find(s => s.id === t.timeSlot);
+                        return slot && slot.id !== 'all' ? { start: slot.start * 2, end: slot.end * 2 } : { start: 0, end: 48 };
+                    };
 
                         // 1. MISI GAGAL
                         const tFailed = Engine.sortTasks(tasks.filter(t => t.date === today && t.status === 'failed'));
@@ -3262,27 +3321,24 @@
                         const tCompleted = Engine.sortTasks(tasks.filter(t => t.date === today && t.status === 'completed'));
 
                         // 3. MISI AKTIF (Sedang Berlangsung)
+                        // 3. MISI AKTIF (Sedang Berlangsung)
                         const tActive = Engine.sortTasks(tasks.filter(t => {
-                            // Harus hari ini dan status pending
                             if (t.date !== today || t.status !== 'pending') return false;
-                            
-                            // All Day selalu aktif
                             if (t.timeSlot === 'all') return true; 
                             
-                            // Cek Matematika Jam
                             const { start, end } = getTaskRange(t);
-                            // Aktif jika: Jam Sekarang >= Mulai DAN Jam Sekarang < Selesai
-                            return currentHour >= start && currentHour < end;
+                            // 👉 INI YANG BERUBAH (currentHour jadi currentTimeIdx)
+                            return currentTimeIdx >= start && currentTimeIdx < end;
                         }));
                         
                         // 4. MISI AKAN DATANG (Belum waktunya)
                         const tUpcoming = Engine.sortTasks(tasks.filter(t => {
                             if (t.date !== today || t.status !== 'pending') return false;
-                            if (t.timeSlot === 'all') return false; // All day tidak masuk sini
+                            if (t.timeSlot === 'all') return false; 
                             
                             const { start } = getTaskRange(t);
-                            // Upcoming jika: Jam Mulai > Jam Sekarang
-                            return start > currentHour; 
+                            // 👉 INI YANG BERUBAH (currentHour jadi currentTimeIdx)
+                            return start > currentTimeIdx; 
                         }));
 
                         // ... (lanjut ke kode tTom / Misi Hari Ini di bawahnya seperti biasa) ...

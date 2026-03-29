@@ -1595,6 +1595,27 @@
                     }
 
                     this.render();
+                    // 👉 NOTIFIKASI TOAST PERINGATAN (Cuma muncul 1x pas awal buka)
+                setTimeout(async () => {
+                    const tasks = await Store.get('tasks');
+                    const pts = await Engine.calcPoints(tasks);
+                    const monthKey = Utils.getISO().slice(0, 7);
+                    const financeData = await Store.get('finance');
+                    const myFinance = financeData.find(f => f.month === monthKey);
+                    
+                    const dailyTarget = myFinance ? myFinance.targetPts : 24;
+                    const minEffort = Math.ceil(dailyTarget * 0.20);
+                    
+                    // Jangan ancam pengguna baru yang baru install hari ini!
+                    const settings = await Store.get('settings');
+                    const isNewUserToday = settings.lastEvaluatedDay === Utils.getISO();
+
+                    // Kalau poin kurang DAN bukan pengguna baru, keluarin Toast Peringatan
+                    if (pts.cur < minEffort && !isNewUserToday && !window.hasWarnedLazy) {
+                        this.toast(`⚠️ Perhatian: Poin hari ini (${pts.cur}) di bawah batas aman. Kerjakan misi!`, 'error');
+                        window.hasWarnedLazy = true; // Biar nggak muncul lagi kalau pindah tab
+                    }
+                }, 1500);
 
                 setInterval(async() => {
                         const tasks = await Store.get('tasks');
@@ -3268,137 +3289,105 @@
                         
                         const tTom = Engine.sortTasks(tasks.filter(t => t.date === Utils.getTomorrow()));
 
-                    const tTomPoints = tTom.reduce((acc, t) => acc + (t.pts !== undefined ? t.pts : (Config.DIFFICULTY[t.difficulty]?.pts || 0)), 0);
-                        // 👉 FITUR BARU: LOGIKA UI PERINGATAN PAJAK KEMALASAN
-                    const dailyTarget = myFinance ? myFinance.targetPts : 24;
-                    const minEffort = Math.ceil(dailyTarget * 0.20);
-                    const taxPenalty = Math.ceil(dailyTarget * 0.50);
+                   const tTomPoints = tTom.reduce((acc, t) => acc + (t.pts !== undefined ? t.pts : (Config.DIFFICULTY[t.difficulty]?.pts || 0)), 0);
                     
-                    let lazinessWarning = '';
-                    // Jika poin hari ini masih kurang dari batas aman (20%)
-                    if (pts.cur < minEffort) {
-                        const shortfall = minEffort - pts.cur;
-                        lazinessWarning = `
-                        <div class="glass-card p-4 rounded-xl border border-neonRed/60 bg-neonRed/10 shadow-[0_0_15px_rgba(239,68,68,0.15)] animate-[pulse-slow]">
-                            <div class="flex items-start gap-3">
-                                <div class="p-2 rounded-full bg-neonRed/20 text-neonRed shrink-0">
-                                    <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+                    const diffBtn = (d) => {
+                        const act = this.state.difficulty === d;
+                        const c = Config.DIFFICULTY[d];
+                        return `<button onclick="App.controller.setDifficulty('${d}')" class="flex-1 py-2 rounded-lg text-[10px] font-bold border uppercase transition-all ${act ? `bg-white/10 text-white shadow-[0_0_10px_currentColor] ${c.border}` : 'border-slate-700 text-slate-500'}" style="${act?`color:${c.hex}`:''}">${c.label}</button>`;
+                    };
+
+                    let financeCard = '';
+                    if (!myFinance) {
+                        const selectedModeId = this.state.tempMode;
+                        financeCard = `
+                        <div class="glass-card p-5 rounded-xl border border-neonGold/30 bg-neonGold/5 mb-4 animate-[pulse-slow]">
+                            <div class="flex items-center gap-2 mb-3">
+                                <i data-lucide="settings-2" class="w-5 h-5 text-neonGold"></i>
+                                <h3 class="text-sm font-bold text-white">Kalibrasi Protokol Bulan Ini</h3>
+                            </div>
+                            <p class="text-xs text-slate-400 mb-3 leading-relaxed">Agar kalkulasi nilai poin & rank akurat, masukkan parameter finansial & pilih mode operasi Anda.</p>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="text-[9px] text-slate-500 uppercase font-bold mb-1 block">Anggaran/Gaji (Rp)</label>
+                                    <input id="income-in" type="number" placeholder="Contoh: 1800000" value="${this.state.tempIncome || ''}" class="w-full bg-obsidian text-white rounded-lg px-3 py-2.5 text-sm border border-slate-700 focus:border-neonGold outline-none transition-colors">
                                 </div>
                                 <div>
-                                    <h4 class="text-[10px] font-bold text-neonRed uppercase tracking-widest mb-1">Ancaman Pinalti Kemalasan</h4>
-                                    <p class="text-xs text-slate-300 leading-relaxed">
-                                        Performa hari ini di bawah batas aman! Kumpulkan minimal <strong class="text-white">${shortfall} Pts</strong> lagi sebelum tengah malam untuk menghindari denda <strong class="text-neonRed font-mono">-${taxPenalty} PTS</strong> besok!
-                                    </p>
+                                    <label class="text-[9px] text-slate-500 uppercase font-bold mb-1 block">Alokasi Self Reward (%)</label>
+                                    <select id="alloc-in" class="w-full bg-obsidian text-white rounded-lg px-3 py-2.5 text-sm border border-slate-700 focus:border-neonGold outline-none transition-colors">
+                                        <option value="0.1" ${this.state.tempAlloc === '0.1' ? 'selected' : ''}>10% (Mode Konservatif)</option>
+                                        <option value="0.2" ${this.state.tempAlloc === '0.2' || !this.state.tempAlloc ? 'selected' : ''}>20% (Mode Seimbang)</option>
+                                        <option value="0.3" ${this.state.tempAlloc === '0.3' ? 'selected' : ''}>30% (Mode Agresif)</option>
+                                        <option value="0.4" ${this.state.tempAlloc === '0.4' ? 'selected' : ''}>40% (Mode Ekstrem)</option>
+                                    </select>
                                 </div>
+                                <div>
+                                    <label class="text-[9px] text-slate-500 uppercase font-bold mb-2 block">Pilih Mode Operasi</label>
+                                    <div class="grid grid-cols-2 gap-2">
+                                        ${Config.PRODUCTIVITY_MODES.map(m => {
+                                            const isSel = selectedModeId === m.id;
+                                            const border = isSel ? `border-${m.color.split('-')[1]}` : 'border-slate-700';
+                                            const bg = isSel ? 'bg-slate-700' : 'bg-slate-800';
+                                            return `
+                                            <button onclick="App.controller.selectMode('${m.id}')" class="${bg} border ${border} hover:bg-slate-700 p-2 rounded-lg text-left transition-all active:scale-95 group relative overflow-hidden">
+                                                ${isSel ? `<div class="absolute inset-0 bg-white/5"></div>` : ''}
+                                                <div class="flex items-center gap-2 mb-1">
+                                                    <i data-lucide="${m.icon}" class="w-3 h-3 ${m.color}"></i>
+                                                    <span class="text-xs font-bold text-white">${m.label}</span>
+                                                </div>
+                                                <div class="flex justify-between items-center">
+                                                    <span class="text-[9px] text-slate-400">${m.desc}</span>
+                                                    <span class="text-[10px] font-mono font-bold ${m.color}">${m.pts} Pts</span>
+                                                </div>
+                                            </button>`;
+                                        }).join('')}
+                                    </div>
+                                </div>
+                                <button onclick="App.controller.saveMonthlyConfig()" class="w-full bg-neonGold text-obsidian px-4 py-3 rounded-lg font-bold hover:bg-white transition-colors shadow-lg mt-2 flex justify-center items-center gap-2"><i data-lucide="check-circle" class="w-4 h-4"></i> Simpan Parameter</button>
                             </div>
                         </div>`;
                     }
-                         const diffBtn = (d) => {
-                            const act = this.state.difficulty === d;
-                            const c = Config.DIFFICULTY[d];
-                            return `<button onclick="App.controller.setDifficulty('${d}')" class="flex-1 py-2 rounded-lg text-[10px] font-bold border uppercase transition-all ${act ? `bg-white/10 text-white shadow-[0_0_10px_currentColor] ${c.border}` : 'border-slate-700 text-slate-500'}" style="${act?`color:${c.hex}`:''}">${c.label}</button>`;
-                        };
 
-                        // --- FINANCE SETUP CARD ---
-                        let financeCard = '';
-                        if (!myFinance) {
-                            const selectedModeId = this.state.tempMode;
-                            financeCard = `
-                            <div class="glass-card p-5 rounded-xl border border-neonGold/30 bg-neonGold/5 mb-4 animate-[pulse-slow]">
-                                <div class="flex items-center gap-2 mb-3">
-                                    <i data-lucide="settings-2" class="w-5 h-5 text-neonGold"></i>
-                                    <h3 class="text-sm font-bold text-white">Kalibrasi Protokol Bulan Ini</h3>
-                                </div>
-                                <p class="text-xs text-slate-400 mb-3 leading-relaxed">Agar kalkulasi nilai poin & rank akurat, masukkan parameter finansial & pilih mode operasi Anda.</p>
-                                <div class="space-y-4">
-                                    <div>
-                                        <label class="text-[9px] text-slate-500 uppercase font-bold mb-1 block">Anggaran/Gaji (Rp)</label>
-                                        <input id="income-in" type="number" placeholder="Contoh: 1800000" value="${this.state.tempIncome || ''}" class="w-full bg-obsidian text-white rounded-lg px-3 py-2.5 text-sm border border-slate-700 focus:border-neonGold outline-none transition-colors">
-                                    </div>
-                                    <div>
-                                        <label class="text-[9px] text-slate-500 uppercase font-bold mb-1 block">Alokasi Self Reward (%)</label>
-                                        <select id="alloc-in" class="w-full bg-obsidian text-white rounded-lg px-3 py-2.5 text-sm border border-slate-700 focus:border-neonGold outline-none transition-colors">
-                                            <option value="0.1" ${this.state.tempAlloc === '0.1' ? 'selected' : ''}>10% (Mode Konservatif)</option>
-                                            <option value="0.2" ${this.state.tempAlloc === '0.2' || !this.state.tempAlloc ? 'selected' : ''}>20% (Mode Seimbang)</option>
-                                            <option value="0.3" ${this.state.tempAlloc === '0.3' ? 'selected' : ''}>30% (Mode Agresif)</option>
-                                            <option value="0.4" ${this.state.tempAlloc === '0.4' ? 'selected' : ''}>40% (Mode Ekstrem)</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label class="text-[9px] text-slate-500 uppercase font-bold mb-2 block">Pilih Mode Operasi</label>
-                                        <div class="grid grid-cols-2 gap-2">
-                                            ${Config.PRODUCTIVITY_MODES.map(m => {
-                                                const isSel = selectedModeId === m.id;
-                                                const border = isSel ? `border-${m.color.split('-')[1]}` : 'border-slate-700';
-                                                const bg = isSel ? 'bg-slate-700' : 'bg-slate-800';
-                                                return `
-                                                <button onclick="App.controller.selectMode('${m.id}')" class="${bg} border ${border} hover:bg-slate-700 p-2 rounded-lg text-left transition-all active:scale-95 group relative overflow-hidden">
-                                                    ${isSel ? `<div class="absolute inset-0 bg-white/5"></div>` : ''}
-                                                    <div class="flex items-center gap-2 mb-1">
-                                                        <i data-lucide="${m.icon}" class="w-3 h-3 ${m.color}"></i>
-                                                        <span class="text-xs font-bold text-white">${m.label}</span>
-                                                    </div>
-                                                    <div class="flex justify-between items-center">
-                                                        <span class="text-[9px] text-slate-400">${m.desc}</span>
-                                                        <span class="text-[10px] font-mono font-bold ${m.color}">${m.pts} Pts</span>
-                                                    </div>
-                                                </button>`;
-                                            }).join('')}
-                                        </div>
-                                    </div>
-                                    <button onclick="App.controller.saveMonthlyConfig()" class="w-full bg-neonGold text-obsidian px-4 py-3 rounded-lg font-bold hover:bg-white transition-colors shadow-lg mt-2 flex justify-center items-center gap-2"><i data-lucide="check-circle" class="w-4 h-4"></i> Simpan Parameter</button>
-                                </div>
-                            </div>`;
-                        }
+                    main.innerHTML = `
+                    <div class="space-y-8 pb-10 animate-[fadeIn_0.4s_ease-out]">
+                        ${financeCard}
 
-                        main.innerHTML = `
-                        <div class="space-y-8 pb-10 animate-[fadeIn_0.4s_ease-out]">
-                            
-                            ${financeCard}
+                        <div class="flex gap-4">${ComponentFactory.rankCard('EXECUTION', rnk.exec, 'swords')}${ComponentFactory.rankCard('CONSISTENCY', rnk.cons, 'zap')}</div>
+                        
+                        ${ComponentFactory.analyticsCard(tasks)}
 
-                            <div class="flex gap-4">${ComponentFactory.rankCard('EXECUTION', rnk.exec, 'swords')}${ComponentFactory.rankCard('CONSISTENCY', rnk.cons, 'zap')}</div>
-                            
-                            ${ComponentFactory.analyticsCard(tasks)}
-
-                            <!-- Poin Hari Ini -->
-                            <div class="glass-card p-5 rounded-xl flex items-center justify-between relative overflow-hidden">
+                        <div class="glass-card p-5 rounded-xl flex items-center justify-between relative overflow-hidden">
                             <div class="absolute right-0 top-0 h-full w-1/2 bg-gradient-to-l from-neonCyan/10 to-transparent"></div>
                             <div class="relative z-10"><div class="text-[9px] text-neonCyan font-bold uppercase tracking-widest mb-1">Poin Hari Ini</div><div class="text-4xl font-mono font-bold text-white drop-shadow-md">${pts.cur} <span class="text-xs text-slate-500 font-sans font-normal">/ ${myFinance ? myFinance.targetPts : '-'} PTS</span></div></div>
                             <div class="relative z-10 w-12 h-12 rounded-full bg-slate border border-white/10 flex items-center justify-center"><i data-lucide="activity" class="text-neonCyan w-6 h-6"></i></div>
                         </div>
 
-                        ${lazinessWarning}
-
                         <div class="glass-card p-3 rounded-xl flex items-center justify-between border-l-2 border-neonPurple bg-white/5">
-
-                            <!-- Rata-rata Harian -->
-                            <div class="glass-card p-3 rounded-xl flex items-center justify-between border-l-2 border-neonPurple bg-white/5">
-                                <div class="flex items-center gap-3">
-                                    <div class="p-2 rounded-lg bg-neonPurple/10"><i data-lucide="trending-up" class="w-4 h-4 text-neonPurple"></i></div>
-                                    <div>
-                                        <p class="text-[9px] text-neonPurple font-bold uppercase tracking-widest">Rata-rata Harian</p>
-                                        <p class="text-[8px] text-slate-400 font-mono">Performa Bulan Ini</p>
-                                    </div>
+                            <div class="flex items-center gap-3">
+                                <div class="p-2 rounded-lg bg-neonPurple/10"><i data-lucide="trending-up" class="w-4 h-4 text-neonPurple"></i></div>
+                                <div>
+                                    <p class="text-[9px] text-neonPurple font-bold uppercase tracking-widest">Rata-rata Harian</p>
+                                    <p class="text-[8px] text-slate-400 font-mono">Performa Bulan Ini</p>
                                 </div>
-                                <div class="text-xl font-mono font-bold text-white tracking-wide">${pts.avg} <span class="text-[9px] text-slate-500 font-sans font-normal">PTS</span></div>
                             </div>
+                            <div class="text-xl font-mono font-bold text-white tracking-wide">${pts.avg} <span class="text-[9px] text-slate-500 font-sans font-normal">PTS</span></div>
+                        </div>
 
-                            <!-- Stats Bulanan Grid -->
-                            <div class="grid grid-cols-2 gap-3">
-                               <div class="glass-card p-4 flex flex-col items-center border-t-2 border-neonPurple relative overflow-hidden group">
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="glass-card p-4 flex flex-col items-center border-t-2 border-neonPurple relative overflow-hidden group">
                                 <div class="absolute left-[-10px] top-[-10px] bg-neonPurple/10 w-12 h-12 rounded-full blur-xl"></div>
                                 <span class="text-[8px] text-neonPurple uppercase tracking-widest mb-1 relative z-10">Bulan Lalu</span>
                                 <span class="text-xl font-mono font-bold text-slate-300 relative z-10">${pts.last}</span>
                             </div>
-                                <div class="glass-card p-4 flex flex-col items-center border-t-2 border-neonCyan">
-                                    <span class="text-[8px] text-neonCyan uppercase tracking-widest mb-1">Bulan Ini</span>
-                                    <span class="text-xl font-mono font-bold text-white">${pts.mon}</span>
-                                </div>
+                            <div class="glass-card p-4 flex flex-col items-center border-t-2 border-neonCyan relative overflow-hidden group">
+                                <div class="absolute right-[-10px] top-[-10px] bg-neonCyan/10 w-12 h-12 rounded-full blur-xl"></div>
+                                <span class="text-[8px] text-neonCyan uppercase tracking-widest mb-1 relative z-10">Bulan Ini</span>
+                                <span class="text-xl font-mono font-bold text-white relative z-10">${pts.mon}</span>
                             </div>
+                        </div>
 
-                            ${ref ? `<div class="glass-card p-5 rounded-xl border-l-4 border-l-neonPurple"><div class="flex items-center gap-2 mb-2 text-neonPurple"><i data-lucide="brain-circuit" class="w-4 h-4"></i><span class="text-[10px] font-bold uppercase tracking-widest">LOG REFLEKSI</span></div><p class="text-sm text-slate-200 italic">"${ref.text}"</p></div>` : 
-                            `<div class="p-5 rounded-xl border border-dashed border-slate-700 bg-slate/20"><label class="block text-slate-400 text-[10px] font-bold mb-3 uppercase tracking-widest flex items-center gap-2"><i data-lucide="edit-3" class="w-3 h-3"></i> Refleksi Hari Ini</label><div class="flex gap-2"><input id="ref-in" type="text" placeholder="Apa yang dipelajari?" class="flex-1 bg-charcoal text-white rounded-lg px-4 py-3 text-sm border border-slate-700 focus:border-neonPurple outline-none"><button onclick="App.controller.saveRef()" class="bg-neonPurple text-white px-4 rounded-lg shadow-lg"><i data-lucide="save" class="w-4 h-4"></i></button></div></div>`}
-
+                        ${ref ? `<div class="glass-card p-5 rounded-xl border-l-4 border-l-neonPurple"><div class="flex items-center gap-2 mb-2 text-neonPurple"><i data-lucide="brain-circuit" class="w-4 h-4"></i><span class="text-[10px] font-bold uppercase tracking-widest">LOG REFLEKSI</span></div><p class="text-sm text-slate-200 italic">"${ref.text}"</p></div>` : 
+                        `<div class="p-5 rounded-xl border border-dashed border-slate-700 bg-slate/20"><label class="block text-slate-400 text-[10px] font-bold mb-3 uppercase tracking-widest flex items-center gap-2"><i data-lucide="edit-3" class="w-3 h-3"></i> Refleksi Hari Ini</label><div class="flex gap-2"><input id="ref-in" type="text" placeholder="Apa yang dipelajari?" class="flex-1 bg-charcoal text-white rounded-lg px-4 py-3 text-sm border border-slate-700 focus:border-neonPurple outline-none"><button onclick="App.controller.saveRef()" class="bg-neonPurple text-white px-4 rounded-lg shadow-lg"><i data-lucide="save" class="w-4 h-4"></i></button></div></div>`}
                             <!-- SECTION: MISI GAGAL -->
                             ${tFailed.length > 0 ? `
                             <div>
@@ -3556,30 +3545,26 @@
                             <div class="pt-4 border-t border-white/5"><h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2"><i data-lucide="list" class="w-3 h-3"></i> Codex Pangkat</h3><div class="bg-charcoal/50 p-2 rounded-xl border border-white/5 h-64 overflow-y-auto custom-scroll">${ComponentFactory.rankLegend()}</div></div>
                         </div>`;
                     }
-                    else if (this.state.view === 'rewards') {
+else if (this.state.view === 'rewards') {
                     const { total } = pts; 
                     
-                    // 👉 FIX: Hard-Filter Anti-Sistem Items di Wishlist! (Pajak ga bakal bisa masuk sini lagi)
+                    // Filter KERAS: Pajak/Denda/Tiket gak boleh masuk Wishlist
                     const active = rewards.filter(r => r.status === 'active' && !r.name.includes('Pajak') && !r.name.includes('Pinalti') && !r.name.includes('Tiket'));
-                    
                     const allRedeemed = rewards.filter(r => r.status === 'redeemed');
                     
                     const settings = await Store.get('settings');
                     const archivedSpent = settings.archivedSpent || 0;
 
-                    // 👉 FIX: Pisahkan Pengeluaran Asli vs Pajak/Sanksi untuk UI
+                    // Pisahkan Pajak vs Belanja Asli
                     const totalTaxPaid = allRedeemed.filter(r => r.name.includes('Pajak') || r.name.includes('Pinalti') || r.name.includes('Tiket')).reduce((acc, r) => acc + (r.cost || 0), 0);
                     const totalRealSpent = allRedeemed.filter(r => !r.name.includes('Pajak') && !r.name.includes('Pinalti') && !r.name.includes('Tiket')).reduce((acc, r) => acc + (r.cost || 0), 0) + archivedSpent;
 
-                    // Total Spent Keseluruhan (Buat hitung dompet sesungguhnya)
                     const totalSpent = allRedeemed.reduce((acc, r) => acc + (r.cost || 0), 0) + archivedSpent;
                     const walletBalance = total - totalSpent;
                     const isMinus = walletBalance < 0;
 
-                    // Data Rupiah Bulan Ini
                     const curMonthKey = Utils.getMonthKey(Utils.getISO());
                     const redeemedThisMonth = allRedeemed.filter(r => r.redeemedDate && r.redeemedDate.startsWith(curMonthKey));
-                    // Hitung pengeluaran rupiah hanya dari belanja asli (bukan pajak sistem)
                     const expenseRupiahCurrent = redeemedThisMonth.filter(r => !r.name.includes('Pajak') && !r.name.includes('Pinalti') && !r.name.includes('Tiket')).reduce((acc, r) => acc + (r.price || 0), 0);
 
                     const myFinance = financeData.find(f => f.month === curMonthKey);
@@ -3644,7 +3629,6 @@
                                 <div class="h-1.5 w-full bg-slate-900 rounded-full overflow-hidden border border-slate-700">
                                     <div class="h-full ${isOverBudget ? 'bg-neonRed' : 'bg-neonCyan'} transition-all duration-1000" style="width: ${budgetPercent}%"></div>
                                 </div>
-                                
                                 <div class="text-right mt-1.5 flex justify-end items-center gap-1">
                                     <span class="text-[8px] text-slate-600 uppercase tracking-wider">BATAS ANGGARAN:</span>
                                     <span class="text-[9px] text-slate-500 font-mono font-bold">Rp ${Utils.formatCurrency(budgetRupiah)}</span>
@@ -3653,97 +3637,92 @@
                         </div>`;
                     }
 
-                        // Form Input Reward (Tetap sama)
-                        let rewardForm = ''; 
-                        if (this.state.rewardStep === 0) {
-                            rewardForm = `<div class="flex gap-2"><input id="rew-name" type="text" placeholder="Ketik barang impian..." class="w-full bg-charcoal text-white rounded-xl px-4 py-3 text-sm border border-slate-700 focus:border-neonCyan outline-none shadow-inner"><button onclick="App.controller.initReward()" class="bg-neonCyan hover:bg-white hover:text-obsidian text-obsidian px-5 rounded-xl font-bold transition-all shadow-lg active:scale-95"><i data-lucide="plus" class="w-5 h-5"></i></button></div>`;
-                        } else if (this.state.rewardStep === 1) {
-                            rewardForm = `<div class="text-center py-2 animate-[fadeIn_0.3s]"><p class="text-white text-xs font-bold mb-3">Ada harga nominal (Rp)?</p><div class="flex gap-3 justify-center"><button onclick="App.controller.setRewardHasPrice(false)" class="px-4 py-2 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-700 text-xs">Tidak</button><button onclick="App.controller.setRewardHasPrice(true)" class="px-4 py-2 rounded-lg bg-neonPurple text-white hover:bg-neonPurple/80 shadow-lg text-xs font-bold">Ya</button></div></div>`;
-                        } else if (this.state.rewardStep === 2) {
-                            const showPriceInput = this.state.tempReward.hasPrice;
-                            rewardForm = `<div class="space-y-3 animate-[fadeIn_0.3s]"><div class="flex items-center justify-between text-xs text-slate-400 px-1"><span>Item: <strong class="text-white">${this.state.tempReward.name}</strong></span><button onclick="App.controller.resetRewardForm()" class="text-neonRed hover:underline">Batal</button></div>${showPriceInput ? `<input id="rew-price" type="number" onkeyup="App.controller.calcRewardRecs()" placeholder="Harga (Rp)..." class="w-full bg-charcoal text-white rounded-lg px-4 py-3 text-sm border border-slate-700 focus:border-neonPurple outline-none">` : ''}<div id="rec-container"></div><div class="flex gap-2"><input id="rew-cost" type="number" placeholder="Target Poin (Cost)..." class="flex-1 bg-charcoal text-white rounded-lg px-4 py-3 text-sm border border-slate-700 focus:border-neonCyan outline-none"><button onclick="App.controller.saveReward()" class="bg-neonCyan hover:bg-white hover:text-obsidian text-obsidian px-5 rounded-lg font-bold transition-all shadow-lg"><i data-lucide="check" class="w-5 h-5"></i></button></div></div>`;
-                        }
+                    let rewardForm = ''; 
+                    if (this.state.rewardStep === 0) {
+                        rewardForm = `<div class="flex gap-2"><input id="rew-name" type="text" placeholder="Ketik barang impian..." class="w-full bg-charcoal text-white rounded-xl px-4 py-3 text-sm border border-slate-700 focus:border-neonCyan outline-none shadow-inner"><button onclick="App.controller.initReward()" class="bg-neonCyan hover:bg-white hover:text-obsidian text-obsidian px-5 rounded-xl font-bold transition-all shadow-lg active:scale-95"><i data-lucide="plus" class="w-5 h-5"></i></button></div>`;
+                    } else if (this.state.rewardStep === 1) {
+                        rewardForm = `<div class="text-center py-2 animate-[fadeIn_0.3s]"><p class="text-white text-xs font-bold mb-3">Ada harga nominal (Rp)?</p><div class="flex gap-3 justify-center"><button onclick="App.controller.setRewardHasPrice(false)" class="px-4 py-2 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-700 text-xs">Tidak</button><button onclick="App.controller.setRewardHasPrice(true)" class="px-4 py-2 rounded-lg bg-neonPurple text-white hover:bg-neonPurple/80 shadow-lg text-xs font-bold">Ya</button></div></div>`;
+                    } else if (this.state.rewardStep === 2) {
+                        const showPriceInput = this.state.tempReward.hasPrice;
+                        rewardForm = `<div class="space-y-3 animate-[fadeIn_0.3s]"><div class="flex items-center justify-between text-xs text-slate-400 px-1"><span>Item: <strong class="text-white">${this.state.tempReward.name}</strong></span><button onclick="App.controller.resetRewardForm()" class="text-neonRed hover:underline">Batal</button></div>${showPriceInput ? `<input id="rew-price" type="number" onkeyup="App.controller.calcRewardRecs()" placeholder="Harga (Rp)..." class="w-full bg-charcoal text-white rounded-lg px-4 py-3 text-sm border border-slate-700 focus:border-neonPurple outline-none">` : ''}<div id="rec-container"></div><div class="flex gap-2"><input id="rew-cost" type="number" placeholder="Target Poin (Cost)..." class="flex-1 bg-charcoal text-white rounded-lg px-4 py-3 text-sm border border-slate-700 focus:border-neonCyan outline-none"><button onclick="App.controller.saveReward()" class="bg-neonCyan hover:bg-white hover:text-obsidian text-obsidian px-5 rounded-lg font-bold transition-all shadow-lg"><i data-lucide="check" class="w-5 h-5"></i></button></div></div>`;
+                    }
 
                     main.innerHTML = `
-                        <div class="space-y-6 animate-[fadeIn_0.4s_ease-out] pt-4 pb-24">
-                            ${financeSection}
+                    <div class="space-y-6 animate-[fadeIn_0.4s_ease-out] pt-4 pb-24">
+                        ${financeSection}
 
-                            <div class="space-y-2">
-                                <div class="glass-card p-4 rounded-xl space-y-3 border border-white/5 bg-slate-800/30">${rewardForm}</div>
+                        <div class="space-y-2">
+                            <div class="glass-card p-4 rounded-xl space-y-3 border border-white/5 bg-slate-800/30">${rewardForm}</div>
+                        </div>
+                        
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between px-1">
+                                <h3 class="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-2"><i data-lucide="shopping-bag" class="w-4 h-4 text-neonPurple"></i> Wishlist Market</h3>
+                                <span class="text-[9px] text-slate-500 bg-white/5 px-2 py-1 rounded-lg">${active.length} ITEM</span>
                             </div>
-                            
-                            <div class="space-y-4">
-                                <div class="flex items-center justify-between px-1">
-                                    <h3 class="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-2"><i data-lucide="shopping-bag" class="w-4 h-4 text-neonPurple"></i> Wishlist Market</h3>
-                                    <span class="text-[9px] text-slate-500 bg-white/5 px-2 py-1 rounded-lg">${active.length} ITEM</span>
-                                </div>
 
-                                ${active.length===0 ? '<div class="text-center py-10 text-xs text-slate-600 border border-dashed border-slate-800 rounded-xl">BELUM ADA TARGET BELANJA</div>' : active.map(r => {
-                                    const canClaim = walletBalance >= r.cost;
-                                    const progress = r.cost > 0 ? Math.min((walletBalance/r.cost)*100, 100) : 0;
-                                    const deficit = r.cost - walletBalance;
-                                    
-                                    return `
-                                    <div class="glass-card p-4 rounded-xl relative overflow-hidden group border transition-all duration-300 ${canClaim ? 'border-neonGreen/50' : 'border-white/5 hover:border-white/10'}">
-                                        <div class="flex justify-between items-start mb-2">
-                                            <div>
-                                                <h4 class="text-white font-bold text-sm tracking-wide group-hover:text-neonCyan transition-colors">${r.name}</h4>
-                                                ${r.price ? `<div class="text-[10px] text-slate-400 font-mono mt-0.5">Rp ${Utils.formatCurrency(r.price)}</div>` : ''}
-                                            </div>
-                                            <div class="flex flex-col items-end gap-2">
-                                                <button onclick="App.controller.delReward('${r.id}')" class="p-1 text-slate-600 hover:text-neonRed transition-colors"><i data-lucide="trash-2" class="w-3 h-3"></i></button>
-                                            </div>
+                            ${active.length===0 ? '<div class="text-center py-10 text-xs text-slate-600 border border-dashed border-slate-800 rounded-xl">BELUM ADA TARGET BELANJA</div>' : active.map(r => {
+                                const canClaim = walletBalance >= r.cost;
+                                const progress = r.cost > 0 ? Math.min((walletBalance/r.cost)*100, 100) : 0;
+                                const deficit = r.cost - walletBalance;
+                                
+                                return `
+                                <div class="glass-card p-4 rounded-xl relative overflow-hidden group border transition-all duration-300 ${canClaim ? 'border-neonGreen/50' : 'border-white/5 hover:border-white/10'}">
+                                    <div class="flex justify-between items-start mb-2">
+                                        <div>
+                                            <h4 class="text-white font-bold text-sm tracking-wide group-hover:text-neonCyan transition-colors">${r.name}</h4>
+                                            ${r.price ? `<div class="text-[10px] text-slate-400 font-mono mt-0.5">Rp ${Utils.formatCurrency(r.price)}</div>` : ''}
                                         </div>
-
-                                        <!-- KOLAM ENERGI (PROGRESS BAR) -->
-                                        <div class="mt-3 mb-2">
-                                            <div class="flex justify-between text-[9px] mb-1">
-                                                <span class="text-slate-500 font-bold">PROGRESS</span>
-                                                <span class="font-mono ${canClaim ? 'text-neonGreen' : 'text-white'}">${Math.floor(progress)}%</span>
-                                            </div>
-                                            <!-- Wadah Kolam -->
-                                            <div class="w-full h-3 bg-slate-900/80 rounded border border-slate-700 relative overflow-hidden">
-                                                <!-- Isi Kolam -->
-                                                <div class="h-full ${canClaim ? 'bg-neonGreen shadow-[0_0_10px_#10b981]' : 'bg-neonPurple'} transition-all duration-1000" style="width:${progress}%"></div>
-                                            </div>
+                                        <div class="flex flex-col items-end gap-2">
+                                             <button onclick="App.controller.delReward('${r.id}')" class="p-1 text-slate-600 hover:text-neonRed transition-colors"><i data-lucide="trash-2" class="w-3 h-3"></i></button>
                                         </div>
-
-                                        <div class="flex justify-between items-center mt-3 pt-2 border-t border-white/5">
-                                            <div class="font-mono text-xs text-white">
-                                                ${r.cost} <span class="text-[8px] text-slate-500">PTS</span>
-                                            </div>
-                                            <div>
-                                                ${canClaim ? 
-                                                    `<button onclick="App.controller.claimReward('${r.id}')" class="bg-neonGreen hover:bg-white text-obsidian text-[10px] font-bold px-4 py-1.5 rounded shadow-lg transition-transform active:scale-95 flex items-center gap-2"><i data-lucide="shopping-cart" class="w-3 h-3"></i> BELI</button>` 
-                                                    : 
-                                                    `<span class="text-[9px] font-mono text-neonRed flex items-center gap-1 bg-neonRed/10 px-2 py-1 rounded border border-neonRed/20"><i data-lucide="lock" class="w-3 h-3"></i> Kurang ${deficit}</span>`
-                                                }
-                                            </div>
-                                        </div>
-                                    </div>`
-                                }).join('')}
-                            </div>
-                            
-                            <!-- History Belanja -->
-                            <div class="pt-6 border-t border-white/5 space-y-4 opacity-80 hover:opacity-100 transition-opacity">
-                                <h3 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 flex items-center gap-2">
-                                    <i data-lucide="history" class="w-3 h-3"></i> Riwayat Transaksi (Bulan Ini)
-                                </h3>
-                                ${redeemedThisMonth.length === 0 ? '<div class="text-center py-4 text-[10px] text-slate-700">Belum ada transaksi.</div>' : redeemedThisMonth.map(r=>`
-                                    <div class="flex items-center justify-between p-3 rounded-lg border border-white/5 bg-white/[0.02]">
-                                        <div class="flex items-center gap-3">
-                                            <div class="p-1.5 rounded bg-white/5 text-slate-400"><i data-lucide="check" class="w-3 h-3"></i></div>
-                                            <div>
-                                                <p class="text-slate-300 text-xs font-bold">${r.name}</p>
-                                                <p class="text-[8px] text-slate-600">${Utils.formatDate(r.redeemedDate)}</p>
-                                            </div>
-                                        </div>
-                                        <div class="text-neonRed text-xs font-mono font-bold">-${r.cost}</div>
                                     </div>
-                                `).join('')}
-                            </div>
-                        </div>`;
-                    }
+
+                                    <div class="mt-3 mb-2">
+                                        <div class="flex justify-between text-[9px] mb-1">
+                                            <span class="text-slate-500 font-bold">PROGRESS</span>
+                                            <span class="font-mono ${canClaim ? 'text-neonGreen' : 'text-white'}">${Math.floor(progress)}%</span>
+                                        </div>
+                                        <div class="w-full h-3 bg-slate-900/80 rounded border border-slate-700 relative overflow-hidden">
+                                            <div class="h-full ${canClaim ? 'bg-neonGreen shadow-[0_0_10px_#10b981]' : 'bg-neonPurple'} transition-all duration-1000" style="width:${progress}%"></div>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex justify-between items-center mt-3 pt-2 border-t border-white/5">
+                                        <div class="font-mono text-xs text-white">
+                                            ${r.cost} <span class="text-[8px] text-slate-500">PTS</span>
+                                        </div>
+                                        <div>
+                                            ${canClaim ? 
+                                                `<button onclick="App.controller.claimReward('${r.id}')" class="bg-neonGreen hover:bg-white text-obsidian text-[10px] font-bold px-4 py-1.5 rounded shadow-lg transition-transform active:scale-95 flex items-center gap-2"><i data-lucide="shopping-cart" class="w-3 h-3"></i> BELI</button>` 
+                                                : 
+                                                `<span class="text-[9px] font-mono text-neonRed flex items-center gap-1 bg-neonRed/10 px-2 py-1 rounded border border-neonRed/20"><i data-lucide="lock" class="w-3 h-3"></i> Kurang ${deficit}</span>`
+                                            }
+                                        </div>
+                                    </div>
+                                </div>`
+                            }).join('')}
+                        </div>
+                        
+                        <div class="pt-6 border-t border-white/5 space-y-4 opacity-80 hover:opacity-100 transition-opacity">
+                            <h3 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 flex items-center gap-2">
+                                <i data-lucide="history" class="w-3 h-3"></i> Riwayat Transaksi (Bulan Ini)
+                            </h3>
+                            ${redeemedThisMonth.length === 0 ? '<div class="text-center py-4 text-[10px] text-slate-700">Belum ada transaksi.</div>' : redeemedThisMonth.map(r=>`
+                                <div class="flex items-center justify-between p-3 rounded-lg border border-white/5 bg-white/[0.02]">
+                                    <div class="flex items-center gap-3">
+                                        <div class="p-1.5 rounded bg-white/5 text-slate-400"><i data-lucide="check" class="w-3 h-3"></i></div>
+                                        <div>
+                                            <p class="text-slate-300 text-xs font-bold">${r.name}</p>
+                                            <p class="text-[8px] text-slate-600">${Utils.formatDate(r.redeemedDate)}</p>
+                                        </div>
+                                    </div>
+                                    <div class="text-neonRed text-xs font-mono font-bold">-${r.cost}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>`;
+                }
                 else if (this.state.view === 'history') {
                         const [hy, hm] = this.state.histMonth.split('-');
                         const dim = new Date(hy, hm, 0).getDate();

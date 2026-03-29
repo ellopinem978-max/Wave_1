@@ -1555,6 +1555,29 @@
                         rewards: [] // Menyimpan ID hadiah yang sudah diberitahu bisa diklaim
                     }
                 },
+                  // 👉 FITUR BARU: NUKLIR DATABASE (FACTORY RESET)
+                async factoryReset() {
+                    this.sound.play('error');
+                    if(confirm('⚠️ DANGER ZONE: Yakin ingin menghapus SEMUA data misi, poin, dan histori?\n\nAksi ini akan me-reset database ke 0 dan tidak bisa dikembalikan.')) {
+                        // Paksa tutup koneksi database biar bisa dihapus
+                        if (Store.db) {
+                            Store.db.close();
+                        }
+                        // Hapus database IndexedDB sampai ke akar
+                        const req = indexedDB.deleteDatabase(Store.dbName);
+                        
+                        req.onsuccess = function () {
+                            alert("Sistem berhasil di-reset. Wake Map akan di-reboot.");
+                            window.location.reload();
+                        };
+                        req.onerror = function () {
+                            alert("Gagal mereset sistem. Harap clear data browser manual.");
+                        };
+                        req.onblocked = function () {
+                            alert("Tutup tab lain yang membuka aplikasi ini, lalu coba lagi.");
+                        };
+                    }
+                },
 
                 async init() {
                     new VFXEngine();
@@ -3957,29 +3980,7 @@
                         }
                     }
                 },
-            // 👉 FITUR BARU: NUKLIR DATABASE (FACTORY RESET)
-                async factoryReset() {
-                    this.sound.play('error');
-                    if(confirm('⚠️ DANGER ZONE: Yakin ingin menghapus SEMUA data misi, poin, dan histori?\n\nAksi ini akan me-reset database ke 0 dan tidak bisa dikembalikan.')) {
-                        // Paksa tutup koneksi database biar bisa dihapus
-                        if (Store.db) {
-                            Store.db.close();
-                        }
-                        // Hapus database IndexedDB sampai ke akar
-                        const req = indexedDB.deleteDatabase(Store.dbName);
-                        
-                        req.onsuccess = function () {
-                            alert("Sistem berhasil di-reset. Wake Map akan di-reboot.");
-                            window.location.reload();
-                        };
-                        req.onerror = function () {
-                            alert("Gagal mereset sistem. Harap clear data browser manual.");
-                        };
-                        req.onblocked = function () {
-                            alert("Tutup tab lain yang membuka aplikasi ini, lalu coba lagi.");
-                        };
-                    }
-                }
+        
             };
 
             onAuthStateChanged(auth, (user) => {

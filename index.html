@@ -862,6 +862,7 @@
             }
                // 👉 FITUR BARU: Evaluasi Performa (Rapel Denda Kemalasan Anti-Kabur)
             static async evaluateYesterday(tasks, rewards, financeData, settings) {
+                if (!settings.hasStarted) return false;
                 const today = new Date();
                 today.setHours(0,0,0,0); // Normalisasi ke tengah malam
                 const tISO = Utils.getISO(today);
@@ -1357,7 +1358,60 @@
              */
             const Controller = {
       // 👉 STATE BARU BUAT LOOP (Taruh ini di dalam state: {} di Controller lu kalau mau rapi, atau pake state.tempLoopDiff = 'easy' langsung jalan)
-            
+       
+                // 👉 FUNGSI BARU 1: Cek apakah user baru pertama kali masuk
+                async checkOnboarding() {
+                    const settings = await Store.get('settings');
+                    if (!settings.hasStarted) {
+                        const m = document.getElementById('modal-layer');
+                        m.innerHTML = `
+                        <div class="fixed inset-0 z-[100] bg-obsidian flex flex-col items-center justify-center p-6 text-center">
+                            <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-30"></div>
+                            <div class="absolute inset-0 bg-gradient-to-t from-neonRed/20 via-transparent to-transparent pointer-events-none"></div>
+                            
+                            <div class="relative z-10 max-w-sm w-full">
+                                <i data-lucide="power" class="w-16 h-16 text-neonRed mx-auto mb-6 animate-pulse"></i>
+                                <h1 class="text-3xl font-display text-white mb-2 tracking-widest drop-shadow-[0_0_15px_rgba(239,68,68,0.5)]">WAKE MAP</h1>
+                                <div class="glass-card p-5 rounded-xl border-l-2 border-neonRed mb-8 text-left bg-charcoal/90">
+                                    <p class="text-slate-300 text-xs leading-relaxed">
+                                        <strong class="text-neonRed text-sm block mb-2">⚠️ PERINGATAN PROTOKOL:</strong>
+                                        Sekali tombol di bawah ditekan, sistem akan mulai mengawasi kedisiplinan Anda secara permanen.<br><br>
+                                        Jika Anda bermalas-malasan (poin harian < 20%), sistem akan menyita saldo Anda sebagai <strong>Pajak Kemalasan</strong> keesokan harinya.
+                                    </p>
+                                </div>
+                                <button onclick="App.controller.startProtocol()" class="w-full bg-neonRed text-white font-bold py-4 rounded-xl shadow-[0_0_20px_rgba(239,68,68,0.4)] active:scale-95 transition-all uppercase tracking-widest flex items-center justify-center gap-2">
+                                    <i data-lucide="zap" class="w-5 h-5"></i> INITIATE PROTOCOL
+                                </button>
+                            </div>
+                        </div>`;
+                        m.classList.remove('opacity-0', 'invisible', 'pointer-events-none');
+                        lucide.createIcons();
+                        return true; // Berarti statusnya lagi di layar awal
+                    }
+                    return false; // Berarti udah pernah mulai
+                },
+
+                // 👉 FUNGSI BARU 2: Eksekusi tombol "Mulai Aplikasi"
+                async startProtocol() {
+                    this.sound.play('success');
+                    const settings = await Store.get('settings');
+                    settings.hasStarted = true; // Tanda tangani kontrak!
+                    
+                    // Tetapkan HARI INI sebagai masa tenggang (Pajak baru berlaku besok)
+                    const today = new Date();
+                    today.setHours(0,0,0,0);
+                    settings.lastEvaluatedDay = Utils.getISO(today);
+                    
+                    await Store.set('settings', settings);
+                    
+                    const m = document.getElementById('modal-layer');
+                    m.classList.add('opacity-0', 'invisible', 'pointer-events-none');
+                    setTimeout(() => m.innerHTML='', 300);
+                    
+                    this.render();
+                },
+
+                // ... (FUNGSI SETELAHNYA KAYAK calcLoopTotal, DLL BIARIN AJA) ...
             setTempLoopDiff(d) {
                 this.state.tempLoopDiff = d;
                 this.renderLoopDiffBtns();
@@ -1654,7 +1708,10 @@
                         monthDisplay.innerText = Utils.formatMonth(Utils.getMonthKey(Utils.getISO()));
                     }
 
-                    this.render();
+                    const isOnboarding = await this.checkOnboarding();
+                    if (!isOnboarding) {
+                        this.render(); // Kalau udah mulai, baru masukin ke dalam PETA
+                    }
                     // 👉 NOTIFIKASI TOAST PERINGATAN (Cuma muncul 1x pas awal buka)
                 setTimeout(async () => {
                     const tasks = await Store.get('tasks');

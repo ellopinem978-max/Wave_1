@@ -1375,8 +1375,31 @@
              */
             const Controller = {
       // 👉 STATE BARU BUAT LOOP (Taruh ini di dalam state: {} di Controller lu kalau mau rapi, atau pake state.tempLoopDiff = 'easy' langsung jalan)
-                // 👉 FITUR BARU: BUKU PANDUAN (CODEX)
-            openCodex() {
+              // 👉 FITUR BARU: Copy Data Bulan Lalu
+            async copyPrevFinance() {
+                this.sound.play('success');
+                const financeData = await Store.get('finance');
+                const dObj = new Date();
+                const dPrev = new Date(dObj.getFullYear(), dObj.getMonth() - 1, 1);
+                const prevMonthKey = Utils.getISO(dPrev).slice(0, 7);
+                const currentMonthKey = Utils.getMonthKey(Utils.getISO());
+
+                const prevData = financeData.find(f => f.month === prevMonthKey);
+                
+                if (prevData) {
+                    // Masukkan data lama ke bulan baru
+                    financeData.push({ 
+                        ...prevData, 
+                        month: currentMonthKey 
+                    });
+                    await Store.set('finance', financeData);
+                    this.toast(`Protokol disalin dari ${Utils.formatMonth(prevMonthKey)}!`, 'success');
+                    this.render();
+                }
+            },
+      // 👉 FITUR BARU: BUKU PANDUAN (CODEX)
+            
+                openCodex() {
                 this.sound.play('click');
                 const m = document.getElementById('modal-layer');
                 m.innerHTML = `
@@ -3465,16 +3488,47 @@
                         return `<button onclick="App.controller.setDifficulty('${d}')" class="flex-1 py-2 rounded-lg text-[10px] font-bold border uppercase transition-all ${act ? `bg-white/10 text-white shadow-[0_0_10px_currentColor] ${c.border}` : 'border-slate-700 text-slate-500'}" style="${act?`color:${c.hex}`:''}">${c.label}</button>`;
                     };
 
-                    let financeCard = '';
+                   let financeCard = '';
                     if (!myFinance) {
+                        // Cari data bulan lalu
+                        const dObj = new Date();
+                        const dPrev = new Date(dObj.getFullYear(), dObj.getMonth() - 1, 1);
+                        const prevMonthKey = Utils.getISO(dPrev).slice(0, 7);
+                        const prevFinance = financeData.find(f => f.month === prevMonthKey);
+
+                        let prevSuggestion = '';
+                        if (prevFinance) {
+                            const prevMode = Config.PRODUCTIVITY_MODES.find(m => m.id === prevFinance.modeId);
+                            prevSuggestion = `
+                            <div class="p-4 rounded-xl border border-neonCyan/30 bg-neonCyan/5 mb-4 animate-[fadeIn_0.5s]">
+                                <div class="flex justify-between items-start mb-2">
+                                    <span class="text-[9px] font-bold text-neonCyan uppercase tracking-widest">Gunakan Parameter Bulan Lalu?</span>
+                                    <i data-lucide="history" class="w-3 h-3 text-neonCyan"></i>
+                                </div>
+                                <div class="flex justify-between items-center mb-3">
+                                    <div class="text-left">
+                                        <p class="text-[10px] text-white font-bold">Rp ${Utils.formatCurrency(prevFinance.amount)}</p>
+                                        <p class="text-[8px] text-slate-400">Mode: ${prevMode ? prevMode.label : 'N/A'}</p>
+                                    </div>
+                                    <button onclick="App.controller.copyPrevFinance()" class="bg-neonCyan text-obsidian text-[10px] font-bold px-3 py-1.5 rounded-lg hover:bg-white transition-all shadow-lg active:scale-95">
+                                        YA, SALIN DATA
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2 mb-4 opacity-30"><div class="h-px bg-white w-full"></div><span class="text-[8px] text-white whitespace-nowrap uppercase">Atau Isi Manual</span><div class="h-px bg-white w-full"></div></div>
+                            `;
+                        }
+
                         const selectedModeId = this.state.tempMode;
                         financeCard = `
-                        <div class="glass-card p-5 rounded-xl border border-neonGold/30 bg-neonGold/5 mb-4 animate-[pulse-slow]">
+                        <div class="glass-card p-5 rounded-xl border border-neonGold/30 bg-neonGold/5 mb-4">
                             <div class="flex items-center gap-2 mb-3">
                                 <i data-lucide="settings-2" class="w-5 h-5 text-neonGold"></i>
-                                <h3 class="text-sm font-bold text-white">Kalibrasi Protokol Bulan Ini</h3>
+                                <h3 class="text-sm font-bold text-white">Kalibrasi Protokol ${Utils.formatMonth(monthKey)}</h3>
                             </div>
-                            <p class="text-xs text-slate-400 mb-3 leading-relaxed">Agar kalkulasi nilai poin & rank akurat, masukkan parameter finansial & pilih mode operasi Anda.</p>
+                            
+                            ${prevSuggestion}
+
                             <div class="space-y-4">
                                 <div>
                                     <label class="text-[9px] text-slate-500 uppercase font-bold mb-1 block">Anggaran/Gaji (Rp)</label>

@@ -283,6 +283,18 @@
                             <span id="header-month" class="text-[10px] font-bold text-white uppercase tracking-[0.15em] group-hover:text-neonCyan transition-colors">...</span>
                         </div>
                     </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="App.controller.openCodex()" class="glass-card p-2 rounded-lg hover:border-neonPurple/50 transition-colors text-slate-400 hover:text-white">
+                            <i data-lucide="book-open" class="w-5 h-5"></i>
+                        </button>
+                        
+                        <button onclick="App.controller.openSettings()" class="glass-card p-2 rounded-lg hover:border-neonCyan/50 transition-colors text-slate-400 hover:text-white">
+                            <i data-lucide="settings" class="w-5 h-5"></i>
+                        </button>
+                        <div class="glass-card px-4 py-2 rounded-lg group hover:border-neonCyan/30 transition-colors cursor-default">
+                            <span id="header-month" class="text-[10px] font-bold text-white uppercase tracking-[0.15em] group-hover:text-neonCyan transition-colors">...</span>
+                        </div>
+                    </div>
                 </div>
             </header>
 
@@ -737,28 +749,33 @@
                     const allRedeemed = rewards.filter(r => r.status === 'redeemed');
                     const totalSpent = allRedeemed.reduce((acc, r) => acc + (r.cost || 0), 0) + (settings.archivedSpent || 0);
                     const balance = total - totalSpent;
-                    
-                    // 👉 LOGIKA PAJAK BARU: Tetap ditarik meski saldo minus!
+                    // 👉 LOGIKA PAJAK BARU (Aman buat pengguna baru)
                     let taxAmount = 0;
                     let taxName = '';
+                    
                     if (balance > 0) {
                         taxAmount = Math.ceil(balance * 0.05); // Pajak 5% dari kekayaan
                         taxName = 'Pajak Ekosistem (5%)';
-                    } else {
-                        taxAmount = 15; // Pajak minimum paksa kalau user miskin/minus
+                    } else if (balance < 0) {
+                        taxAmount = 15; // HANYA dipotong kalau saldo emang udah MINUS (Utang)
                         taxName = 'Pajak Minimum Ekosistem';
+                    } else {
+                        // Kalau saldonya PAS 0 (Baru mulai), JANGAN DIPAJAK!
+                        taxAmount = 0; 
                     }
 
                     // Tembak langsung ke keranjang pengeluaran
-                    rewards.push({
-                        id: Utils.generateId(),
-                        name: taxName,
-                        cost: taxAmount,
-                        price: 0,
-                        status: 'redeemed', 
-                        redeemedDate: today
-                    });
-                    await Store.set('rewards', rewards);
+                    if (taxAmount > 0) {
+                        rewards.push({
+                            id: Utils.generateId(),
+                            name: taxName,
+                            cost: taxAmount,
+                            price: 0,
+                            status: 'redeemed', 
+                            redeemedDate: today
+                        });
+                        await Store.set('rewards', rewards);
+                    }
                     
                     settings.lastTaxDate = today;
                     await Store.set('settings', settings);
@@ -1358,7 +1375,46 @@
              */
             const Controller = {
       // 👉 STATE BARU BUAT LOOP (Taruh ini di dalam state: {} di Controller lu kalau mau rapi, atau pake state.tempLoopDiff = 'easy' langsung jalan)
-       
+                // 👉 FITUR BARU: BUKU PANDUAN (CODEX)
+            openCodex() {
+                this.sound.play('click');
+                const m = document.getElementById('modal-layer');
+                m.innerHTML = `
+                <div class="bg-charcoal border-t sm:border border-slate-700 rounded-t-3xl sm:rounded-2xl w-full max-w-md p-6 shadow-2xl pointer-events-auto animate-[slideIn_0.3s_ease-out] max-h-[85vh] flex flex-col">
+                    <div class="flex justify-between items-start mb-4 border-b border-white/5 pb-4">
+                        <div>
+                            <h3 class="text-xl font-bold text-white mb-1 flex items-center gap-2"><i data-lucide="book-open" class="w-5 h-5 text-neonPurple"></i> SYSTEM CODEX</h3>
+                            <p class="text-slate-400 text-xs font-mono">Aturan Main Wake Map.</p>
+                        </div>
+                        <button onclick="App.controller.closeModal()" class="text-slate-500 hover:text-white bg-slate-800/50 p-2 rounded-full"><i data-lucide="x" class="w-5 h-5"></i></button>
+                    </div>
+                    <div class="overflow-y-auto custom-scroll pr-2 space-y-4">
+                        
+                        <div class="p-4 bg-slate-800/50 border border-slate-700 rounded-xl">
+                            <h4 class="text-xs font-bold text-neonRed mb-2 flex items-center gap-2"><i data-lucide="alert-triangle" class="w-4 h-4"></i> 1. Pinalti Kemalasan (Laziness Tax)</h4>
+                            <p class="text-[10px] text-slate-300 leading-relaxed">Sistem mewajibkan Anda mengumpulkan minimal <strong class="text-white">20% dari Target Harian</strong> setiap harinya. Jika gagal, besoknya saldo Poin Anda akan dipotong sebesar <strong class="text-neonRed">50% dari Target Harian</strong> sebagai denda kemalasan.</p>
+                        </div>
+
+                        <div class="p-4 bg-slate-800/50 border border-slate-700 rounded-xl">
+                            <h4 class="text-xs font-bold text-neonGold mb-2 flex items-center gap-2"><i data-lucide="landmark" class="w-4 h-4"></i> 2. Pajak Ekosistem Mingguan</h4>
+                            <p class="text-[10px] text-slate-300 leading-relaxed">Setiap 7 hari, sistem akan menarik Pajak sebesar <strong class="text-neonGold">5% dari Total Saldo</strong> Anda. Jika saldo Anda sudah MINUS, sistem akan memaksa penarikan flat sebesar <strong class="text-neonRed">-15 Pts</strong>. Jangan menimbun poin, gunakan untuk jajan!</p>
+                        </div>
+
+                        <div class="p-4 bg-slate-800/50 border border-slate-700 rounded-xl">
+                            <h4 class="text-xs font-bold text-neonCyan mb-2 flex items-center gap-2"><i data-lucide="moon" class="w-4 h-4"></i> 3. Mode Hibernasi (Cuti)</h4>
+                            <p class="text-[10px] text-slate-300 leading-relaxed">Butuh istirahat tanpa takut kena denda kemalasan? Beli Mode Hibernasi di menu Peta. Harganya adalah <strong class="text-white">1.5x dari Target Harian</strong> Anda. Misi hari itu akan di-skip dengan aman.</p>
+                        </div>
+
+                        <div class="p-4 bg-slate-800/50 border border-slate-700 rounded-xl">
+                            <h4 class="text-xs font-bold text-slate-300 mb-2 flex items-center gap-2"><i data-lucide="lock" class="w-4 h-4"></i> 4. Time-Lock (Misi Terkunci)</h4>
+                            <p class="text-[10px] text-slate-300 leading-relaxed">Anda bisa menghapus/mengedit misi sebelum jam mulainya tiba. Jika waktu sudah memasuki fase misi (contoh: Pagi Hari jam 06:00), misi akan <strong>TERKUNCI</strong>. Anda hanya bisa menyelesaikannya atau membiarkannya Gagal (-Pts).</p>
+                        </div>
+
+                    </div>
+                </div>`;
+                m.classList.remove('opacity-0', 'invisible', 'pointer-events-none');
+                lucide.createIcons();
+            },
                 // 👉 FUNGSI BARU 1: Cek apakah user baru pertama kali masuk
                 async checkOnboarding() {
                     const settings = await Store.get('settings');

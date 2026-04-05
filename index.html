@@ -878,66 +878,66 @@
                 return hasChange;
             }
                // 👉 FITUR BARU: Evaluasi Performa (Rapel Denda Kemalasan Anti-Kabur)
+           // 👉 FITUR BARU: Evaluasi Performa (Rapel Denda Kemalasan Anti-Kabur)
             static async evaluateYesterday(tasks, rewards, financeData, settings) {
+                // Jangan ngapa-ngapain kalau user belum tanda tangan kontrak (Mulai)
                 if (!settings.hasStarted) return false;
+
                 const today = new Date();
-                today.setHours(0,0,0,0); // Normalisasi ke tengah malam
-                const tISO = Utils.getISO(today);
+                today.setHours(0,0,0,0); 
+                
+                const yesterday = new Date(today);
+                yesterday.setDate(today.getDate() - 1);
+                const yISO = Utils.getISO(yesterday); // Tanggal Kemarin
 
-                if (!settings.lastEvaluatedDay) {
-                    settings.lastEvaluatedDay = tISO; 
-                    await Store.set('settings', settings);
-                    return false;
-                }
-
-                if (settings.lastEvaluatedDay >= tISO) return false; // Udah dievaluasi hari ini
+                // Jika tanggal evaluasi terakhir sudah menyentuh kemarin, berarti aman.
+                if (settings.lastEvaluatedDay >= yISO) return false;
 
                 const restDays = await Store.get('restDays') || [];
                 let totalTaxApplied = 0;
 
-                // Loop dari hari setelah lastEvaluatedDay sampai H-1 (Kemarin)
+                // Loop evaluasi dari (lastEvaluated + 1) sampai (Kemarin)
                 let evalDate = new Date(settings.lastEvaluatedDay);
                 evalDate.setDate(evalDate.getDate() + 1);
 
-                while (evalDate < today) {
+                while (evalDate <= yesterday) { // 👉 FIX: Harus <= yesterday
                     const eISO = Utils.getISO(evalDate);
                     
-                    // Kalau hari itu dia beli tiket Hibernasi, aman (bebas pajak)
+                    // Kalau hari itu ga libur (Hibernasi), eksekusi!
                     if (!restDays.includes(eISO)) {
-                        // 1. Hitung poin di hari tersebut
                         const dayTasks = tasks.filter(t => t.date === eISO && t.status === 'completed');
                         const dayPointsEarned = dayTasks.reduce((acc, t) => acc + (t.pts !== undefined ? t.pts : (Config.DIFFICULTY[t.difficulty]?.pts || 0)), 0);
 
-                        // 2. Target di bulan tersebut
                         const monthKey = eISO.slice(0, 7);
                         const myFinance = financeData.find(f => f.month === monthKey);
                         const dailyTarget = myFinance ? myFinance.targetPts : 24; 
 
-                        // 3. Eksekusi Pajak Kemalasan (< 20% target)
+                        // Batas aman adalah 20% dari target
                         const minimumEffort = dailyTarget * 0.20; 
                         
                         if (dayPointsEarned < minimumEffort) {
+                            // Denda 50% dari TARGET HARIAN (Kalau target 24 = denda 12)
                             const lazinessTax = Math.ceil(dailyTarget * 0.50); 
                             totalTaxApplied += lazinessTax;
                             
                             rewards.push({
-                                id: Utils.generateId(), name: `Pinalti Kemalasan (${eISO})`, cost: lazinessTax, price: 0, status: 'redeemed', redeemedDate: tISO
+                                id: Utils.generateId(), name: `Pinalti Kemalasan (${eISO})`, cost: lazinessTax, price: 0, status: 'redeemed', redeemedDate: Utils.getISO(today)
                             });
                         }
                     }
-                    evalDate.setDate(evalDate.getDate() + 1); // Lanjut ke hari berikutnya
+                    evalDate.setDate(evalDate.getDate() + 1); 
                 }
 
-                // Update tanggal evaluasi terakhir ke hari ini (biar besok baru ngecek lagi)
-                settings.lastEvaluatedDay = tISO;
+                // Setelah dinilai semua sampai kemarin, simpan statusnya
+                settings.lastEvaluatedDay = yISO;
+                await Store.set('settings', settings);
                 
+                // Kalau ada denda, update database belanja dan kirim notif
                 if (totalTaxApplied > 0) {
                     await Store.set('rewards', rewards);
-                    await Store.set('settings', settings);
-                    return totalTaxApplied; // Return total denda rapelan
+                    return totalTaxApplied; 
                 }
                 
-                await Store.set('settings', settings);
                 return false;
             }
             }
@@ -1471,15 +1471,18 @@
                 },
 
                 // 👉 FUNGSI BARU 2: Eksekusi tombol "Mulai Aplikasi"
+                // 👉 FUNGSI 2: Eksekusi tombol "Mulai Aplikasi"
                 async startProtocol() {
                     this.sound.play('success');
                     const settings = await Store.get('settings');
                     settings.hasStarted = true; // Tanda tangani kontrak!
                     
-                    // Tetapkan HARI INI sebagai masa tenggang (Pajak baru berlaku besok)
+                    // 👉 FIX LOGIKA TANGGAL: Set patokan ke "Kemarin" 
+                    // Biar performa "Hari Ini" tetep masuk radar hukuman pas besok dibuka!
                     const today = new Date();
-                    today.setHours(0,0,0,0);
-                    settings.lastEvaluatedDay = Utils.getISO(today);
+                    const yesterday = new Date(today);
+                    yesterday.setDate(today.getDate() - 1);
+                    settings.lastEvaluatedDay = Utils.getISO(yesterday); 
                     
                     await Store.set('settings', settings);
                     

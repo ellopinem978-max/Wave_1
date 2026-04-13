@@ -447,7 +447,7 @@
                 static getCurrentSlot() {
                     const h = new Date().getHours();
                     return Config.TIME_SLOTS.find(s => s.id !== 'all' && h >= s.start && h < s.end) || Config.TIME_SLOTS[0];
-              
+                }
                 
                 // 👉 TAMBAHAN BARU: Format interval 30 menit
                 static formatTimeSlot(index) {
@@ -462,6 +462,7 @@
                     return now.getHours() * 2 + (now.getMinutes() >= 30 ? 1 : 0);
                 }
             }
+        
 
             /**
              * MODULE 3: DATA SERVICES (MODEL)

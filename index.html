@@ -447,11 +447,7 @@
                 static getCurrentSlot() {
                     const h = new Date().getHours();
                     return Config.TIME_SLOTS.find(s => s.id !== 'all' && h >= s.start && h < s.end) || Config.TIME_SLOTS[0];
-                }
-                static getCurrentSlot() {
-                    const h = new Date().getHours();
-                    return Config.TIME_SLOTS.find(s => s.id !== 'all' && h >= s.start && h < s.end) || Config.TIME_SLOTS[0];
-                }
+              
                 
                 // 👉 TAMBAHAN BARU: Format interval 30 menit
                 static formatTimeSlot(index) {
@@ -1258,10 +1254,14 @@
                 },
 
                 taskItem(t, mode) { 
-                    let timeLabel = "ALL DAY";
+                   let timeLabel = "ALL DAY";
                     if (t.customLabel) { timeLabel = t.customLabel; } 
-                    else { const slot = Config.TIME_SLOTS.find(s=>s.id === (t.timeSlot||'all')); if (slot) timeLabel = slot.label; }
-                    
+                    else { 
+                        // Berikan fallback aman jika timeSlot tidak ditemukan
+                        const slot = Config.TIME_SLOTS.find(s=>s.id === (t.timeSlot||'all')); 
+                        timeLabel = slot ? slot.label : "ALL DAY"; 
+                    }
+                                        
                     const diff = Config.DIFFICULTY[t.difficulty] || {label:'BONUS', color:'text-neonGold', border:'border-neonGold'};
                     
                     if (t.type === 'bonus' && mode !== 'view') return ''; 
@@ -2316,8 +2316,9 @@
                     if(!text) { this.toast('Nama blueprint wajib diisi', 'error'); return; }
                     if(end <= start) { this.toast('Jam selesai harus lebih besar dari mulai', 'error'); return; }
 
-                    const bps = await Store.get('blueprints');
-                    const timeLabel = `${String(start).padStart(2,'0')}:00 - ${String(end).padStart(2,'0')}:00`;
+                   const bps = await Store.get('blueprints');
+                    // Konversi yang benar menggunakan formatTimeSlot
+                    const timeLabel = `${Utils.formatTimeSlot(start)} - ${Utils.formatTimeSlot(end)}`;
 
                     bps.push({
                         id: Utils.generateId(),
@@ -3365,7 +3366,8 @@
                     let slotId = "all";
                     
                     if (!range.isAll) {
-                        timeLabel = `${String(range.start).padStart(2,'0')}:00 - ${String(range.end).padStart(2,'0')}:00`;
+                        // Menggunakan Utils.formatTimeSlot untuk mengubah index (0-48) menjadi format jam yang benar
+                        timeLabel = `${Utils.formatTimeSlot(range.start)} - ${Utils.formatTimeSlot(range.end)}`;
                         slotId = `custom`; 
                     }
 
